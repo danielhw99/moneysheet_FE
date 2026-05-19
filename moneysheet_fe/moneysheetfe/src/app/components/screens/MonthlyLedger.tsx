@@ -1,278 +1,173 @@
-import { useNavigate } from 'react-router';
-import { Plus } from 'lucide-react';
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+type CalendarCell = {
+  date: Date;
+  isCurrentMonth: boolean;
+};
+
+function formatMonthLabel(date: Date) {
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+}
+
+function formatRouteDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function buildCalendarDays(baseDate: Date) {
+  const startOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+  const endOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0);
+  const startDay = startOfMonth.getDay();
+  const totalDays = endOfMonth.getDate();
+  const cells: CalendarCell[] = [];
+
+  for (let i = startDay; i > 0; i -= 1) {
+    const date = new Date(startOfMonth);
+    date.setDate(date.getDate() - i);
+    cells.push({ date, isCurrentMonth: false });
+  }
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    cells.push({
+      date: new Date(baseDate.getFullYear(), baseDate.getMonth(), day),
+      isCurrentMonth: true,
+    });
+  }
+
+  while (cells.length % 7 !== 0) {
+    const lastDate = new Date(cells[cells.length - 1].date);
+    lastDate.setDate(lastDate.getDate() + 1);
+    cells.push({ date: lastDate, isCurrentMonth: false });
+  }
+
+  return cells;
+}
+
+const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function MonthlyLedger() {
   const navigate = useNavigate();
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState(
+    new Date(today.getFullYear(), today.getMonth(), 1),
+  );
 
-  const calendarData = {
-    monthLabel: "2026년 5월",
-    calendar: [
-      { "date": "2026-05-01", "dailyExpenseTotal": 12100, "status": "used" },
-      { "date": "2026-05-02", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-03", "dailyExpenseTotal": 18700, "status": "used" },
-      { "date": "2026-05-04", "dailyExpenseTotal": 5200, "status": "used" },
-      { "date": "2026-05-05", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-06", "dailyExpenseTotal": 3000, "status": "used" },
-      { "date": "2026-05-07", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-08", "dailyExpenseTotal": 14500, "status": "used" },
-      { "date": "2026-05-09", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-10", "dailyExpenseTotal": 8900, "status": "used" },
-      { "date": "2026-05-11", "dailyExpenseTotal": 7200, "status": "used" },
-      { "date": "2026-05-12", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-13", "dailyExpenseTotal": 19800, "status": "used" },
-      { "date": "2026-05-14", "dailyExpenseTotal": 56250, "status": "used" },
-      { "date": "2026-05-15", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-16", "dailyExpenseTotal": 11300, "status": "used" },
-      { "date": "2026-05-17", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-18", "dailyExpenseTotal": 8500, "status": "used" },
-      { "date": "2026-05-19", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-20", "dailyExpenseTotal": 15600, "status": "used" },
-      { "date": "2026-05-21", "dailyExpenseTotal": 9400, "status": "used" },
-      { "date": "2026-05-22", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-23", "dailyExpenseTotal": 12800, "status": "used" },
-      { "date": "2026-05-24", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-25", "dailyExpenseTotal": 18300, "status": "used" },
-      { "date": "2026-05-26", "dailyExpenseTotal": 6700, "status": "used" },
-      { "date": "2026-05-27", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-28", "dailyExpenseTotal": 14200, "status": "used" },
-      { "date": "2026-05-29", "dailyExpenseTotal": 0, "status": "empty" },
-      { "date": "2026-05-30", "dailyExpenseTotal": 10500, "status": "used" },
-      { "date": "2026-05-31", "dailyExpenseTotal": 0, "status": "empty" }
-    ]
+  const calendarDays = useMemo(() => buildCalendarDays(currentMonth), [currentMonth]);
+
+  const moveMonth = (offset: number) => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1),
+    );
   };
 
-  const budgetData = {
-    fixedExpenseTable: [
-      { "title": "관리비", "amount": 100000 },
-      { "title": "교통", "amount": 150000 },
-      { "title": "건강", "amount": 21940 },
-      { "title": "헤어", "amount": 35000 },
-      { "title": "통신", "amount": 19000 }
-    ],
-    fixedExpenseTotal: 616940,
-    foodBudgetTable: {
-      weekdayCount: 21,
-      saturdayCount: 5,
-      sundayCount: 5,
-      weekdayBudget: 15000,
-      saturdayBudget: 5000,
-      sundayBudget: 15000,
-      total: 415000
-    },
-    otherExpenseTable: [
-      { "date": "26.05.11", "title": "4월 서초값", "amount": 40000 },
-      { "date": "26.05.13", "title": "캡더선물", "amount": 19800 },
-      { "date": "25.05.14", "title": "뮤지컬", "amount": 56250 }
-    ],
-    otherExpenseTotal: 145509,
-    baseSpendingTotal: 1031940,
-    totalExpense: 1177449,
-    incomeRecords: [
-      { "date": "26.05.01", "title": "용돈", "amount": 570000 },
-      { "date": "26.05.18", "title": "국취제", "amount": 600000 }
-    ],
-    incomeTotal: 1170000,
-    actualSavingAmount: -7449,
-    remarks: [
-      { "title": "목양비잔액", "amount": 30000 }
-    ]
+  const goToToday = () => {
+    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
   };
-
-  // Create calendar grid (May 1, 2026 is Thursday)
-  const firstDayOfWeek = 4;
-  const emptyDays = Array(firstDayOfWeek).fill(null);
-  const allDays = [...emptyDays, ...calendarData.calendar];
-
-  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="max-w-7xl mx-auto p-6 md:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-semibold mb-2">Monthly Ledger</h1>
-        <div className="text-base text-gray-600">{calendarData.monthLabel}</div>
+    <div className="mx-auto max-w-7xl p-4 md:p-6">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">Monthly Ledger</h1>
+          <div className="text-sm text-gray-600">월간 장부를 달력으로 확인합니다</div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            onClick={() => moveMonth(-1)}
+            className="rounded border border-gray-300 bg-white p-2 transition-colors hover:bg-gray-50"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div className="min-w-28 text-center text-sm font-medium text-gray-800 md:min-w-32">
+            {formatMonthLabel(currentMonth)}
+          </div>
+          <button
+            onClick={() => moveMonth(1)}
+            className="rounded border border-gray-300 bg-white p-2 transition-colors hover:bg-gray-50"
+            aria-label="Next month"
+          >
+            <ChevronRight size={18} />
+          </button>
+          <button
+            onClick={goToToday}
+            className="rounded border border-gray-300 bg-white px-3 py-2 text-sm transition-colors hover:bg-gray-50"
+          >
+            Today
+          </button>
+        </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="bg-white border border-gray-300 rounded overflow-hidden mb-8">
-        {/* Weekday Headers */}
-        <div className="grid grid-cols-7 bg-[#fef7e0] border-b border-gray-400">
+      <div className="overflow-hidden rounded border border-gray-300 bg-white">
+        <div className="grid grid-cols-7 border-b border-gray-300 bg-[#f8f9fa]">
           {weekdays.map((day) => (
-            <div key={day} className="p-3 text-center text-sm font-medium text-gray-700 border-r border-gray-300 last:border-r-0">
+            <div
+              key={day}
+              className="border-r border-gray-300 px-2 py-2 text-center text-xs font-medium text-gray-600 last:border-r-0 md:px-3 md:py-3 md:text-sm"
+            >
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar Cells */}
         <div className="grid grid-cols-7">
-          {allDays.map((day, index) => {
-            if (!day) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className="aspect-square border-r border-b border-gray-300 bg-gray-50 last:border-r-0"
-                />
-              );
-            }
-
-            const date = new Date(day.date);
-            const dayNum = date.getDate();
-            const hasExpense = day.dailyExpenseTotal > 0;
+          {calendarDays.map(({ date, isCurrentMonth }) => {
+            const isToday = isSameDay(date, today);
 
             return (
-              <div
-                key={day.date}
-                onClick={() => navigate(`/ledger/${day.date}`)}
-                className="aspect-square border-r border-b border-gray-300 p-2 hover:bg-gray-50 cursor-pointer transition-colors last:border-r-0"
+              <button
+                key={date.toISOString()}
+                type="button"
+                onClick={() => navigate(`/ledger/${formatRouteDate(date)}`)}
+                className={`aspect-square border-r border-b border-gray-300 p-1 text-left align-top transition-colors hover:bg-gray-50 last:border-r-0 md:p-2 ${
+                  isCurrentMonth ? "bg-white" : "bg-gray-50"
+                }`}
               >
-                <div className="h-full flex flex-col">
-                  <div className="text-sm font-medium text-gray-900 mb-1">{dayNum}</div>
-                  {hasExpense && (
-                    <div className="text-xs text-gray-600 tabular-nums">
-                      {day.dailyExpenseTotal.toLocaleString()}
-                    </div>
-                  )}
+                <div
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded text-xs font-medium md:h-8 md:w-8 md:text-sm ${
+                    isToday
+                      ? "bg-[#34a853] text-white"
+                      : isCurrentMonth
+                        ? "text-gray-900"
+                        : "text-gray-400"
+                  }`}
+                >
+                  {date.getDate()}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Budget Sheet Section */}
-      <div className="bg-white border border-gray-400 rounded overflow-hidden">
-        <div className="grid lg:grid-cols-2 gap-px bg-gray-400">
-          {/* Left Column */}
-          <div className="bg-white p-6 space-y-6">
-            {/* Fixed Expense Table */}
-            <div className="border border-gray-400 rounded overflow-hidden">
-              <div className="bg-[#fef7e0] border-b border-gray-400 p-2 text-sm font-medium">고정지출</div>
-              <div className="divide-y divide-gray-300">
-                {budgetData.fixedExpenseTable.map((item, i) => (
-                  <div key={i} className="grid grid-cols-2 p-2 text-sm">
-                    <div>{item.title}</div>
-                    <div className="text-right tabular-nums">{item.amount.toLocaleString()}</div>
-                  </div>
-                ))}
-                <div className="grid grid-cols-2 p-2 text-sm font-semibold bg-[#e8f5e9]">
-                  <div>합계</div>
-                  <div className="text-right tabular-nums text-[#34a853]">
-                    {budgetData.fixedExpenseTotal.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Food Budget Table */}
-            <div className="border border-gray-400 rounded overflow-hidden">
-              <div className="bg-[#fef7e0] border-b border-gray-400 p-2 text-sm font-medium">식비</div>
-              <div className="divide-y divide-gray-300">
-                <div className="grid grid-cols-3 p-2 text-xs">
-                  <div>평일({budgetData.foodBudgetTable.weekdayCount}일)</div>
-                  <div className="text-right tabular-nums">{budgetData.foodBudgetTable.weekdayBudget.toLocaleString()}</div>
-                  <div className="text-right tabular-nums">
-                    {(budgetData.foodBudgetTable.weekdayCount * budgetData.foodBudgetTable.weekdayBudget).toLocaleString()}
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 p-2 text-xs">
-                  <div>토요일({budgetData.foodBudgetTable.saturdayCount}일)</div>
-                  <div className="text-right tabular-nums">{budgetData.foodBudgetTable.saturdayBudget.toLocaleString()}</div>
-                  <div className="text-right tabular-nums">
-                    {(budgetData.foodBudgetTable.saturdayCount * budgetData.foodBudgetTable.saturdayBudget).toLocaleString()}
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 p-2 text-xs">
-                  <div>일요일({budgetData.foodBudgetTable.sundayCount}일)</div>
-                  <div className="text-right tabular-nums">{budgetData.foodBudgetTable.sundayBudget.toLocaleString()}</div>
-                  <div className="text-right tabular-nums">
-                    {(budgetData.foodBudgetTable.sundayCount * budgetData.foodBudgetTable.sundayBudget).toLocaleString()}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 p-2 text-sm font-semibold bg-[#e8f5e9]">
-                  <div>합계</div>
-                  <div className="text-right tabular-nums text-[#34a853]">
-                    {budgetData.foodBudgetTable.total.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Other Expense Table */}
-            <div className="border border-gray-400 rounded overflow-hidden">
-              <div className="bg-[#fef7e0] border-b border-gray-400 p-2 text-sm font-medium">기타지출</div>
-              <div className="divide-y divide-gray-300">
-                {budgetData.otherExpenseTable.map((item, i) => (
-                  <div key={i} className="grid grid-cols-3 p-2 text-xs">
-                    <div>{item.date}</div>
-                    <div>{item.title}</div>
-                    <div className="text-right tabular-nums">{item.amount.toLocaleString()}</div>
-                  </div>
-                ))}
-                <div className="grid grid-cols-2 p-2 text-sm font-semibold bg-[#e8f5e9]">
-                  <div>합계</div>
-                  <div className="text-right tabular-nums text-[#34a853]">
-                    {budgetData.otherExpenseTotal.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="mt-6 overflow-x-auto rounded border border-gray-300 bg-white">
+        <div className="min-w-[960px]">
+          <div className="grid grid-cols-[1.3fr_1.3fr_1.6fr_1.4fr_1.4fr_1.1fr] bg-[#fef7e0] text-center text-sm font-medium text-gray-800">
+            <div className="border-r border-b border-gray-300 px-3 py-3">고정지출표</div>
+            <div className="border-r border-b border-gray-300 px-3 py-3">식비</div>
+            <div className="border-r border-b border-gray-300 px-3 py-3">그 외 지출</div>
+            <div className="border-r border-b border-gray-300 px-3 py-3">지출 요약</div>
+            <div className="border-r border-b border-gray-300 px-3 py-3">금월 수익 내역</div>
+            <div className="border-b border-gray-300 px-3 py-3">실제 저금 금액</div>
           </div>
 
-          {/* Right Column */}
-          <div className="bg-white p-6 space-y-6">
-            {/* Summary Blocks */}
-            <div className="space-y-3">
-              <div className="border border-gray-400 rounded p-3">
-                <div className="text-xs text-gray-600 mb-1">기본지출총액</div>
-                <div className="text-lg font-bold tabular-nums">{budgetData.baseSpendingTotal.toLocaleString()}</div>
-              </div>
-
-              <div className="border border-gray-400 rounded p-3 bg-[#fff3cd]">
-                <div className="text-xs text-gray-600 mb-1">총지출</div>
-                <div className="text-lg font-bold tabular-nums">{budgetData.totalExpense.toLocaleString()}</div>
-              </div>
-            </div>
-
-            {/* Monthly Income Table */}
-            <div className="border border-gray-400 rounded overflow-hidden">
-              <div className="bg-[#fef7e0] border-b border-gray-400 p-2 text-sm font-medium">월수입</div>
-              <div className="divide-y divide-gray-300">
-                {budgetData.incomeRecords.map((item, i) => (
-                  <div key={i} className="grid grid-cols-3 p-2 text-xs">
-                    <div>{item.date}</div>
-                    <div>{item.title}</div>
-                    <div className="text-right tabular-nums">{item.amount.toLocaleString()}</div>
-                  </div>
-                ))}
-                <div className="grid grid-cols-2 p-2 text-sm font-semibold bg-[#e8f5e9]">
-                  <div>합계</div>
-                  <div className="text-right tabular-nums text-[#34a853]">
-                    {budgetData.incomeTotal.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Actual Saving */}
-            <div className={`border border-gray-400 rounded p-3 ${budgetData.actualSavingAmount < 0 ? 'bg-[#ffebee]' : 'bg-[#e8f5e9]'}`}>
-              <div className="text-xs text-gray-600 mb-1">실제저축액</div>
-              <div className={`text-xl font-bold tabular-nums ${budgetData.actualSavingAmount < 0 ? 'text-red-600' : 'text-[#34a853]'}`}>
-                {budgetData.actualSavingAmount.toLocaleString()}
-              </div>
-            </div>
-
-            {/* Remarks */}
-            <div className="border border-gray-400 rounded overflow-hidden">
-              <div className="bg-[#fef7e0] border-b border-gray-400 p-2 text-sm font-medium">비고</div>
-              <div className="divide-y divide-gray-300">
-                {budgetData.remarks.map((item, i) => (
-                  <div key={i} className="grid grid-cols-2 p-2 text-xs">
-                    <div>{item.title}</div>
-                    <div className="text-right tabular-nums">{item.amount.toLocaleString()}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="grid grid-cols-[1.3fr_1.3fr_1.6fr_1.4fr_1.4fr_1.1fr]">
+            <div className="border-r border-gray-300 p-4 text-sm text-gray-400">데이터 없음</div>
+            <div className="border-r border-gray-300 p-4 text-sm text-gray-400">데이터 없음</div>
+            <div className="border-r border-gray-300 p-4 text-sm text-gray-400">데이터 없음</div>
+            <div className="border-r border-gray-300 p-4 text-sm text-gray-400">데이터 없음</div>
+            <div className="border-r border-gray-300 p-4 text-sm text-gray-400">데이터 없음</div>
+            <div className="p-4 text-sm text-gray-400">데이터 없음</div>
           </div>
         </div>
       </div>
