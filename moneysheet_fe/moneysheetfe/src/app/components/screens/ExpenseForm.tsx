@@ -1,61 +1,112 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { X, Trash2 } from "lucide-react";
+import { useMockFinance } from "../../mock/mockFinance";
 
 interface ExpenseFormProps {
   mode: "create" | "edit";
 }
 
+type ExpenseFormState = {
+  title: string;
+  amount: string;
+  category: string;
+  memo: string;
+};
+
+function toDomainCategory(category: string) {
+  return category === "식비" ? "food" : "other";
+}
+
 export function ExpenseForm({ mode }: ExpenseFormProps) {
   const navigate = useNavigate();
-  const { date } = useParams();
+  const { date = "", id } = useParams();
+  const { state, getDailyLedger, addCategory, addExpense, updateExpense, deleteExpense } =
+    useMockFinance();
+  const ledger = getDailyLedger(date);
+  const currentExpense = useMemo(
+    () => ledger.expenses.find((item) => item.id === id),
+    [id, ledger.expenses],
+  );
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ExpenseFormState>({
     title: "",
     amount: "",
     category: "",
-    paymentMethod: "",
     memo: "",
   });
-
   const [errors, setErrors] = useState({
     title: false,
     amount: false,
     category: false,
-    paymentMethod: false,
   });
+  const [newCategory, setNewCategory] = useState("");
 
-  const categories = ["식비", "고정", "기타"];
-  const paymentMethods = [
-    { value: "CARD", label: "카드" },
-    { value: "CASH", label: "현금" },
-    { value: "TRANSFER", label: "이체" },
-  ];
+  useEffect(() => {
+    if (mode === "edit" && currentExpense) {
+      setFormData({
+        title: currentExpense.title,
+        amount: String(currentExpense.amount),
+        category: currentExpense.category === "food" ? "식비" : state.customCategories.find((item) => item !== "식비") ?? "기타",
+        memo: currentExpense.memo,
+      });
+    }
+  }, [currentExpense, mode, state.customCategories]);
 
   const handleSubmit = () => {
     const nextErrors = {
       title: !formData.title.trim(),
       amount: !formData.amount || Number(formData.amount) <= 0,
       category: !formData.category,
-      paymentMethod: !formData.paymentMethod,
     };
 
     setErrors(nextErrors);
 
-    if (!Object.values(nextErrors).some(Boolean)) {
-      navigate(`/ledger/${date}`);
+    if (Object.values(nextErrors).some(Boolean)) {
+      return;
     }
+
+    const payload = {
+      title: formData.title.trim(),
+      amount: Number(formData.amount),
+      category: toDomainCategory(formData.category),
+      memo: formData.memo.trim(),
+    } as const;
+
+    if (mode === "edit" && currentExpense) {
+      updateExpense(date, currentExpense.id, payload);
+    } else {
+      addExpense(date, payload);
+    }
+
+    navigate(`/ledger/${date}`);
   };
 
   const handleDelete = () => {
+    if (mode === "edit" && currentExpense) {
+      deleteExpense(date, currentExpense.id);
+    }
     navigate(`/ledger/${date}`);
+  };
+
+  const handleAddCategory = () => {
+    const trimmed = newCategory.trim();
+    if (!trimmed || state.customCategories.includes(trimmed)) {
+      return;
+    }
+
+    addCategory(trimmed);
+    setFormData((prev) => ({ ...prev, category: trimmed }));
+    setNewCategory("");
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-lg bg-white">
         <div className="flex items-center justify-between border-b border-gray-200 p-4">
-          <h2 className="text-lg font-semibold">{mode === "create" ? "지출 추가" : "지출 수정"}</h2>
+          <h2 className="text-lg font-semibold">
+            {mode === "create" ? "지출 추가" : "지출 수정"}
+          </h2>
           <div className="flex items-center gap-2">
             {mode === "edit" && (
               <button onClick={handleDelete} className="rounded p-2 text-red-600 hover:bg-red-50">
@@ -77,7 +128,7 @@ export function ExpenseForm({ mode }: ExpenseFormProps) {
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, title: event.target.value })}
                 className={`w-full rounded border p-3 ${errors.title ? "border-red-300 bg-red-50" : "border-gray-300"}`}
               />
             </div>
@@ -88,8 +139,9 @@ export function ExpenseForm({ mode }: ExpenseFormProps) {
               </label>
               <input
                 type="number"
+                step={1000}
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, amount: event.target.value })}
                 className={`w-full rounded border p-3 text-lg font-semibold tabular-nums ${
                   errors.amount ? "border-red-300 bg-red-50" : "border-gray-300"
                 }`}
@@ -101,7 +153,7 @@ export function ExpenseForm({ mode }: ExpenseFormProps) {
                 카테고리 <span className="text-red-600">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
-                {categories.map((category) => (
+                {state.customCategories.map((category) => (
                   <button
                     key={category}
                     onClick={() => setFormData({ ...formData, category })}
@@ -115,26 +167,21 @@ export function ExpenseForm({ mode }: ExpenseFormProps) {
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">
-                결제 수단 <span className="text-red-600">*</span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {paymentMethods.map((method) => (
-                  <button
-                    key={method.value}
-                    onClick={() => setFormData({ ...formData, paymentMethod: method.value })}
-                    className={`rounded border px-3 py-2 text-sm transition-colors ${
-                      formData.paymentMethod === method.value
-                        ? "border-[#0066cc] bg-[#0066cc] text-white"
-                        : "border-gray-300 bg-white hover:bg-gray-50"
-                    }`}
-                  >
-                    {method.label}
-                  </button>
-                ))}
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(event) => setNewCategory(event.target.value)}
+                  placeholder="카테고리 추가"
+                  className="flex-1 rounded border border-gray-300 p-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  className="rounded border border-gray-300 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
+                >
+                  추가
+                </button>
               </div>
             </div>
 
@@ -142,7 +189,7 @@ export function ExpenseForm({ mode }: ExpenseFormProps) {
               <label className="mb-2 block text-sm font-medium">메모</label>
               <textarea
                 value={formData.memo}
-                onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                onChange={(event) => setFormData({ ...formData, memo: event.target.value })}
                 rows={3}
                 className="w-full resize-none rounded border border-gray-300 p-3"
               />

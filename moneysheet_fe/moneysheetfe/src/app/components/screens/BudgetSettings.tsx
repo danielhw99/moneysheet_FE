@@ -1,35 +1,82 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Save, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useMockFinance } from "../../mock/mockFinance";
+
+type IncomeRecordForm = {
+  id: string;
+  date: string;
+  label: string;
+  amount: string;
+};
 
 export function BudgetSettings() {
   const navigate = useNavigate();
-
-  const [incomeRecords, setIncomeRecords] = useState([
-    { date: "", label: "", amount: "" },
-  ]);
-
+  const { state, updateIncomeRecords, updateFoodBudget } = useMockFinance();
+  const [incomeRecords, setIncomeRecords] = useState<IncomeRecordForm[]>([]);
   const [foodBudget, setFoodBudget] = useState({
     weekday: "",
     saturday: "",
     sunday: "",
   });
 
+  useEffect(() => {
+    setIncomeRecords(
+      state.incomeRecords.map((item) => ({
+        id: item.id,
+        date: item.date,
+        label: item.label,
+        amount: String(item.amount),
+      })),
+    );
+    setFoodBudget({
+      weekday: String(state.foodBudget.weekday),
+      saturday: String(state.foodBudget.saturday),
+      sunday: String(state.foodBudget.sunday),
+    });
+  }, [state.foodBudget, state.incomeRecords]);
+
   const handleAddIncome = () => {
-    setIncomeRecords((prev) => [...prev, { date: "", label: "", amount: "" }]);
+    setIncomeRecords((prev) => [
+      ...prev,
+      { id: `income-${Date.now()}`, date: "", label: "", amount: "" },
+    ]);
   };
 
   const handleRemoveIncome = (index: number) => {
-    setIncomeRecords((prev) => prev.filter((_, i) => i !== index));
+    setIncomeRecords((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   };
 
-  const handleIncomeChange = (index: number, field: string, value: string) => {
+  const handleIncomeChange = (
+    index: number,
+    field: keyof IncomeRecordForm,
+    value: string,
+  ) => {
     setIncomeRecords((prev) =>
-      prev.map((record, i) => (i === index ? { ...record, [field]: value } : record)),
+      prev.map((record, itemIndex) =>
+        itemIndex === index ? { ...record, [field]: value } : record,
+      ),
     );
   };
 
   const handleSave = () => {
+    updateIncomeRecords(
+      incomeRecords
+        .filter((item) => item.date && item.label && item.amount)
+        .map((item) => ({
+          id: item.id,
+          date: item.date,
+          label: item.label,
+          amount: Number(item.amount),
+        })),
+    );
+
+    updateFoodBudget({
+      weekday: Number(foodBudget.weekday || 0),
+      saturday: Number(foodBudget.saturday || 0),
+      sunday: Number(foodBudget.sunday || 0),
+    });
+
     navigate("/home");
   };
 
@@ -37,7 +84,9 @@ export function BudgetSettings() {
     <div className="mx-auto max-w-4xl p-6 md:p-8">
       <div className="mb-6">
         <h1 className="mb-2 text-2xl font-semibold md:text-3xl">예산 설정</h1>
-        <div className="text-sm text-gray-600">월 수입과 식비 예산 구조를 설정합니다</div>
+        <div className="text-sm text-gray-600">
+          월 수입 기록과 식비 예산 구조를 설정합니다.
+        </div>
       </div>
 
       <div className="max-w-3xl space-y-6">
@@ -58,29 +107,28 @@ export function BudgetSettings() {
               <div>날짜</div>
               <div>항목</div>
               <div>금액</div>
-              <div></div>
+              <div />
             </div>
 
             {incomeRecords.map((record, index) => (
-              <div key={index} className="grid grid-cols-[120px_1fr_120px_40px] gap-2 p-2">
+              <div key={record.id} className="grid grid-cols-[120px_1fr_120px_40px] gap-2 p-2">
                 <input
                   type="date"
                   value={record.date}
-                  onChange={(e) => handleIncomeChange(index, "date", e.target.value)}
+                  onChange={(event) => handleIncomeChange(index, "date", event.target.value)}
                   className="rounded border border-gray-300 p-2 text-sm"
                 />
                 <input
                   type="text"
                   value={record.label}
-                  onChange={(e) => handleIncomeChange(index, "label", e.target.value)}
-                  placeholder=""
+                  onChange={(event) => handleIncomeChange(index, "label", event.target.value)}
                   className="rounded border border-gray-300 p-2 text-sm"
                 />
                 <input
                   type="number"
+                  step={1000}
                   value={record.amount}
-                  onChange={(e) => handleIncomeChange(index, "amount", e.target.value)}
-                  placeholder=""
+                  onChange={(event) => handleIncomeChange(index, "amount", event.target.value)}
                   className="rounded border border-gray-300 p-2 text-sm tabular-nums"
                 />
                 <button
@@ -104,8 +152,11 @@ export function BudgetSettings() {
               <label className="mb-2 block text-sm font-medium">주중</label>
               <input
                 type="number"
+                step={1000}
                 value={foodBudget.weekday}
-                onChange={(e) => setFoodBudget({ ...foodBudget, weekday: e.target.value })}
+                onChange={(event) =>
+                  setFoodBudget({ ...foodBudget, weekday: event.target.value })
+                }
                 className="w-full rounded border border-gray-300 p-3 font-semibold tabular-nums"
               />
             </div>
@@ -113,8 +164,11 @@ export function BudgetSettings() {
               <label className="mb-2 block text-sm font-medium">토요일</label>
               <input
                 type="number"
+                step={1000}
                 value={foodBudget.saturday}
-                onChange={(e) => setFoodBudget({ ...foodBudget, saturday: e.target.value })}
+                onChange={(event) =>
+                  setFoodBudget({ ...foodBudget, saturday: event.target.value })
+                }
                 className="w-full rounded border border-gray-300 p-3 font-semibold tabular-nums"
               />
             </div>
@@ -122,8 +176,11 @@ export function BudgetSettings() {
               <label className="mb-2 block text-sm font-medium">일요일</label>
               <input
                 type="number"
+                step={1000}
                 value={foodBudget.sunday}
-                onChange={(e) => setFoodBudget({ ...foodBudget, sunday: e.target.value })}
+                onChange={(event) =>
+                  setFoodBudget({ ...foodBudget, sunday: event.target.value })
+                }
                 className="w-full rounded border border-gray-300 p-3 font-semibold tabular-nums"
               />
             </div>

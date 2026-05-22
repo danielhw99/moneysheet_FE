@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router';
 import { LogOut } from 'lucide-react';
+import { useMockFinance } from '../mock/mockFinance';
 
 export function TopNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isMockDataEnabled, toggleMockDataEnabled, resetMockData } = useMockFinance();
 
   const isActive = (path: string) => {
     if (path === '/home') return location.pathname === '/home' || location.pathname.startsWith('/ledger');
@@ -47,13 +49,31 @@ export function TopNav() {
             ))}
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded transition-colors"
-        >
-          <LogOut size={16} />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleMockDataEnabled}
+            className={`rounded px-3 py-2 text-sm font-medium transition-colors ${
+              isMockDataEnabled
+                ? 'bg-[#e8f0fe] text-[#174ea6] hover:bg-[#dbe7fd]'
+                : 'bg-[#f1f3f4] text-gray-700 hover:bg-[#e5e7eb]'
+            }`}
+          >
+            {isMockDataEnabled ? 'Mock ON' : 'Mock OFF'}
+          </button>
+          <button
+            onClick={resetMockData}
+            className="rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded transition-colors"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
@@ -71,6 +91,16 @@ export function TopNav() {
             {item.label}
           </Link>
         ))}
+        <button
+          onClick={toggleMockDataEnabled}
+          className={`px-3 py-1.5 text-xs rounded whitespace-nowrap transition-colors ${
+            isMockDataEnabled
+              ? 'bg-[#e8f0fe] text-[#174ea6]'
+              : 'bg-[#f1f3f4] text-gray-700'
+          }`}
+        >
+          {isMockDataEnabled ? 'Mock ON' : 'Mock OFF'}
+        </button>
       </div>
     </nav>
   );
