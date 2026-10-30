@@ -1,0 +1,10 @@
+{
+  "description": "개인 생활비를 달력과 날짜별 기록으로 관리하고, 예산·수입·지출을 정리해 매일 사용할 수 있는 여유비를 확인하세요.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
