@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: ko-KR
+
+reviews:
+  profile: assertive
+
+  path_filters:
+    - "!**/generated/**"
+    - "!**/pnpm-lock.yaml"
+    - "!**/package-lock.json"
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "^dev$"
