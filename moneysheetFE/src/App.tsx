@@ -220,11 +220,11 @@ const currentMonth = () => {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
-const initialBudget = (): MonthBudget => ({
+const initialBudget = (includeDemoPayments = false): MonthBudget => ({
   locked: true,
   fixed: [
-    { id: 'rent', name: '월세', category: '주거', amount: 800000, paid: 600000 },
-    { id: 'phone', name: '휴대폰 요금', category: '통신', amount: 59000, paid: 59000 },
+    { id: 'rent', name: '월세', category: '주거', amount: 800000, paid: includeDemoPayments ? 600000 : 0 },
+    { id: 'phone', name: '휴대폰 요금', category: '통신', amount: 59000, paid: includeDemoPayments ? 59000 : 0 },
     { id: 'subscription', name: '구독 서비스', category: '구독', amount: 12900, paid: 0 },
     { id: 'insurance', name: '보험료', category: '보험', amount: 80000, paid: 0 },
     { id: allowanceId, name: '고정여유비', category: '여유비', amount: 120000, paid: 0 },
@@ -461,7 +461,7 @@ function SimpleSettings({ type, go }: { type: 'account' | 'settings'; go: (s: Sc
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
   const [month, setMonth] = useState(currentMonth)
-  const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => ({ [currentMonth()]: initialBudget() }))
+  const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => ({ [currentMonth()]: initialBudget(true) }))
   const budget = budgets[month]
   const changeMonth = (offset: number) => {
     const date = new Date(Number(month.slice(0, 4)), Number(month.slice(5)) - 1 + offset, 1)
