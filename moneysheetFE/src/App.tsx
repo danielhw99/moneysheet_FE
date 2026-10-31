@@ -211,33 +211,57 @@ function Daily({ go }: { go: (s: Screen) => void }) {
   )
 }
 
+type FixedBudgetItem = { id: string; name: string; category: string; amount: number; paid: number }
+type MonthBudget = { locked: boolean; fixed: FixedBudgetItem[] }
+const allowanceId = 'free-allowance'
+const foodBudget = 328000 // Existing food-budget prototype; food editing is separate from fixed budgets.
+const won = (amount: number) => amount.toLocaleString('ko-KR')
+const currentMonth = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+const initialBudget = (): MonthBudget => ({
+  locked: true,
+  fixed: [
+    { id: 'rent', name: '월세', category: '주거', amount: 800000, paid: 600000 },
+    { id: 'phone', name: '휴대폰 요금', category: '통신', amount: 59000, paid: 59000 },
+    { id: 'subscription', name: '구독 서비스', category: '구독', amount: 12900, paid: 0 },
+    { id: 'insurance', name: '보험료', category: '보험', amount: 80000, paid: 0 },
+    { id: allowanceId, name: '고정여유비', category: '여유비', amount: 120000, paid: 0 },
+  ],
+})
+const fixedTotal = (budget: MonthBudget) => budget.fixed.reduce((total, item) => total + item.amount, 0)
+
 const monthlySections = [
   { title: '기본지출', desc: '고정지출 + 식비 예산', amount: '1,180,000원', target: 'basic' as Screen },
   { title: '그 외 지출', desc: '저축계좌 출금', amount: '70,000원', target: 'extra' as Screen },
   { title: '수입', desc: '이번 달 수동 입력', amount: '4,000,000원', target: 'income' as Screen },
 ]
 
-function Monthly({ go }: { go: (s: Screen) => void }) {
+function Monthly({ go, month, changeMonth, budget }: { go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void; budget: MonthBudget }) {
+  const basicTotal = fixedTotal(budget) + foodBudget
+  const totalExpense = basicTotal + 70000
+  const net = 4000000 - totalExpense
   return (
     <main className="app-shell">
       <section className="screen-content">
         <div className="month-head monthly-head">
-          <button className="icon-button" aria-label="이전 달"><Icon name="back" /></button>
-          <button className="month-picker">2026년 10월 <span className="down-caret">⌄</span></button>
-          <button className="icon-button flip" aria-label="다음 달"><Icon name="back" /></button>
+          <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
+          <strong className="month-picker">{month.slice(0, 4)}년 {Number(month.slice(5))}월</strong>
+          <button className="icon-button flip" aria-label="다음 달" onClick={() => changeMonth(1)}><Icon name="back" /></button>
         </div>
         <div className="monthly-list">
           {monthlySections.map((item) => (
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>
               <span className={`section-icon ${item.title === '수입' ? 'income' : item.title === '그 외 지출' ? 'extra' : ''}`}><Icon name={item.title === '기본지출' ? 'wallet' : item.title === '수입' ? 'plus' : 'monthly'} size={19} /></span>
               <span className="monthly-copy"><b>{item.title}</b><small>{item.desc}</small></span>
-              <strong>{item.amount}</strong><Icon name="chevron" size={17} />
+              <strong>{item.target === 'basic' ? `${won(basicTotal)}원` : item.amount}</strong><Icon name="chevron" size={17} />
             </button>
           ))}
         </div>
         <section className="status-card">
           <div className="status-title"><span>이번 달 현황</span><small>예산 기준</small></div>
-          <dl><div><dt>총수입</dt><dd>4,000,000원</dd></div><div><dt>총지출</dt><dd>1,250,000원</dd></div><div className="net"><dt>순증감</dt><dd>+2,750,000원</dd></div></dl>
+          <dl><div><dt>총수입</dt><dd>4,000,000원</dd></div><div><dt>총지출</dt><dd>{won(totalExpense)}원</dd></div><div className="net"><dt>순증감</dt><dd>{net >= 0 ? '+' : '-'}{won(Math.abs(net))}원</dd></div></dl>
           <p>순증감은 월 수입에서 총지출을 뺀 금액이에요.</p>
         </section>
       </section>
@@ -246,34 +270,85 @@ function Monthly({ go }: { go: (s: Screen) => void }) {
   )
 }
 
-function BasicBudget({ go }: { go: (s: Screen) => void }) {
-  const [locked, setLocked] = useState(true)
-  const fixed = [
-    ['월세', '잔여 200,000원', '800,000'],
-    ['휴대폰 요금', '완료', '59,000'],
-    ['구독 서비스', '잔여 12,900원', '12,900'],
-    ['보험료', '잔여 80,000원', '80,000'],
-    ['고정여유비', '필수 · 1일 자동 반영', '120,000'],
-  ]
+function FixedBudgetForm({ item, onSave, onCancel }: { item?: FixedBudgetItem; onSave: (values: Pick<FixedBudgetItem, 'name' | 'category' | 'amount'>) => boolean; onCancel: () => void }) {
+  const [name, setName] = useState(item?.name ?? '')
+  const [category, setCategory] = useState(item?.category ?? '')
+  const [amount, setAmount] = useState(item ? won(item.amount) : '')
+  const [error, setError] = useState('')
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!name.trim() || !category.trim() || !amount.trim()) {
+      setError('항목명, 카테고리, 예산 금액을 모두 입력해 주세요.')
+      return
+    }
+    const numericAmount = Number(amount.trim().replace(/,/g, ''))
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(amount.trim()) || !Number.isSafeInteger(numericAmount)) {
+      setError('예산 금액은 정확하게 계산할 수 있는 0 이상의 원 단위 정수로 입력해 주세요.')
+      return
+    }
+    if (!onSave({ name: name.trim(), category: category.trim(), amount: numericAmount })) {
+      setError('예산이 잠겨 있거나 지난달이면 저장할 수 없어요. 금액 합계도 확인해 주세요.')
+    }
+  }
   return (
     <main className="detail-shell">
-      <Header title="기본지출" onBack={() => go('monthly')} right={<button className={`lock-button ${locked ? 'locked' : ''}`} onClick={() => setLocked(!locked)}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>} />
-      <div className="sub-month">2026.10 <span>{locked ? '예산 잠금' : '편집 중'}</span></div>
-      <p className="notice">{locked ? '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : '수정한 값은 10월 전체에 적용됩니다.'}</p>
+      <Header title={item ? '고정지출 예산 편집' : '고정지출 예산 추가'} onBack={onCancel} />
+      <form className="record-form fixed-budget-form" onSubmit={submit} noValidate>
+        <label className="field"><span>항목명</span><input required value={name} readOnly={item?.id === allowanceId} onChange={event => setName(event.target.value)} /></label>
+        <label className="field"><span>카테고리</span><input required value={category} onChange={event => setCategory(event.target.value)} /></label>
+        <label className="field"><span>예산 금액</span><div className="money-input"><input required aria-label="예산 금액" inputMode="numeric" value={amount} onChange={event => setAmount(event.target.value)} /><b>원</b></div></label>
+        {item?.id === allowanceId && <p className="form-help">매월 필요한 고정여유비예요. 1일에 자동 반영됩니다.</p>}
+        {error && <p className="form-help" role="alert">{error}</p>}
+        <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel}>취소</button><button className="primary-button" type="submit">저장</button></div>
+      </form>
+    </main>
+  )
+}
+
+function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Screen) => void; month: string; budget: MonthBudget; setLocked: (locked: boolean) => void; saveItem: (item: FixedBudgetItem) => boolean }) {
+  const [editing, setEditing] = useState<FixedBudgetItem | 'new' | null>(null)
+  const [, refreshMonth] = useState(currentMonth)
+  const pastMonth = month < currentMonth()
+  const readOnly = budget.locked || pastMonth
+  const openForm = (item: FixedBudgetItem | 'new') => {
+    const nowMonth = currentMonth()
+    if (month < nowMonth) {
+      // Refresh the read-only controls when the month changed while this list was idle.
+      refreshMonth(nowMonth)
+      return
+    }
+    if (!readOnly) setEditing(item)
+  }
+  if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} onCancel={() => setEditing(null)} onSave={values => {
+    if (readOnly || month < currentMonth()) return false
+    const item = editing === 'new' ? { id: crypto.randomUUID(), paid: 0, ...values } : { ...editing, ...values }
+    if (!saveItem(item)) return false
+    setEditing(null)
+    return true
+  }} />
+  return (
+    <main className="detail-shell budget-detail">
+      <Header title="기본지출" onBack={() => go('monthly')} right={<button className={`lock-button ${budget.locked ? 'locked' : ''}`} disabled={pastMonth} aria-label={budget.locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => setLocked(!budget.locked)}><Icon name={budget.locked ? 'lock' : 'unlock'} size={17} /></button>} />
+      <div className="sub-month">{month.replace('-', '.')} <span>{pastMonth ? '지난달 · 조회 전용' : budget.locked ? '예산 잠금' : '편집 중'}</span></div>
+      <p className="notice">{pastMonth ? '지난달 예산은 수정할 수 없어요.' : budget.locked ? '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : `수정한 값은 ${Number(month.slice(5))}월 전체에 적용됩니다.`}</p>
       <div className="budget-columns">
         <section className="budget-column">
-          <div className="column-head"><b>고정지출</b><span>합계 <strong>1,071,900원</strong></span></div>
+          <div className="column-head"><b>고정지출</b><span>합계 <strong>{won(fixedTotal(budget))}원</strong></span></div>
           <div className="column-scroll">
-            {fixed.map(([title, state, amount]) => <button className="budget-row" key={title}><span><b className="truncate">{title}</b><small className={state === '완료' ? 'complete' : ''}>{state}</small></span><strong>{amount}</strong></button>)}
+            {budget.fixed.map(item => {
+              const remaining = item.amount - item.paid
+              const state = item.id === allowanceId ? '필수 · 1일 자동 반영' : remaining === 0 ? '완료' : `잔여 ${won(remaining)}원`
+              return <button className="budget-row" key={item.id} disabled={readOnly} onClick={() => openForm(item)}><span><b className="truncate">{item.name}</b><small className={state === '완료' ? 'complete' : ''}>{state}</small></span><strong>{won(item.amount)}</strong></button>
+            })}
           </div>
-          <button className="panel-add" disabled={locked}><Icon name="plus" size={16} />항목 추가</button>
+          <button className="panel-add" disabled={readOnly} onClick={() => openForm('new')}><Icon name="plus" size={16} />항목 추가</button>
         </section>
         <section className="budget-column food-column">
-          <div className="column-head"><b>식비</b><span>월 합계 <strong>328,000원</strong></span></div>
+          <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(foodBudget)}원</strong></span></div>
           <div className="column-scroll">
             {['주중|11,000', '토요일|18,000', '일요일|15,000'].map((row) => {
               const [label, value] = row.split('|')
-              return <label className="budget-input" key={label}><span>{label}</span><div><input disabled={locked} defaultValue={value} /><b>원</b></div></label>
+              return <label className="budget-input" key={label}><span>{label}</span><div><input disabled={readOnly} defaultValue={value} /><b>원</b></div></label>
             })}
             <div className="periods">
               <span><small>1차</small><b>1~11일</b><strong>99,000원</strong></span>
@@ -283,7 +358,7 @@ function BasicBudget({ go }: { go: (s: Screen) => void }) {
           </div>
         </section>
       </div>
-      <button className="primary-button bottom-action" disabled={locked} onClick={() => setLocked(true)}>저장</button>
+      <button className="primary-button bottom-action" disabled={readOnly} onClick={() => setLocked(true)}>저장</button>
     </main>
   )
 }
@@ -385,15 +460,37 @@ function SimpleSettings({ type, go }: { type: 'account' | 'settings'; go: (s: Sc
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
+  const [month, setMonth] = useState(currentMonth)
+  const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => ({ [currentMonth()]: initialBudget() }))
+  const budget = budgets[month]
+  const changeMonth = (offset: number) => {
+    const date = new Date(Number(month.slice(0, 4)), Number(month.slice(5)) - 1 + offset, 1)
+    const next = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    setBudgets(previous => previous[next] ? previous : { ...previous, [next]: initialBudget() })
+    setMonth(next)
+  }
+  const setLocked = (locked: boolean) => {
+    if (month < currentMonth()) return
+    setBudgets(previous => ({ ...previous, [month]: { ...previous[month], locked } }))
+  }
+  const saveItem = (item: FixedBudgetItem) => {
+    if (budget.locked || month < currentMonth()) return false
+    const existing = budget.fixed.find(value => value.id === item.id)
+    const fixed = existing ? budget.fixed.map(value => value.id === item.id ? item : value) : [...budget.fixed, item]
+    // Guard number precision, without imposing a product-specific amount limit.
+    if (!Number.isSafeInteger(fixedTotal({ ...budget, fixed }) + foodBudget + 70000)) return false
+    setBudgets(previous => ({ ...previous, [month]: { ...previous[month], fixed } }))
+    return true
+  }
   const view = useMemo(() => {
     if (screen === 'login' || screen === 'signup') return <Login go={setScreen} signup={screen === 'signup'} />
     if (screen === 'home') return <Home go={setScreen} />
     if (screen === 'daily') return <Daily go={setScreen} />
-    if (screen === 'monthly') return <Monthly go={setScreen} />
-    if (screen === 'basic') return <BasicBudget go={setScreen} />
+    if (screen === 'monthly') return <Monthly go={setScreen} month={month} changeMonth={changeMonth} budget={budget} />
+    if (screen === 'basic') return <BasicBudget go={setScreen} month={month} budget={budget} setLocked={setLocked} saveItem={saveItem} />
     if (screen === 'my') return <My go={setScreen} />
     if (screen === 'account' || screen === 'settings') return <SimpleSettings type={screen} go={setScreen} />
     return <RecordList kind={screen as ListKind} go={setScreen} />
-  }, [screen])
+  }, [screen, month, budget])
   return <div className="prototype"><div className="phone-frame">{view}</div></div>
 }
