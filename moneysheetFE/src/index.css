@@ -286,3 +286,7 @@
 .transaction-totals > div { min-width: 0; padding: 14px 12px; border-radius: var(--radius-md); background: var(--surface); }
 .transaction-totals dt { color: var(--secondary); font-size: 12px; }
 .transaction-totals dd { margin: 8px 0 0; font: 700 16px 'Inter', sans-serif; overflow-wrap: anywhere; }
+
+.record-date-time { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; flex-shrink: 0; }
+.record-date-time .field { min-width: 0; }
+.record-date-time input { min-width: 0; max-width: 100%; color-scheme: light; }

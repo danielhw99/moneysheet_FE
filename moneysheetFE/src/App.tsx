@@ -458,7 +458,10 @@ function RecordForm({ kind, initialTransactionType, onCancel }: { kind: ListKind
         <button type="button" className={transactionType === 'expense' ? 'active' : ''} aria-pressed={transactionType === 'expense'} onClick={() => setTransactionType('expense')}>지출</button>
         <button type="button" className={transactionType === 'income' ? 'active' : ''} aria-pressed={transactionType === 'income'} onClick={() => setTransactionType('income')}>입금</button>
       </div> : isMemo && <div className="segment wide"><button className="active">임시 출금</button><button>임시 입금</button></div>}
-      <label className="field"><span>날짜 · 시간</span><input defaultValue="2026.10.02  10:30" /></label>
+      <div className="record-date-time">
+        <label className="field"><span>날짜</span><input type="date" name="date" defaultValue="2026-10-02" required /></label>
+        <label className="field"><span>시간</span><input type="time" name="time" defaultValue="10:30" step={60} required /></label>
+      </div>
       {isFixed && <>
         <label className="field"><span>고정지출 예산 항목</span><select defaultValue="월세"><option>월세</option><option>휴대폰 요금</option></select></label>
         <div className="read-only-pair"><span>항목 예산<b>800,000원</b></span><span>누적 지급<b>600,000원</b></span></div>
