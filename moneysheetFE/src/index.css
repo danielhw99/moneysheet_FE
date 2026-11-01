@@ -17,6 +17,8 @@
   --red: #d75a55;
   --red-soft: #fceeed;
   --field-error: #b42318;
+  --amount-income: #b42318;
+  --amount-expense: #2463a5;
   --green: #2e9d68;
   --gray: #59615e;
   --radius-sm: 8px;
@@ -276,3 +278,11 @@
 }
 
 .auth-screen .field-error { color: var(--field-error); font-size: 12px; font-weight: 400; line-height: 1.5; }
+
+/* Transaction colors do not change memo, budget-status, or free-money colors. */
+.amount-income, .status-card dd.amount-income { color: var(--amount-income); }
+.amount-expense, .status-card dd.amount-expense { color: var(--amount-expense); }
+.transaction-totals { margin: 20px 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.transaction-totals > div { min-width: 0; padding: 14px 12px; border-radius: var(--radius-md); background: var(--surface); }
+.transaction-totals dt { color: var(--secondary); font-size: 12px; }
+.transaction-totals dd { margin: 8px 0 0; font: 700 16px 'Inter', sans-serif; overflow-wrap: anywhere; }

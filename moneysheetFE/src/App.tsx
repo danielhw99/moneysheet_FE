@@ -82,9 +82,9 @@ function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen) => void }) 
 }
 
 const entries = [
-  { title: '점심 · 샐러드', amount: '-11,000원', tone: 'blue' },
-  { title: '편의점', amount: '-4,500원', tone: 'blue' },
-  { title: '중고거래 입금', amount: '+20,000원', tone: 'green' },
+  { title: '점심 · 샐러드', amount: '-11,000원', tone: 'amount-expense' },
+  { title: '편의점', amount: '-4,500원', tone: 'amount-expense' },
+  { title: '중고거래 입금', amount: '+20,000원', tone: 'amount-income' },
 ]
 const memos = [
   { title: '친구 정산', amount: '-45,000원' },
@@ -241,8 +241,8 @@ function Daily({ go }: { go: (s: Screen) => void }) {
         <section className="fixed-panel">
           <button className="panel-heading" onClick={() => go('fixed-pay')}><strong>고정지출</strong><Icon name="chevron" size={17} /></button>
           <div className="fixed-scroll">
-            <button className="fixed-row" onClick={() => go('fixed-pay')}><span><b>월세</b><small>잔여 200,000원</small></span><strong>600,000원</strong></button>
-            <button className="fixed-row" onClick={() => go('fixed-pay')}><span><b>휴대폰 요금</b><small className="complete">지급 완료</small></span><strong>59,000원</strong></button>
+            <button className="fixed-row" onClick={() => go('fixed-pay')}><span><b>월세</b><small>잔여 200,000원</small></span><strong className="amount-expense">600,000원</strong></button>
+            <button className="fixed-row" onClick={() => go('fixed-pay')}><span><b>휴대폰 요금</b><small className="complete">지급 완료</small></span><strong className="amount-expense">59,000원</strong></button>
           </div>
           <button className="panel-add" onClick={() => go('fixed-pay')}><Icon name="plus" size={16} />지급 기록</button>
         </section>
@@ -296,13 +296,13 @@ function Monthly({ go, month, changeMonth, budget }: { go: (s: Screen) => void; 
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>
               <span className={`section-icon ${item.title === '수입' ? 'income' : item.title === '그 외 지출' ? 'extra' : ''}`}><Icon name={item.title === '기본지출' ? 'wallet' : item.title === '수입' ? 'plus' : 'monthly'} size={19} /></span>
               <span className="monthly-copy"><b>{item.title}</b><small>{item.desc}</small></span>
-              <strong>{item.target === 'basic' ? `${won(basicTotal)}원` : item.amount}</strong><Icon name="chevron" size={17} />
+              <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{item.target === 'basic' ? `${won(basicTotal)}원` : item.amount}</strong><Icon name="chevron" size={17} />
             </button>
           ))}
         </div>
         <section className="status-card">
           <div className="status-title"><span>이번 달 현황</span><small>예산 기준</small></div>
-          <dl><div><dt>총수입</dt><dd>4,000,000원</dd></div><div><dt>총지출</dt><dd>{won(totalExpense)}원</dd></div><div className="net"><dt>순증감</dt><dd>{net >= 0 ? '+' : '-'}{won(Math.abs(net))}원</dd></div></dl>
+          <dl><div><dt>총수입</dt><dd className="amount-income">4,000,000원</dd></div><div><dt>총지출</dt><dd className="amount-expense">{won(totalExpense)}원</dd></div><div className="net"><dt>순증감</dt><dd>{net >= 0 ? '+' : '-'}{won(Math.abs(net))}원</dd></div></dl>
           <p>순증감은 월 수입에서 총지출을 뺀 금액이에요.</p>
         </section>
       </section>
@@ -406,7 +406,7 @@ function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Scree
 
 type ListKind = 'transactions' | 'memos' | 'fixed-pay' | 'income' | 'extra'
 const listConfig = {
-  transactions: { title: '사용내역', total: '지출 15,500원 · 입금 20,000원', add: '거래 추가' },
+  transactions: { title: '사용내역', total: [{ label: '지출 합계', amount: '15,500원', tone: 'amount-expense' }, { label: '입금 합계', amount: '20,000원', tone: 'amount-income' }], add: '거래 추가' },
   memos: { title: '메모', total: '미완료 보정 -9,900원', add: '메모 추가' },
   'fixed-pay': { title: '고정지출 지급', total: '10월 지급 659,000원', add: '지급 기록 추가' },
   income: { title: '수입', total: '월 합계 4,000,000원', add: '수입 추가' },
@@ -431,10 +431,16 @@ function RecordList({ kind, go }: { kind: ListKind; go: (s: Screen) => void }) {
           {rows.map((item, i) => <button className="record-row" key={item.title} onClick={() => setEditing(true)}>
             <span className="record-date">{kind === 'income' || kind === 'extra' ? `${i + 2}일` : kind === 'memos' ? <i className="empty-check" /> : '10:30'}</span>
             <span className="record-title"><b>{item.title}</b><small>{kind === 'fixed-pay' ? (i ? '지급 완료' : '잔여 200,000원') : '생활 · 일반'}</small></span>
-            <strong>{item.amount}</strong><Icon name="chevron" size={16} />
+            <strong className={kind === 'memos' ? undefined : kind === 'income' || (kind === 'transactions' && item.amount.startsWith('+')) ? 'amount-income' : 'amount-expense'}>{item.amount}</strong><Icon name="chevron" size={16} />
           </button>)}
         </div>
-        <div className="list-total"><span>{cfg.total.split(' ')[0]}</span><strong>{cfg.total.substring(cfg.total.indexOf(' ') + 1)}</strong></div>
+        {typeof cfg.total === 'string' ? (
+          <div className="list-total"><span>{cfg.total.split(' ')[0]}</span><strong className={kind === 'income' ? 'amount-income' : kind === 'extra' || kind === 'fixed-pay' ? 'amount-expense' : undefined}>{cfg.total.substring(cfg.total.indexOf(' ') + 1)}</strong></div>
+        ) : (
+          <dl className="transaction-totals" aria-label="지출 및 입금 합계">
+            {cfg.total.map(total => <div key={total.label}><dt>{total.label}</dt><dd className={total.tone}>{total.amount}</dd></div>)}
+          </dl>
+        )}
         <button className="primary-button bottom-action" onClick={() => setEditing(true)}><Icon name="plus" size={18} />{cfg.add}</button>
       </> : <RecordForm kind={kind} onCancel={() => setEditing(false)} />}
     </main>
