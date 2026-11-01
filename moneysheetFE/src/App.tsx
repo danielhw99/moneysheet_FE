@@ -193,7 +193,7 @@ function Home({ go, month, changeMonth, selectedDate, selectDate }: {
             const date = month + '-' + String(day).padStart(2, '0')
             const info = valid && hasSampleData ? dayData[day] : undefined
             return (
-              <button key={i} disabled={!valid} aria-label={valid ? date : undefined} onClick={() => { selectDate(date); go('daily') }} className={`day-cell ${valid && date === selectedDate ? 'selected' : ''} ${valid && date === today ? 'today' : ''}`}>
+              <button key={i} disabled={!valid} aria-label={valid ? [date, info?.a, info?.b].filter(Boolean).join(', ') : undefined} onClick={() => { selectDate(date); go('daily') }} className={`day-cell ${valid && date === selectedDate ? 'selected' : ''} ${valid && date === today ? 'today' : ''}`}>
                 <span className="day-number">{valid ? day : ''}</span>
                 {info && <span className={`day-info ${info.type}`}>{info.a}</span>}
                 {info?.b && <span className="day-sub">{info.b}</span>}
@@ -587,7 +587,7 @@ function SimpleSettings({ type, go }: { type: 'account' | 'settings'; go: (s: Sc
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
-  const [recordDate, setRecordDate] = useState('2026-10-02')
+  const [recordDate, setRecordDate] = useState(() => localDateValue(new Date()))
   const [completedMemoDates, setCompletedMemoDates] = useState<Record<string, string>>({})
   const toggleMemo = (id: string) => {
     const memo = memos.find(item => item.id === id)
@@ -602,11 +602,16 @@ export default function App() {
   const [month, setMonth] = useState(currentMonth)
   const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => ({ [currentMonth()]: initialBudget(true) }))
   const budget = budgets[month]
+  const changeDate = (nextDate: string) => {
+    const nextMonth = nextDate.slice(0, 7)
+    setBudgets(previous => previous[nextMonth] ? previous : { ...previous, [nextMonth]: initialBudget() })
+    setMonth(nextMonth)
+    setRecordDate(nextDate)
+  }
   const changeMonth = (offset: number) => {
     const date = new Date(Number(month.slice(0, 4)), Number(month.slice(5)) - 1 + offset, 1)
     const next = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    setBudgets(previous => previous[next] ? previous : { ...previous, [next]: initialBudget() })
-    setMonth(next)
+    changeDate(recordDate.slice(0, 7) === next ? recordDate : next + '-01')
   }
   const setLocked = (locked: boolean) => {
     if (month < currentMonth()) return
@@ -623,13 +628,13 @@ export default function App() {
   }
   const view = useMemo(() => {
     if (screen === 'login' || screen === 'signup') return <Login key={screen} go={setScreen} signup={screen === 'signup'} />
-    if (screen === 'home') return <Home go={setScreen} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={setRecordDate} />
+    if (screen === 'home') return <Home go={setScreen} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />
     if (screen === 'daily') return <Daily go={setScreen} date={recordDate} completedMemoDates={completedMemoDates} toggleMemo={toggleMemo} />
     if (screen === 'monthly') return <Monthly go={setScreen} month={month} changeMonth={changeMonth} budget={budget} />
     if (screen === 'basic') return <BasicBudget go={setScreen} month={month} budget={budget} setLocked={setLocked} saveItem={saveItem} />
     if (screen === 'my') return <My go={setScreen} />
     if (screen === 'account' || screen === 'settings') return <SimpleSettings type={screen} go={setScreen} />
-    return <RecordList key={screen} kind={screen as ListKind} go={setScreen} date={recordDate} changeDate={setRecordDate} completedMemoDates={completedMemoDates} toggleMemo={toggleMemo} />
+    return <RecordList key={screen} kind={screen as ListKind} go={setScreen} date={recordDate} changeDate={changeDate} completedMemoDates={completedMemoDates} toggleMemo={toggleMemo} />
   }, [screen, month, budget, recordDate, completedMemoDates])
   return <div className="prototype"><div className="phone-frame">{view}</div></div>
 }

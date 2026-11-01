@@ -297,3 +297,5 @@
 .memo-record-check input { width: 18px; height: 18px; accent-color: var(--primary); }
 .memo-record-open { min-width: 0; min-height: 54px; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 8px; align-items: center; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
 .memo-record-open strong { font: 600 12px Inter, sans-serif; }
+
+.screen-content.home-content { overflow-y: auto; }
