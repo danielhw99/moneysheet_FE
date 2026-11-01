@@ -454,10 +454,10 @@ function RecordForm({ kind, initialTransactionType, onCancel }: { kind: ListKind
   const isFixed = kind === 'fixed-pay'
   return (
     <div className="record-form">
-      {kind === 'transactions' ? <div className="segment wide" role="group" aria-label="거래 구분">
-        <button type="button" className={transactionType === 'expense' ? 'active' : ''} aria-pressed={transactionType === 'expense'} onClick={() => setTransactionType('expense')}>지출</button>
-        <button type="button" className={transactionType === 'income' ? 'active' : ''} aria-pressed={transactionType === 'income'} onClick={() => setTransactionType('income')}>입금</button>
-      </div> : isMemo && <div className="segment wide"><button className="active">임시 출금</button><button>임시 입금</button></div>}
+      {(kind === 'transactions' || isMemo) && <div className="segment wide" role="group" aria-label={isMemo ? '메모 입출금 구분' : '거래 구분'}>
+        <button type="button" className={transactionType === 'expense' ? 'active' : ''} aria-pressed={transactionType === 'expense'} onClick={() => setTransactionType('expense')}>{isMemo ? '임시 출금' : '지출'}</button>
+        <button type="button" className={transactionType === 'income' ? 'active' : ''} aria-pressed={transactionType === 'income'} onClick={() => setTransactionType('income')}>{isMemo ? '임시 입금' : '입금'}</button>
+      </div>}
       <div className="record-date-time">
         <label className="field"><span>날짜</span><input type="date" name="date" defaultValue="2026-10-02" required /></label>
         <label className="field"><span>시간</span><input type="time" name="time" defaultValue="10:30" step={60} required /></label>
@@ -469,7 +469,7 @@ function RecordForm({ kind, initialTransactionType, onCancel }: { kind: ListKind
       {kind === 'transactions' && <label className="field"><span>카테고리</span><select key={transactionType} defaultValue={transactionType === 'income' ? '용돈' : '식비'}>
         {(transactionType === 'income' ? ['용돈', '중고거래', '기타'] : ['식비', '생활', '교통']).map(category => <option key={category}>{category}</option>)}
       </select></label>}
-      <label className="field"><span>{isFixed ? '이번 지급액' : kind === 'transactions' ? transactionType === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><input defaultValue={isFixed ? '200,000' : '45,000'} inputMode="numeric" /><b>원</b></div></label>
+      <label className="field"><span>{isFixed ? '이번 지급액' : isMemo ? transactionType === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? transactionType === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><input defaultValue={isFixed ? '200,000' : '45,000'} inputMode="numeric" /><b>원</b></div></label>
       {!isFixed && <label className="field"><span>내용</span><input defaultValue={isMemo ? '친구 정산' : kind === 'income' ? '급여' : '점심 식사'} /></label>}
       {isMemo && <label className="policy"><input type="checkbox" /> <span>완료 상태로 저장</span></label>}
       <p className="form-help">{isMemo ? '메모는 Main 잔액에만 반영되며 여유비에는 영향을 주지 않아요.' : isFixed ? '잔여 예산은 저장 후 자동으로 계산돼요.' : kind === 'transactions' && transactionType === 'expense' ? '본인 지출은 Main 잔액과 여유비에 반영돼요.' : '입금은 Main 잔액에만 반영돼요.'}</p>
