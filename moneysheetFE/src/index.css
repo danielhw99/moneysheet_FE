@@ -16,6 +16,7 @@
   --blue-soft: #eaf2fb;
   --red: #d75a55;
   --red-soft: #fceeed;
+  --field-error: #b42318;
   --green: #2e9d68;
   --gray: #59615e;
   --radius-sm: 8px;
@@ -274,4 +275,4 @@
   .phone-frame:has(.budget-detail), .phone-frame:has(.fixed-budget-form) { min-height: 0; }
 }
 
-.auth-screen .field-error { color: var(--red); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.auth-screen .field-error { color: var(--field-error); font-size: 12px; font-weight: 400; line-height: 1.5; }

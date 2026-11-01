@@ -99,7 +99,7 @@ function Login({ go, signup = false }: { go: (s: Screen) => void; signup?: boole
   const [agreed, setAgreed] = useState(false)
   const [touched, setTouched] = useState({ email: false, nickname: false, password: false, agreed: false })
   const errors = {
-    email: !email.trim() ? '이메일을 입력해 주세요.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? '올바른 이메일 형식을 입력해 주세요.' : '',
+    email: !email.trim() ? '이메일을 입력해 주세요.' : !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email.trim()) ? '올바른 이메일 형식을 입력해 주세요.' : '',
     nickname: signup && !nickname.trim() ? '닉네임을 입력해 주세요.' : '',
     password: !password.trim() ? '비밀번호를 입력해 주세요.' : '',
     agreed: signup && !agreed ? '개인정보처리방침 동의가 필요해요.' : '',
