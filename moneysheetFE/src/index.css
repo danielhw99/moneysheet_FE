@@ -17,6 +17,8 @@
   --red: #d75a55;
   --red-soft: #fceeed;
   --field-error: #b42318;
+  --amount-income: #b42318;
+  --amount-expense: #2463a5;
   --green: #2e9d68;
   --gray: #59615e;
   --radius-sm: 8px;
@@ -223,7 +225,7 @@
 .list-total { margin: 20px 16px; padding: 16px; border-radius: var(--radius-md); background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
 .list-total span { color: var(--secondary); }.list-total strong { font: 700 16px 'Inter', sans-serif; }
 .record-form { padding: 20px 18px; overflow-y: auto; height: calc(100% - 58px); }
-.record-form .segment { margin: 0 0 4px; }
+.record-form .segment { margin: 0 0 4px; min-height: 40px; flex-shrink: 0; }
 .money-input { display: flex; align-items: center; height: 48px; border: 1px solid var(--divider); border-radius: var(--radius-md); padding-right: 14px; }
 .money-input input { border: 0; height: 46px; flex: 1; min-width: 0; text-align: right; font: 700 17px 'Inter', sans-serif; }
 .money-input b { color: var(--secondary); }
@@ -276,3 +278,24 @@
 }
 
 .auth-screen .field-error { color: var(--field-error); font-size: 12px; font-weight: 400; line-height: 1.5; }
+
+/* Transaction colors do not change memo, budget-status, or free-money colors. */
+.amount-income, .status-card dd.amount-income { color: var(--amount-income); }
+.amount-expense, .status-card dd.amount-expense { color: var(--amount-expense); }
+.transaction-totals { margin: 20px 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.transaction-totals > div { min-width: 0; padding: 14px 12px; border-radius: var(--radius-md); background: var(--surface); }
+.transaction-totals dt { color: var(--secondary); font-size: 12px; }
+.transaction-totals dd { margin: 8px 0 0; font: 700 16px 'Inter', sans-serif; overflow-wrap: anywhere; }
+
+.record-date-time { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; flex-shrink: 0; }
+.record-date-time .field { min-width: 0; }
+.record-date-time input { min-width: 0; max-width: 100%; color-scheme: light; }
+
+.record-empty { padding: 20px 12px; color: var(--secondary); font-size: 12px; text-align: center; }
+.memo-record-row { grid-template-columns: 42px minmax(0, 1fr); }
+.memo-record-check { display: grid; place-items: center; min-height: 44px; cursor: pointer; }
+.memo-record-check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.memo-record-open { min-width: 0; min-height: 54px; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 8px; align-items: center; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
+.memo-record-open strong { font: 600 12px Inter, sans-serif; }
+
+.screen-content.home-content { overflow-y: auto; }
