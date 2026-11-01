@@ -59,7 +59,7 @@
 .topbar-side.right { justify-content: flex-end; padding-right: 8px; }
 .topbar-title { font-size: 16px; font-weight: 700; text-align: center; letter-spacing: -.2px; }
 
-.auth-screen { height: 100%; padding: 84px 28px 32px; background: linear-gradient(180deg, #f4faf7 0%, #fff 35%); }
+.auth-screen { overflow-y: auto; height: 100%; padding: 84px 28px 32px; background: linear-gradient(180deg, #f4faf7 0%, #fff 35%); }
 .brand-mark { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: white; background: var(--primary); margin-bottom: 14px; }
 .brand { color: var(--text); font: 700 27px/1 'Inter', sans-serif; letter-spacing: -1px; }
 .auth-copy { margin: 10px 0 34px; color: var(--secondary); }
@@ -273,3 +273,5 @@
 @media (max-width: 430px) {
   .phone-frame:has(.budget-detail), .phone-frame:has(.fixed-budget-form) { min-height: 0; }
 }
+
+.auth-screen .field-error { color: var(--red); font-size: 12px; font-weight: 400; line-height: 1.5; }
