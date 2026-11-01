@@ -225,7 +225,7 @@
 .list-total { margin: 20px 16px; padding: 16px; border-radius: var(--radius-md); background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
 .list-total span { color: var(--secondary); }.list-total strong { font: 700 16px 'Inter', sans-serif; }
 .record-form { padding: 20px 18px; overflow-y: auto; height: calc(100% - 58px); }
-.record-form .segment { margin: 0 0 4px; }
+.record-form .segment { margin: 0 0 4px; min-height: 40px; flex-shrink: 0; }
 .money-input { display: flex; align-items: center; height: 48px; border: 1px solid var(--divider); border-radius: var(--radius-md); padding-right: 14px; }
 .money-input input { border: 0; height: 46px; flex: 1; min-width: 0; text-align: right; font: 700 17px 'Inter', sans-serif; }
 .money-input b { color: var(--secondary); }

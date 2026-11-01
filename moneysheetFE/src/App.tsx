@@ -172,7 +172,7 @@ function Home({ go }: { go: (s: Screen) => void }) {
           <button className="icon-button flip" aria-label="다음 달"><Icon name="back" /></button>
         </div>
         <div className="legend">
-          <span><i className="dot blue" />사용내역</span><span><i className="dot red" />고정지출</span>
+          <span><i className="dot blue" />내역</span><span><i className="dot red" />고정지출</span>
           <span><i className="dot green" />여유비</span><span><i className="dot gray" />메모</span>
         </div>
         <div className="calendar">
@@ -231,7 +231,7 @@ function Daily({ go }: { go: (s: Screen) => void }) {
           <div><span>오늘 식비 예산</span><strong>11,000원</strong></div>
         </section>
         <div className="split-panels">
-          <MiniList title="사용내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => go('transactions')}>
+          <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => go('transactions')}>
             {entries.map((item) => <button className="compact-row" key={item.title} onClick={() => go('transactions')}><span className="truncate">{item.title}</span><b className={item.tone}>{item.amount}</b></button>)}
           </MiniList>
           <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" onAdd={() => go('memos')}>
@@ -406,7 +406,7 @@ function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Scree
 
 type ListKind = 'transactions' | 'memos' | 'fixed-pay' | 'income' | 'extra'
 const listConfig = {
-  transactions: { title: '사용내역', total: [{ label: '지출 합계', amount: '15,500원', tone: 'amount-expense' }, { label: '입금 합계', amount: '20,000원', tone: 'amount-income' }], add: '거래 추가' },
+  transactions: { title: '내역', total: [{ label: '지출 합계', amount: '15,500원', tone: 'amount-expense' }, { label: '입금 합계', amount: '20,000원', tone: 'amount-income' }], add: '거래 추가' },
   memos: { title: '메모', total: '미완료 보정 -9,900원', add: '메모 추가' },
   'fixed-pay': { title: '고정지출 지급', total: '10월 지급 659,000원', add: '지급 기록 추가' },
   income: { title: '수입', total: '월 합계 4,000,000원', add: '수입 추가' },
@@ -415,6 +415,7 @@ const listConfig = {
 
 function RecordList({ kind, go }: { kind: ListKind; go: (s: Screen) => void }) {
   const [editing, setEditing] = useState(false)
+  const [transactionType, setTransactionType] = useState<'expense' | 'income'>('expense')
   const cfg = listConfig[kind]
   const back = kind === 'income' || kind === 'extra' ? 'monthly' : 'daily'
   const rows = kind === 'memos' ? memos : kind === 'fixed-pay'
@@ -428,7 +429,7 @@ function RecordList({ kind, go }: { kind: ListKind; go: (s: Screen) => void }) {
         <div className="date-strip"><button><Icon name="back" size={17} /></button><strong>{kind === 'income' || kind === 'extra' ? '2026년 10월' : '2026.10.02 금요일'}</strong><button className="flip"><Icon name="back" size={17} /></button></div>
         {kind === 'memos' && <div className="segment"><button className="active">미완료 3</button><button>완료 이력</button></div>}
         <div className="record-list">
-          {rows.map((item, i) => <button className="record-row" key={item.title} onClick={() => setEditing(true)}>
+          {rows.map((item, i) => <button className="record-row" key={item.title} onClick={() => { setTransactionType(item.amount.startsWith('+') ? 'income' : 'expense'); setEditing(true) }}>
             <span className="record-date">{kind === 'income' || kind === 'extra' ? `${i + 2}일` : kind === 'memos' ? <i className="empty-check" /> : '10:30'}</span>
             <span className="record-title"><b>{item.title}</b><small>{kind === 'fixed-pay' ? (i ? '지급 완료' : '잔여 200,000원') : '생활 · 일반'}</small></span>
             <strong className={kind === 'memos' ? undefined : kind === 'income' || (kind === 'transactions' && item.amount.startsWith('+')) ? 'amount-income' : 'amount-expense'}>{item.amount}</strong><Icon name="chevron" size={16} />
@@ -441,30 +442,36 @@ function RecordList({ kind, go }: { kind: ListKind; go: (s: Screen) => void }) {
             {cfg.total.map(total => <div key={total.label}><dt>{total.label}</dt><dd className={total.tone}>{total.amount}</dd></div>)}
           </dl>
         )}
-        <button className="primary-button bottom-action" onClick={() => setEditing(true)}><Icon name="plus" size={18} />{cfg.add}</button>
-      </> : <RecordForm kind={kind} onCancel={() => setEditing(false)} />}
+        <button className="primary-button bottom-action" onClick={() => { setTransactionType('expense'); setEditing(true) }}><Icon name="plus" size={18} />{cfg.add}</button>
+      </> : <RecordForm kind={kind} initialTransactionType={transactionType} onCancel={() => setEditing(false)} />}
     </main>
   )
 }
 
-function RecordForm({ kind, onCancel }: { kind: ListKind; onCancel: () => void }) {
+function RecordForm({ kind, initialTransactionType, onCancel }: { kind: ListKind; initialTransactionType: 'expense' | 'income'; onCancel: () => void }) {
+  const [transactionType, setTransactionType] = useState(initialTransactionType)
   const isMemo = kind === 'memos'
   const isFixed = kind === 'fixed-pay'
   return (
     <div className="record-form">
-      {(kind === 'transactions' || isMemo) && <div className="segment wide"><button className="active">{isMemo ? '임시 출금' : '지출'}</button><button>{isMemo ? '임시 입금' : '입금'}</button></div>}
+      {kind === 'transactions' ? <div className="segment wide" role="group" aria-label="거래 구분">
+        <button type="button" className={transactionType === 'expense' ? 'active' : ''} aria-pressed={transactionType === 'expense'} onClick={() => setTransactionType('expense')}>지출</button>
+        <button type="button" className={transactionType === 'income' ? 'active' : ''} aria-pressed={transactionType === 'income'} onClick={() => setTransactionType('income')}>입금</button>
+      </div> : isMemo && <div className="segment wide"><button className="active">임시 출금</button><button>임시 입금</button></div>}
       <label className="field"><span>날짜 · 시간</span><input defaultValue="2026.10.02  10:30" /></label>
       {isFixed && <>
         <label className="field"><span>고정지출 예산 항목</span><select defaultValue="월세"><option>월세</option><option>휴대폰 요금</option></select></label>
         <div className="read-only-pair"><span>항목 예산<b>800,000원</b></span><span>누적 지급<b>600,000원</b></span></div>
       </>}
-      {kind === 'transactions' && <label className="field"><span>카테고리</span><select defaultValue="식비"><option>식비</option><option>생활</option><option>교통</option></select></label>}
-      <label className="field"><span>{isFixed ? '이번 지급액' : '금액'}</span><div className="money-input"><input defaultValue={isFixed ? '200,000' : '45,000'} inputMode="numeric" /><b>원</b></div></label>
+      {kind === 'transactions' && <label className="field"><span>카테고리</span><select key={transactionType} defaultValue={transactionType === 'income' ? '용돈' : '식비'}>
+        {(transactionType === 'income' ? ['용돈', '중고거래', '기타'] : ['식비', '생활', '교통']).map(category => <option key={category}>{category}</option>)}
+      </select></label>}
+      <label className="field"><span>{isFixed ? '이번 지급액' : kind === 'transactions' ? transactionType === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><input defaultValue={isFixed ? '200,000' : '45,000'} inputMode="numeric" /><b>원</b></div></label>
       {!isFixed && <label className="field"><span>내용</span><input defaultValue={isMemo ? '친구 정산' : kind === 'income' ? '급여' : '점심 식사'} /></label>}
       {isMemo && <label className="policy"><input type="checkbox" /> <span>완료 상태로 저장</span></label>}
-      <p className="form-help">{isMemo ? '메모는 Main 잔액에만 반영되며 여유비에는 영향을 주지 않아요.' : isFixed ? '잔여 예산은 저장 후 자동으로 계산돼요.' : '입금은 Main 잔액에만 반영돼요.'}</p>
+      <p className="form-help">{isMemo ? '메모는 Main 잔액에만 반영되며 여유비에는 영향을 주지 않아요.' : isFixed ? '잔여 예산은 저장 후 자동으로 계산돼요.' : kind === 'transactions' && transactionType === 'expense' ? '본인 지출은 Main 잔액과 여유비에 반영돼요.' : '입금은 Main 잔액에만 반영돼요.'}</p>
       <div className="form-actions"><button className="secondary-button" onClick={onCancel}>취소</button><button className="primary-button" onClick={onCancel}>저장</button></div>
-      <button className="delete-button" onClick={onCancel}>기존 기록 삭제</button>
+      <button className="delete-button" onClick={onCancel}>삭제</button>
     </div>
   )
 }
