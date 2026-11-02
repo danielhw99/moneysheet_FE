@@ -7,8 +7,10 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
   const [attempt, setAttempt] = useState(0)
   const identity = JSON.stringify([key, revision, attempt])
   const loader = useRef(load)
-  loader.current = load
   const [state, setState] = useState<{ key: string; identity: string; data?: T; loading: boolean; error: string }>({ key: '', identity: '', loading: true, error: '' })
+  useEffect(() => {
+    loader.current = load
+  })
   useEffect(() => {
     let active = true
     const request = loader.current

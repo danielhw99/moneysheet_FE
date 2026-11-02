@@ -10,6 +10,14 @@ const requireMonth = (month: string) => {
   if (!/^\d{4}-\d{2}$/.test(month) || !validDate(month + '-01')) fail('올바른 관리 연월을 선택해 주세요.')
 }
 
+let fallbackSeq = 0
+const defaultCreateId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `mock-${Date.now()}-${++fallbackSeq}-${Math.random().toString(36).slice(2, 9)}`
+}
+
 // One instance owns one prototype session. No HTTP, authentication or persistent storage.
 // DataProvider selects exactly one instance; a future HTTP implementation can replace it.
 export function createMockDataAccess(options: { today?: () => string; createId?: () => string } = {}): MoneySheetDataAccess {
@@ -17,7 +25,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   })
-  const createId = options.createId ?? (() => crypto.randomUUID())
+  const createId = options.createId ?? defaultCreateId
   const records = clone(initialRecords(today().slice(0, 7)))
   const categories = clone(initialCategories)
   const budgets: Record<string, MonthlyBudget> = {}
