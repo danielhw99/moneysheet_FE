@@ -1,218 +1,18 @@
 import { useState } from 'react'
-import CategoryPicker, { type AddCategory } from './CategoryPicker'
+import type { Screen } from './types/navigation'
+import Icon from './components/Icon'
+import Header from './components/Header'
+import BottomNav from './components/BottomNav'
+import MiniList from './components/MiniList'
+import Login from './features/auth/AuthScreen'
+import Home from './features/home/HomeScreen'
+import My from './features/account/MyScreen'
+import SimpleSettings from './features/account/SettingsScreen'
+import { currentMonth, localDateValue } from './utils/date'
+import { won, signedWon } from './utils/money'
+import CategoryPicker, { type AddCategory } from './components/CategoryPicker'
 import { initialCategories, initialRecords, recordValue, memoActive, validateRecord, foodForDate, foodThrough, daysInMonth, type Category, type Direction, type ListKind, type MoneyRecord, type RecordDraft } from './moneyRecords'
 
-type Screen =
-  | 'login'
-  | 'signup'
-  | 'home'
-  | 'daily'
-  | 'monthly'
-  | 'my'
-  | 'transactions'
-  | 'memos'
-  | 'fixed-pay'
-  | 'basic'
-  | 'income'
-  | 'extra'
-  | 'account'
-  | 'settings'
-
-type IconName =
-  | 'back'
-  | 'chevron'
-  | 'calendar'
-  | 'daily'
-  | 'monthly'
-  | 'user'
-  | 'lock'
-  | 'unlock'
-  | 'plus'
-  | 'check'
-  | 'wallet'
-  | 'edit'
-  | 'settings'
-  | 'logout'
-
-function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
-  const paths: Record<IconName, React.ReactNode> = {
-    back: <path d="m15 18-6-6 6-6" />,
-    chevron: <path d="m9 18 6-6-6-6" />,
-    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,
-    daily: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5z" /><path d="M8 8h8M8 12h5M8 16h3" /></>,
-    monthly: <><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" /></>,
-    user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
-    lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
-    unlock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 7.5-2" /></>,
-    plus: <path d="M12 5v14M5 12h14" />,
-    check: <path d="m5 12 4 4L19 6" />,
-    wallet: <><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H18v4H5.5A2.5 2.5 0 0 1 3 5.5V19a2 2 0 0 0 2 2h16V8H5.5" /><path d="M16 13h2" /></>,
-    edit: <><path d="m4 16-1 5 5-1L19 9l-4-4z" /><path d="m13.5 6.5 4 4" /></>,
-    settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></>,
-    logout: <><path d="M10 17l5-5-5-5M15 12H3" /><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" /></>,
-  }
-  return <svg aria-hidden="true" className="icon" viewBox="0 0 24 24" width={size} height={size}>{paths[name]}</svg>
-}
-
-function Header({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
-  return (
-    <header className="topbar">
-      <div className="topbar-side">{onBack && <button className="icon-button" onClick={onBack} aria-label="뒤로가기"><Icon name="back" /></button>}</div>
-      <div className="topbar-title">{title}</div>
-      <div className="topbar-side right">{right}</div>
-    </header>
-  )
-}
-
-const navItems: { key: Screen; label: string; icon: IconName }[] = [
-  { key: 'home', label: '홈', icon: 'calendar' },
-  { key: 'daily', label: 'Daily', icon: 'daily' },
-  { key: 'monthly', label: 'Monthly', icon: 'monthly' },
-  { key: 'my', label: 'MY', icon: 'user' },
-]
-
-function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen) => void }) {
-  return (
-    <nav className="bottom-nav">
-      {navItems.map((item) => (
-        <button key={item.key} className={screen === item.key ? 'nav-item active' : 'nav-item'} onClick={() => go(item.key)}>
-          <Icon name={item.icon} size={21} /><span>{item.label}</span>
-        </button>
-      ))}
-    </nav>
-  )
-}
-
-const localDateValue = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-const signedWon = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '-' : ''}${won(Math.abs(amount))}원`
-
-function Login({ go, signup = false }: { go: (s: Screen) => void; signup?: boolean }) {
-  const [email, setEmail] = useState('')
-  const [nickname, setNickname] = useState('')
-  const [password, setPassword] = useState('')
-  const [agreed, setAgreed] = useState(false)
-  const [touched, setTouched] = useState({ email: false, nickname: false, password: false, agreed: false })
-  const errors = {
-    email: !email.trim() ? '이메일을 입력해 주세요.' : !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email.trim()) ? '올바른 이메일 형식을 입력해 주세요.' : '',
-    nickname: signup && !nickname.trim() ? '닉네임을 입력해 주세요.' : '',
-    password: !password.trim() ? '비밀번호를 입력해 주세요.' : '',
-    agreed: signup && !agreed ? '개인정보처리방침 동의가 필요해요.' : '',
-  }
-  const canSubmit = Object.values(errors).every(error => !error)
-  const markTouched = (field: keyof typeof touched) => setTouched(previous => ({ ...previous, [field]: true }))
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault()
-    setTouched({ email: true, nickname: true, password: true, agreed: true })
-    if (!canSubmit) return
-    go(signup ? 'login' : 'home')
-  }
-  const fillTestAccount = () => {
-    setEmail('test123@test.com')
-    setPassword('test123')
-    setTouched({ email: false, nickname: false, password: false, agreed: false })
-  }
-  return (
-    <main className="auth-screen">
-      <div className="brand-mark"><Icon name="wallet" size={26} /></div>
-      <div className="brand">moneysheet</div>
-      <p className="auth-copy">{signup ? '나만의 월간 생활비 관리를 시작하세요.' : '오늘의 여유를 한눈에 확인하세요.'}</p>
-      <form className="form-stack" onSubmit={submit} noValidate>
-        <label className="field">
-          <span>이메일</span>
-          <input type="email" name="email" autoComplete="email" placeholder="name@example.com" required value={email} onChange={event => setEmail(event.target.value)} onBlur={() => markTouched('email')} aria-invalid={touched.email && !!errors.email} aria-describedby={touched.email && errors.email ? 'auth-email-error' : undefined} />
-          {touched.email && errors.email && <small className="field-error" id="auth-email-error" role="alert">{errors.email}</small>}
-        </label>
-        {signup && <label className="field">
-          <span>닉네임</span>
-          <input name="nickname" autoComplete="nickname" placeholder="닉네임 입력" required value={nickname} onChange={event => setNickname(event.target.value)} onBlur={() => markTouched('nickname')} aria-invalid={touched.nickname && !!errors.nickname} aria-describedby={touched.nickname && errors.nickname ? 'auth-nickname-error' : undefined} />
-          {touched.nickname && errors.nickname && <small className="field-error" id="auth-nickname-error" role="alert">{errors.nickname}</small>}
-        </label>}
-        <label className="field">
-          <span>비밀번호</span>
-          <input type="password" name="password" autoComplete={signup ? 'new-password' : 'current-password'} placeholder="비밀번호 입력" required value={password} onChange={event => setPassword(event.target.value)} onBlur={() => markTouched('password')} aria-invalid={touched.password && !!errors.password} aria-describedby={touched.password && errors.password ? 'auth-password-error' : undefined} />
-          {touched.password && errors.password && <small className="field-error" id="auth-password-error" role="alert">{errors.password}</small>}
-        </label>
-        {signup && <div>
-          <label className="policy"><input type="checkbox" required checked={agreed} onChange={event => { setAgreed(event.target.checked); markTouched('agreed') }} onBlur={() => markTouched('agreed')} aria-invalid={touched.agreed && !!errors.agreed} aria-describedby={touched.agreed && errors.agreed ? 'auth-policy-error' : undefined} /> <span>개인정보처리방침을 확인했으며 동의합니다.</span></label>
-          {touched.agreed && errors.agreed && <small className="field-error" id="auth-policy-error" role="alert">{errors.agreed}</small>}
-        </div>}
-        <button className="primary-button" type="submit" disabled={!canSubmit}>{signup ? '가입하기' : '로그인'}</button>
-        <p className="form-help">화면 확인용입니다. 실제 계정 인증과 회원정보 저장은 아직 연결되지 않았어요.</p>
-        {!signup && import.meta.env.DEV && <button className="text-button" type="button" onClick={fillTestAccount}>테스트 계정 입력 (개발용)</button>}
-      </form>
-      <button className="text-button" type="button" onClick={() => go(signup ? 'login' : 'signup')}>
-        {signup ? '이미 계정이 있어요 · 로그인' : '처음이신가요? 회원가입'}
-      </button>
-    </main>
-  )
-}
-
-const dayData: Record<number, { a: string; b?: string; type?: string }> = {
-  1: { a: '고정 850,000', type: 'red' }, 2: { a: '내역 22,000', b: '메모 3건', type: 'blue' },
-  4: { a: '내역 8,500', type: 'blue' }, 7: { a: '여유 42,000', type: 'green' },
-  9: { a: '고정 59,000', type: 'red' }, 12: { a: '내역 31,200', b: '+2건', type: 'blue' },
-  16: { a: '여유 28,000', type: 'green' }, 20: { a: '메모 1건', type: 'gray' },
-  23: { a: '내역 19,800', type: 'blue' }, 27: { a: '고정 12,900', type: 'red' },
-}
-
-function Home({ go, month, changeMonth, selectedDate, selectDate }: {
-  go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
-  selectedDate: string; selectDate: (date: string) => void;
-}) {
-  const year = Number(month.slice(0, 4))
-  const monthIndex = Number(month.slice(5)) - 1
-  const firstWeekday = new Date(year, monthIndex, 1).getDay()
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
-  const calendarDays = Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => index - firstWeekday + 1)
-  const today = localDateValue(new Date())
-  const hasSampleData = month === '2026-10'
-  return (
-    <main className="app-shell">
-      <section className="screen-content home-content">
-        <div className="month-head">
-          <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
-          <strong className="month-picker">{year}년 {monthIndex + 1}월</strong>
-          <button className="icon-button flip" aria-label="다음 달" onClick={() => changeMonth(1)}><Icon name="back" /></button>
-        </div>
-        <div className="legend">
-          <span><i className="dot blue" />내역</span><span><i className="dot red" />고정지출</span>
-          <span><i className="dot green" />여유비</span><span><i className="dot gray" />메모</span>
-        </div>
-        <div className="calendar">
-          {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => <div className={`weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}`} key={d}>{d}</div>)}
-          {calendarDays.map((day, i) => {
-            const valid = day > 0 && day <= daysInMonth
-            const date = month + '-' + String(day).padStart(2, '0')
-            const info = valid && hasSampleData ? dayData[day] : undefined
-            return (
-              <button key={i} disabled={!valid} aria-label={valid ? [date, info?.a, info?.b].filter(Boolean).join(', ') : undefined} onClick={() => { selectDate(date); go('daily') }} className={`day-cell ${valid && date === selectedDate ? 'selected' : ''} ${valid && date === today ? 'today' : ''}`}>
-                <span className="day-number">{valid ? day : ''}</span>
-                {info && <span className={`day-info ${info.type}`}>{info.a}</span>}
-                {info?.b && <span className="day-sub">{info.b}</span>}
-              </button>
-            )
-          })}
-        </div>
-        <button className="month-summary" onClick={() => go('monthly')}>
-          <span><small>{monthIndex + 1}월 지출</small><strong>{hasSampleData ? '1,250,000원' : '0원'}</strong></span>
-          <span className="summary-free"><small>남은 여유비</small><strong>{hasSampleData ? '68,100원' : '0원'}</strong></span>
-          <Icon name="chevron" />
-        </button>
-      </section>
-      <BottomNav screen="home" go={go} />
-    </main>
-  )
-}
-
-function MiniList({ title, onOpen, children, addLabel, onAdd }: { title: string; onOpen: () => void; children: React.ReactNode; addLabel: string; onAdd: () => void }) {
-  return (
-    <section className="mini-panel">
-      <button className="panel-heading" onClick={onOpen}><strong>{title}</strong><Icon name="chevron" size={17} /></button>
-      <div className="panel-scroll">{children}</div>
-      <button className="panel-add" onClick={onAdd}><Icon name="plus" size={16} />{addLabel}</button>
-    </section>
-  )
-}
 
 function Daily({ go, date, memoRecords, transactions, payments, budget, toggleMemo }: {
   go: (s: Screen) => void; date: string; memoRecords: MoneyRecord[]; transactions: MoneyRecord[];
@@ -280,11 +80,6 @@ type FixedBudgetItem = { id: string; name: string; categoryId: string; amount: n
 type MonthBudget = { locked: boolean; fixed: FixedBudgetItem[] }
 const allowanceId = 'free-allowance'
 const monthFoodBudget = (month: string) => foodThrough(month, daysInMonth(month))
-const won = (amount: number) => amount.toLocaleString('ko-KR')
-const currentMonth = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
 const initialBudget = (): MonthBudget => ({
   locked: true,
   fixed: [
@@ -565,42 +360,6 @@ function RecordForm({ kind, item, initialDate, budget, categories, addCategory, 
   </form>
 }
 
-
-function My({ go }: { go: (s: Screen) => void }) {
-  return (
-    <main className="app-shell">
-      <section className="screen-content">
-        <Header title="마이페이지" />
-        <div className="profile"><div className="avatar">김</div><div><b>김모니</b><span>money@example.com</span></div></div>
-        <div className="menu-list">
-          <button onClick={() => go('account')}><Icon name="user" /><span>계정관리</span><Icon name="chevron" /></button>
-          <button onClick={() => go('settings')}><Icon name="settings" /><span>설정</span><Icon name="chevron" /></button>
-          <button className="logout" onClick={() => go('login')}><Icon name="logout" /><span>로그아웃</span></button>
-        </div>
-      </section>
-      <BottomNav screen="my" go={go} />
-    </main>
-  )
-}
-
-function SimpleSettings({ type, go }: { type: 'account' | 'settings'; go: (s: Screen) => void }) {
-  return (
-    <main className="detail-shell">
-      <Header title={type === 'account' ? '계정관리' : '설정'} onBack={() => go('my')} />
-      {type === 'account' ? <div className="settings-form">
-        <label className="field"><span>이메일</span><input defaultValue="money@example.com" /></label>
-        <label className="field"><span>닉네임</span><input defaultValue="김모니" /></label>
-        <button className="settings-row">비밀번호 변경<Icon name="chevron" /></button>
-        <button className="primary-button">변경사항 저장</button>
-      </div> : <div className="menu-list settings-menu">
-        <button><span>이용약관</span><Icon name="chevron" /></button>
-        <button><span>개인정보처리방침</span><Icon name="chevron" /></button>
-        <button><span>오픈소스 라이선스</span><Icon name="chevron" /></button>
-        <div className="version">moneysheet 버전 1.0.0</div>
-      </div>}
-    </main>
-  )
-}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
