@@ -1,4 +1,4 @@
-import type { BudgetSummary, DailySummary, MonthlySummary, RecordsSummary, RecordQuery, HomeSummary } from '../MoneySheetDataAccess'
+import type { BudgetSummary, DailySummary, MonthlySummary, RecordsSummary, RecordQuery, HomeSummary, HomeDayEntry } from '../MoneySheetDataAccess'
 import type { MonthlyBudget, RecordStore } from '../models'
 import { allowanceId, daysInMonth, foodForDate, foodThrough, memoActive, recordValue } from './rules'
 
@@ -84,21 +84,21 @@ export function homeSummary(budget: MonthlyBudget, records: RecordStore, today: 
   const asOf = month === today.slice(0, 7) ? today : end
   const futureMonth = month > today.slice(0, 7)
   const days: Record<number, HomeSummary['days'][number]> = {}
-  const amount = (value: number) => value.toLocaleString('ko-KR')
   for (let day = 1; day <= daysInMonth(month); day++) {
     const date = `${month}-${String(day).padStart(2, '0')}`
     const hasRecord = [records.transactions, records.memos, records['fixed-pay']].some(rows => rows.some(item => item.date === date || item.completedOn === date))
     if (date > today && !hasRecord) continue
     const daily = dailySummary(date, budget, records)
-    const labels: { text: string; kind: HomeSummary['days'][number]['kind'] }[] = []
-    if (daily.transactions.some(item => item.direction === 'expense')) labels.push({ text: `지출 ${amount(daily.expenseTotal)}`, kind: 'transaction' })
-    if (daily.transactions.some(item => item.direction === 'income')) labels.push({ text: `입금 ${amount(daily.incomeTotal)}`, kind: 'transaction' })
-    if (daily.payments.length) labels.push({ text: `고정 ${amount(daily.payments.reduce((sum, item) => sum + item.record.amount, 0))}`, kind: 'fixed' })
-    if (daily.activeMemos.length) labels.push({ text: `메모 ${daily.activeMemos.length}건`, kind: 'memo' })
+    const entries: HomeDayEntry[] = []
+    if (daily.transactions.some(item => item.direction === 'expense')) entries.push({ label: '내역 지출', amount: -daily.expenseTotal, kind: 'transaction' })
+    if (daily.transactions.some(item => item.direction === 'income')) entries.push({ label: '내역 입금', amount: daily.incomeTotal, kind: 'transaction' })
+    if (daily.allowancePayment) entries.push({ label: '고정여유비 자동 지급', amount: -daily.allowancePayment.amount, kind: 'fixed' })
+    if (daily.payments.length) entries.push({ label: '고정지출', amount: -daily.payments.reduce((sum, item) => sum + item.record.amount, 0), kind: 'fixed' })
+    if (daily.activeMemos.length) entries.push({ label: '미완료 메모', count: daily.activeMemos.length, kind: 'memo' })
     const completed = records.memos.filter(item => item.completedOn === date).length
-    if (completed) labels.push({ text: `완료 ${completed}건`, kind: 'memo' })
-    labels.push({ text: `여유 ${amount(daily.freeBalance)}`, kind: 'free' })
-    days[day] = { primaryLabel: labels[0].text, secondaryLabel: labels.slice(1).map(item => item.text).join(' · ') || undefined, kind: labels[0].kind }
+    if (completed) entries.push({ label: '완료 메모', count: completed, kind: 'memo' })
+    entries.push({ label: '여유비', amount: daily.freeBalance, kind: 'free' })
+    days[day] = { entries }
   }
   return { month, source: 'records', days, expense: monthlySummary(budget, records).totalExpense, freeBalance: futureMonth ? 0 : dailySummary(asOf, budget, records).freeBalance }
 }

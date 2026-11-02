@@ -22,10 +22,11 @@ export type MonthlySummary = Readonly<{
 }>
 export type RecordQuery = { kind: ListKind; memoStatus?: 'pending' | 'completed' } & ({ date: string; month?: never } | { month: string; date?: never })
 export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number; total: number }>
+export type HomeDayEntry = Readonly<{ kind: 'fixed' | 'transaction' | 'free' | 'memo'; label: string } & ({ amount: number; count?: never } | { count: number; amount?: never })>
 export type HomeSummary = Readonly<{
   month: string;
   source: 'records';
-  days: Readonly<Record<number, Readonly<{ primaryLabel: string; secondaryLabel?: string; kind: 'fixed' | 'transaction' | 'free' | 'memo' }>>>;
+  days: Readonly<Record<number, Readonly<{ entries: readonly HomeDayEntry[] }>>>;
   expense: number; freeBalance: number;
 }>
 export type CategoryQuery = { scope?: Category['scope']; direction?: Category['direction'] }
