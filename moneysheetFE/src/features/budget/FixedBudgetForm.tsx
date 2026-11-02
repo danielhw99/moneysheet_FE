@@ -1,3 +1,4 @@
+import MoneyInput from '../../components/MoneyInput'
 import { useState } from 'react'
 import type { BudgetItemInput } from '../../data/models'
 import type { BudgetItemSummary } from '../../data/MoneySheetDataAccess'
@@ -28,6 +29,10 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
       setError('예산 금액은 정확하게 계산할 수 있는 0 이상의 원 단위 정수로 입력해 주세요.')
       return
     }
+    if (item && numericAmount < item.paid) {
+      setError(`이미 지급한 ${won(item.paid)}원보다 작게 예산을 설정할 수 없어요.`)
+      return
+    }
     try { await onSave({ name: name.trim(), categoryId, amount: numericAmount }) } catch (error) { setError(errorMessage(error)) }
   }
   const remove = async () => {
@@ -42,7 +47,7 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
         <fieldset className="form-fields" disabled={pending || refreshing || !!loadError}>
         <label className="field"><span>항목명</span><input required value={name} readOnly={item?.automatic} onChange={event => setName(event.target.value)} /></label>
         <CategoryPicker value={categoryId} onChange={setCategoryId} scope="fixedBudget" optional={false} />
-        <label className="field"><span>예산 금액</span><div className="money-input"><input required aria-label="예산 금액" inputMode="numeric" value={amount} onChange={event => setAmount(event.target.value)} /><b>원</b></div></label>
+        <label className="field"><span>예산 금액</span><div className="money-input"><MoneyInput required aria-label="예산 금액" value={amount} onValueChange={setAmount} /><b>원</b></div></label>
         {item?.automatic && <p className="form-help">1일에 자동 반영됩니다. 삭제하면 이번 달 고정여유비는 0원으로 계산돼요.</p>}
         {error && <p className="form-help" role="alert">{error}</p>}
         <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel}>취소</button><button className="primary-button" type="submit">저장</button></div>

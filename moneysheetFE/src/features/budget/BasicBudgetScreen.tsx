@@ -1,3 +1,4 @@
+import MoneyInput from '../../components/MoneyInput'
 import { useState } from 'react'
 import type { Screen } from '../../types/navigation'
 import type { BudgetItemSummary } from '../../data/MoneySheetDataAccess'
@@ -56,7 +57,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
           <div className="column-scroll">
             {[['주중', budget.food.weekday], ['토요일', budget.food.saturday], ['일요일', budget.food.sunday]].map(([label, amount]) => {
               const value = won(Number(amount))
-              return <label className="budget-input" key={label}><span>{label}</span><div><input disabled={readOnly} defaultValue={value} /><b>원</b></div></label>
+              return <label className="budget-input" key={label}><span>{label}</span><div><MoneyInput disabled={readOnly} defaultValue={value} /><b>원</b></div></label>
             })}
             <div className="periods">
               <span><small>1차</small><b>1~11일</b><strong>{won(budget.foodSummary.installments[0])}원</strong></span>

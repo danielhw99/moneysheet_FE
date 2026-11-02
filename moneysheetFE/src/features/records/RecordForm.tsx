@@ -1,8 +1,10 @@
+import MoneyInput from '../../components/MoneyInput'
+import TimePicker from '../../components/TimePicker'
 import { useState } from 'react'
 import type { ListKind, MoneyRecord, RecordDraft, Direction } from '../../data/models'
 import type { BudgetSummary } from '../../data/MoneySheetDataAccess'
 import { validateRecord } from '../../data/validation'
-import { daysInMonth } from '../../utils/date'
+import { daysInMonth, localTimeValue } from '../../utils/date'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
 import CategoryPicker from '../../components/CategoryPicker'
 import { won } from '../../utils/money'
@@ -13,7 +15,7 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
 }) {
   const { pending } = useDataAccess()
   const [date, setDate] = useState(item?.date ?? initialDate)
-  const [time, setTime] = useState(item?.time ?? '10:30')
+  const [time, setTime] = useState(() => item?.time ?? localTimeValue(new Date()))
   const [direction, setDirection] = useState<Direction>(item?.direction ?? 'expense')
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null)
   const [amount, setAmount] = useState(item ? won(Math.abs(item.amount)) : '')
@@ -44,6 +46,14 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
     }
     const validationError = validateRecord(kind, draft, managementMonth)
     if (validationError) { setError(validationError); return }
+    if (isFixed && selectedBudget) {
+      const ownPayment = item?.budgetItemId === selectedBudget.id ? item.amount : 0
+      const available = selectedBudget.amount - (selectedBudget.paid - ownPayment)
+      if (value > available) {
+        setError(`지급 가능한 금액은 ${won(Math.max(available, 0))}원이에요. 초과 지급하려면 예산을 먼저 수정해 주세요.`)
+        return
+      }
+    }
     try { await onSave(draft) } catch (error) { setError(errorMessage(error)) }
   }
   const remove = async () => {
@@ -58,14 +68,14 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
     </div>}
     <div className="record-date-time">
       <label className="field"><span>날짜</span><input type="date" value={date} min={isFixed ? managementMonth + '-01' : undefined} max={isFixed ? managementMonth + '-' + daysInMonth(managementMonth) : undefined} onChange={event => setDate(event.target.value)} required /></label>
-      <label className="field"><span>시간</span><input type="time" value={time} onChange={event => setTime(event.target.value)} step={60} required /></label>
+      <div className="field"><span>시간</span><TimePicker value={time} onChange={setTime} disabled={pending || refreshing} /></div>
     </div>
     {isFixed && <>
       <label className="field"><span>고정지출 예산 항목</span><select value={budgetItemId} onChange={event => setBudgetItemId(event.target.value)}><option value="">항목 선택</option>{(budget?.items ?? []).filter(value => !value.automatic).map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
       {selectedBudget && <div className="read-only-pair"><span>항목 예산<b>{won(selectedBudget.amount)}원</b></span><span>누적 지급<b>{won(selectedBudget.paid)}원</b></span></div>}
     </>}
     {kind === 'transactions' && <CategoryPicker key={direction} value={categoryId} onChange={setCategoryId} scope="mainTransaction" direction={direction} />}
-    <label className="field"><span>{isFixed ? '이번 지급액' : isMemo ? direction === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? direction === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><input value={amount} onChange={event => setAmount(event.target.value)} inputMode="numeric" required /><b>원</b></div></label>
+    <label className="field"><span>{isFixed ? '이번 지급액' : isMemo ? direction === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? direction === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><MoneyInput value={amount} onValueChange={setAmount} required /><b>원</b></div></label>
     {!isFixed && <label className="field"><span>내용</span><input value={title} onChange={event => setTitle(event.target.value)} required /></label>}
     {isMemo && <>
       <label className="policy"><input type="checkbox" checked={completed} onChange={event => setCompleted(event.target.checked)} /> <span>완료 상태로 저장</span></label>
