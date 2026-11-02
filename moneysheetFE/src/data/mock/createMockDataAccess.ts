@@ -1,8 +1,8 @@
-import { DataAccessError, type MoneySheetDataAccess, type HomeSummary, type RecordWrite } from '../MoneySheetDataAccess'
+import { DataAccessError, type MoneySheetDataAccess, type RecordWrite } from '../MoneySheetDataAccess'
 import type { BudgetItem, BudgetItemInput, Category, MonthlyBudget, MoneyRecord } from '../models'
-import { initialBudget, initialCategories, initialRecords, initialFoodBudget, demoProfile, legacyCalendarDays, demoCalendarMonth, demoHomeTotals } from './fixtures'
+import { initialBudget, initialCategories, initialRecords, initialFoodBudget, demoProfile } from './fixtures'
 import { allowanceId, validDate, validateRecord, daysInMonth, foodThrough } from './rules'
-import { budgetSummary, dailySummary, monthlySummary, recordsSummary } from './queries'
+import { budgetSummary, dailySummary, monthlySummary, recordsSummary, homeSummary } from './queries'
 
 const clone = <T,>(value: T): T => structuredClone(value)
 const fail = (message: string): never => { throw new DataAccessError('VALIDATION', message) }
@@ -78,6 +78,15 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
 
   return {
     async getBudget(month) { return clone(budgetSummary(getBudget(month), records)) },
+    async updateFoodBudget(month, input) {
+      const budget = editableBudget(month)
+      if ([input.weekday, input.saturday, input.sunday].some(value => !Number.isSafeInteger(value) || value < 0)) fail('식비는 0 이상의 원 단위 정수로 입력해 주세요.')
+      const food = { weekday: input.weekday, saturday: input.saturday, sunday: input.sunday }
+      const total = foodThrough(month, daysInMonth(month), food) + budget.fixed.reduce((sum, item) => sum + item.amount, 0)
+      if (!Number.isSafeInteger(total)) fail('월 예산 합계를 정확하게 계산할 수 없어요.')
+      budget.food = food
+      return clone(budgetSummary(budget, records))
+    },
     async createBudgetItem(month, input) {
       const budget = editableBudget(month)
       const id = createId()
@@ -150,9 +159,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     async getMonthly(month) { return clone(monthlySummary(getBudget(month), records)) },
     async getHome(month) {
       requireMonth(month)
-      const kinds = { red: 'fixed', blue: 'transaction', green: 'free', gray: 'memo' } as const
-      const days: HomeSummary['days'] = month === demoCalendarMonth ? Object.fromEntries(Object.entries(legacyCalendarDays).map(([day, cell]) => [day, { primaryLabel: cell.a, secondaryLabel: cell.b, kind: kinds[cell.type as keyof typeof kinds] }])) : {}
-      return clone({ month, source: 'demo-snapshot' as const, days, expense: month === demoCalendarMonth ? demoHomeTotals.expense : 0, freeBalance: month === demoCalendarMonth ? demoHomeTotals.freeBalance : 0 })
+      return clone(homeSummary(getBudget(month), records, today()))
     },
     async getProfile() { return clone(demoProfile) },
   }

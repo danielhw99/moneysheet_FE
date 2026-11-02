@@ -48,7 +48,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
           })}
         </div>
         {summary && <button className="month-summary" onClick={() => go('monthly')}>
-          <span><small>{monthIndex + 1}월 지출</small><strong>{`${won(summary.expense)}원`}</strong></span>
+          <span><small>{monthIndex + 1}월 총지출</small><strong>{`${won(summary.expense)}원`}</strong></span>
           <span className="summary-free"><small>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
           <Icon name="chevron" />
         </button>}

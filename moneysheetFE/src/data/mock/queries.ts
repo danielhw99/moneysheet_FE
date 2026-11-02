@@ -1,4 +1,4 @@
-import type { BudgetSummary, DailySummary, MonthlySummary, RecordsSummary, RecordQuery } from '../MoneySheetDataAccess'
+import type { BudgetSummary, DailySummary, MonthlySummary, RecordsSummary, RecordQuery, HomeSummary } from '../MoneySheetDataAccess'
 import type { MonthlyBudget, RecordStore } from '../models'
 import { allowanceId, daysInMonth, foodForDate, foodThrough, memoActive, recordValue } from './rules'
 
@@ -21,8 +21,19 @@ export function dailySummary(date: string, budget: MonthlyBudget, records: Recor
   const transactions = records.transactions.filter(item => item.date === date)
   const cumulative = records.transactions.filter(item => item.date.slice(0, 7) === month && item.date <= date)
   const activeMemos = records.memos.filter(item => memoActive(item, date))
-  const spending = cumulative.filter(item => item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0)
-  const paidThrough = day >= 22 ? daysInMonth(month) : day >= 12 ? 21 : 11
+  const previousSpending = cumulative.filter(item => item.date < date && item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0)
+  const expenseTotal = transactions.filter(item => item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0)
+  const carryoverFreeBalance = allowance + foodThrough(month, day - 1, budget.food) - previousSpending
+  const availableBeforeSpending = carryoverFreeBalance + foodForDate(date, budget.food)
+  const freeBalance = availableBeforeSpending - expenseTotal
+  const roundStart = day >= 22 ? 22 : day >= 12 ? 12 : 1
+  const roundEnd = day >= 22 ? daysInMonth(month) : day >= 12 ? 21 : 11
+  const allocatedBeforeRound = foodThrough(month, roundStart - 1, budget.food)
+  const roundBudget = foodThrough(month, roundEnd, budget.food) - allocatedBeforeRound
+  const allocatedInRound = foodThrough(month, day, budget.food) - allocatedBeforeRound
+  const remainingFood = roundBudget - allocatedInRound
+  const income = cumulative.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0)
+  const memoAdjustment = activeMemos.reduce((sum, item) => sum + recordValue(item), 0)
   const payments = records['fixed-pay'].filter(record => record.date === date).flatMap(record => {
     const item = budget.fixed.find(item => item.id === record.budgetItemId)
     if (!item) return []
@@ -31,10 +42,10 @@ export function dailySummary(date: string, budget: MonthlyBudget, records: Recor
   })
   return {
     date, transactions, activeMemos, payments,
-    mainBalance: allowance + foodThrough(month, paidThrough, budget.food) + cumulative.reduce((sum, item) => sum + recordValue(item), 0) + activeMemos.reduce((sum, item) => sum + recordValue(item), 0),
-    freeBalance: allowance + foodThrough(month, day, budget.food) - spending,
+    mainBalance: freeBalance + remainingFood + income + memoAdjustment,
+    freeBalance, carryoverFreeBalance, availableBeforeSpending, remainingFood,
     foodBudget: foodForDate(date, budget.food),
-    expenseTotal: transactions.filter(item => item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0),
+    expenseTotal,
     incomeTotal: transactions.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0),
   }
 }
@@ -63,4 +74,29 @@ export function recordsSummary(query: RecordQuery, records: RecordStore): Record
     incomeTotal: rows.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0),
     pendingMemoTotal: pending.reduce((sum, item) => sum + recordValue(item), 0),
   }
+}
+
+export function homeSummary(budget: MonthlyBudget, records: RecordStore, today: string): HomeSummary {
+  const month = budget.month
+  const end = `${month}-${daysInMonth(month)}`
+  const asOf = month === today.slice(0, 7) ? today : end
+  const futureMonth = month > today.slice(0, 7)
+  const days: Record<number, HomeSummary['days'][number]> = {}
+  const amount = (value: number) => value.toLocaleString('ko-KR')
+  for (let day = 1; day <= daysInMonth(month); day++) {
+    const date = `${month}-${String(day).padStart(2, '0')}`
+    const hasRecord = [records.transactions, records.memos, records['fixed-pay']].some(rows => rows.some(item => item.date === date || item.completedOn === date))
+    if (date > today && !hasRecord) continue
+    const daily = dailySummary(date, budget, records)
+    const labels: { text: string; kind: HomeSummary['days'][number]['kind'] }[] = []
+    if (daily.transactions.some(item => item.direction === 'expense')) labels.push({ text: `지출 ${amount(daily.expenseTotal)}`, kind: 'transaction' })
+    if (daily.transactions.some(item => item.direction === 'income')) labels.push({ text: `입금 ${amount(daily.incomeTotal)}`, kind: 'transaction' })
+    if (daily.payments.length) labels.push({ text: `고정 ${amount(daily.payments.reduce((sum, item) => sum + item.record.amount, 0))}`, kind: 'fixed' })
+    if (daily.activeMemos.length) labels.push({ text: `메모 ${daily.activeMemos.length}건`, kind: 'memo' })
+    const completed = records.memos.filter(item => item.completedOn === date).length
+    if (completed) labels.push({ text: `완료 ${completed}건`, kind: 'memo' })
+    labels.push({ text: `여유 ${amount(daily.freeBalance)}`, kind: 'free' })
+    days[day] = { primaryLabel: labels[0].text, secondaryLabel: labels.slice(1).map(item => item.text).join(' · ') || undefined, kind: labels[0].kind }
+  }
+  return { month, source: 'records', days, expense: monthlySummary(budget, records).totalExpense, freeBalance: futureMonth ? 0 : dailySummary(asOf, budget, records).freeBalance }
 }

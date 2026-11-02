@@ -15,6 +15,7 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [locked, setLocked] = useState(true)
+  const [comparisonAmount, setComparisonAmount] = useState('')
   const [actionError, setActionError] = useState('')
   const summary = query.data
   const toggleMemo = async (id: string) => {
@@ -32,15 +33,15 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
         <section className="balance-card">
           <div className="main-balance"><span>Main 계산 잔액</span><strong>{won(mainBalance)}원</strong></div>
           <div className="account-balance">
-            <label><span>실제 계좌 잔액</span><MoneyInput disabled={locked} defaultValue="67,800" /><b>원</b></label>
+            <label><span>실제 계좌 잔액</span><MoneyInput disabled={locked} value={comparisonAmount} onValueChange={setComparisonAmount} placeholder="미입력" /><b>원</b></label>
             <button className={locked ? 'lock-button locked' : 'lock-button'} onClick={() => setLocked(!locked)} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}>
               <Icon name={locked ? 'lock' : 'unlock'} size={17} />
             </button>
           </div>
-          <p className="helper">{query.loading ? '불러오는 중…' : locked ? '비교 잔액이 잠겨 있어요' : '비교용 값이며 계산 잔액에는 반영되지 않아요'}</p>
+          <p className="helper">{query.loading ? '불러오는 중…' : comparisonAmount === '' ? locked ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '비교 잔액은 아직 입력하지 않았어요.' : locked ? '비교 잔액이 잠겨 있어요' : '비교용 값이며 계산 잔액에는 반영되지 않아요'}</p>
         </section>
         <section className="budget-pair">
-          <div><span>남은 여유비</span><strong>{won(freeBalance)}원</strong></div>
+          <div><span>오늘 여유비</span><strong>{won(freeBalance)}원</strong></div>
           <div><span>오늘 식비 예산</span><strong>{won(summary.foodBudget)}원</strong></div>
         </section>
         <div className="split-panels">
