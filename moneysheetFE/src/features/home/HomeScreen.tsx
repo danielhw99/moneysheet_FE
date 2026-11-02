@@ -1,3 +1,4 @@
+import type { HomeDayEntry } from '../../data/MoneySheetDataAccess'
 import { useDataQuery } from '../../data/useDataQuery'
 import QueryStatus from '../../components/QueryStatus'
 import { won } from '../../utils/money'
@@ -12,7 +13,8 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
 }) {
   const query = useDataQuery(`home:${month}`, api => api.getHome(month))
   const summary = query.data
-  const colors = { fixed: 'red', transaction: 'blue', free: 'green', memo: 'gray' }
+  const colors = { fixed: 'red', transaction: 'blue', free: 'green', memo: 'black' }
+  const entryValue = (entry: HomeDayEntry) => entry.amount !== undefined ? `${entry.kind === 'transaction' && entry.amount > 0 ? '+' : ''}${won(entry.amount)}` : `${entry.count}건`
   const year = Number(month.slice(0, 4))
   const monthIndex = Number(month.slice(5)) - 1
   const firstWeekday = new Date(year, monthIndex, 1).getDay()
@@ -30,7 +32,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
         <QueryStatus {...query} />
         <div className="legend">
           <span><i className="dot blue" />내역</span><span><i className="dot red" />고정지출</span>
-          <span><i className="dot green" />여유비</span><span><i className="dot gray" />메모</span>
+          <span><i className="dot green" />여유비</span><span><i className="dot black" />메모</span>
         </div>
         <div className="calendar">
           {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => <div className={`weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}`} key={d}>{d}</div>)}
@@ -39,16 +41,15 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
             const date = month + '-' + String(day).padStart(2, '0')
             const info = valid ? summary?.days[day] : undefined
             return (
-              <button key={i} disabled={!valid} aria-label={valid ? [date, info?.primaryLabel, info?.secondaryLabel].filter(Boolean).join(', ') : undefined} onClick={() => { selectDate(date); go('daily') }} className={`day-cell ${valid && date === selectedDate ? 'selected' : ''} ${valid && date === today ? 'today' : ''}`}>
+              <button key={i} disabled={!valid} aria-label={valid ? [date, ...(info?.entries.map(entry => `${entry.label} ${entryValue(entry)}`) ?? [])].join(', ') : undefined} onClick={() => { selectDate(date); go('daily') }} className={`day-cell ${valid && date === selectedDate ? 'selected' : ''} ${valid && date === today ? 'today' : ''}`}>
                 <span className="day-number">{valid ? day : ''}</span>
-                {info && <span className={`day-info ${colors[info.kind]}`}>{info.primaryLabel}</span>}
-                {info?.secondaryLabel && <span className="day-sub">{info.secondaryLabel}</span>}
+                {info && <span className="day-summary" aria-hidden="true">{info.entries.map((entry, index) => <span className="calendar-entry" key={entry.label + index} title={`${entry.label} ${entryValue(entry)}`}><i className={`dot ${colors[entry.kind]}`} /><span className="calendar-entry-value">{entryValue(entry)}</span></span>)}</span>}
               </button>
             )
           })}
         </div>
         {summary && <button className="month-summary" onClick={() => go('monthly')}>
-          <span><small>{monthIndex + 1}월 지출</small><strong>{`${won(summary.expense)}원`}</strong></span>
+          <span><small>{monthIndex + 1}월 총지출</small><strong>{`${won(summary.expense)}원`}</strong></span>
           <span className="summary-free"><small>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
           <Icon name="chevron" />
         </button>}

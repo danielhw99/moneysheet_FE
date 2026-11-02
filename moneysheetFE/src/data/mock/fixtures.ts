@@ -30,16 +30,5 @@ export const initialBudget = (): { fixed: BudgetItem[] } => ({
   ],
 })
 
-export const legacyCalendarDays: Record<number, { a: string; b?: string; type?: string }> = {
-  1: { a: '고정 850,000', type: 'red' }, 2: { a: '내역 22,000', b: '메모 3건', type: 'blue' },
-  4: { a: '내역 8,500', type: 'blue' }, 7: { a: '여유 42,000', type: 'green' },
-  9: { a: '고정 59,000', type: 'red' }, 12: { a: '내역 31,200', b: '+2건', type: 'blue' },
-  16: { a: '여유 28,000', type: 'green' }, 20: { a: '메모 1건', type: 'gray' },
-  23: { a: '내역 19,800', type: 'blue' }, 27: { a: '고정 12,900', type: 'red' },
-}
-
-
 export { defaultFoodBudget as initialFoodBudget } from './rules'
 export const demoProfile: UserProfile = { id: 'demo-user', nickname: '김모니', email: 'money@example.com' }
-export const demoCalendarMonth = '2026-10'
-export const demoHomeTotals = { expense: 1250000, freeBalance: 68100 }

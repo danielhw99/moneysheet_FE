@@ -1,3 +1,4 @@
+import MoneyInput from '../../components/MoneyInput'
 import { useState } from 'react'
 import type { Screen } from '../../types/navigation'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
@@ -14,6 +15,7 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [locked, setLocked] = useState(true)
+  const [comparisonAmount, setComparisonAmount] = useState('')
   const [actionError, setActionError] = useState('')
   const summary = query.data
   const toggleMemo = async (id: string) => {
@@ -31,15 +33,15 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
         <section className="balance-card">
           <div className="main-balance"><span>Main 계산 잔액</span><strong>{won(mainBalance)}원</strong></div>
           <div className="account-balance">
-            <label><span>실제 계좌 잔액</span><input disabled={locked} defaultValue="67,800" inputMode="numeric" /><b>원</b></label>
+            <label><span>실제 계좌 잔액</span><MoneyInput disabled={locked} value={comparisonAmount} onValueChange={setComparisonAmount} placeholder="미입력" /><b>원</b></label>
             <button className={locked ? 'lock-button locked' : 'lock-button'} onClick={() => setLocked(!locked)} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}>
               <Icon name={locked ? 'lock' : 'unlock'} size={17} />
             </button>
           </div>
-          <p className="helper">{query.loading ? '불러오는 중…' : locked ? '비교 잔액이 잠겨 있어요' : '비교용 값이며 계산 잔액에는 반영되지 않아요'}</p>
+          <p className="helper">{query.loading ? '불러오는 중…' : comparisonAmount === '' ? locked ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '비교 잔액은 아직 입력하지 않았어요.' : locked ? '비교 잔액이 잠겨 있어요' : '비교용 값이며 계산 잔액에는 반영되지 않아요'}</p>
         </section>
         <section className="budget-pair">
-          <div><span>남은 여유비</span><strong>{won(freeBalance)}원</strong></div>
+          <div><span>오늘 여유비</span><strong>{won(freeBalance)}원</strong></div>
           <div><span>오늘 식비 예산</span><strong>{won(summary.foodBudget)}원</strong></div>
         </section>
         <div className="split-panels">
@@ -54,7 +56,8 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
         <section className="fixed-panel">
           <button className="panel-heading" onClick={() => go('fixed-pay')}><strong>고정지출</strong><Icon name="chevron" size={17} /></button>
           <div className="fixed-scroll">
-            {dayPayments.length === 0 && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
+            {summary.allowancePayment && <div className="fixed-row automatic-payment"><span><b>{summary.allowancePayment.name}</b><small className="complete">자동 지급 완료</small></span><strong className="amount-expense">{won(summary.allowancePayment.amount)}원</strong></div>}
+            {dayPayments.length === 0 && !summary.allowancePayment && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
             {dayPayments.map(payment => <button className="fixed-row" key={payment.record.id} onClick={() => go('fixed-pay')}><span><b>{payment.itemName}</b><small className={payment.complete ? 'complete' : ''}>{payment.complete ? '지급 완료' : `잔여 ${won(payment.remaining)}원`}</small></span><strong className="amount-expense">{won(payment.record.amount)}원</strong></button>)}
           </div>
           <button className="panel-add" onClick={() => go('fixed-pay')}><Icon name="plus" size={16} />지급 기록</button>

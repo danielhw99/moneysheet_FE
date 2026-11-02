@@ -10,9 +10,11 @@ export type BudgetSummary = Readonly<{
 export type DailyPaymentSummary = Readonly<{ record: Readonly<MoneyRecord>; itemName: string; paid: number; remaining: number; complete: boolean }>
 export type DailySummary = Readonly<{
   date: string; mainBalance: number; freeBalance: number; foodBudget: number;
+  carryoverFreeBalance: number; availableBeforeSpending: number; remainingFood: number;
   expenseTotal: number; incomeTotal: number;
   transactions: readonly Readonly<MoneyRecord>[]; activeMemos: readonly Readonly<MoneyRecord>[];
   payments: readonly DailyPaymentSummary[];
+  allowancePayment: Readonly<{ name: string; amount: number }> | null;
 }>
 export type MonthlySummary = Readonly<{
   month: string; income: number; extra: number; fixedBudget: number; foodBudget: number;
@@ -20,11 +22,11 @@ export type MonthlySummary = Readonly<{
 }>
 export type RecordQuery = { kind: ListKind; memoStatus?: 'pending' | 'completed' } & ({ date: string; month?: never } | { month: string; date?: never })
 export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number; total: number }>
+export type HomeDayEntry = Readonly<{ kind: 'fixed' | 'transaction' | 'free' | 'memo'; label: string } & ({ amount: number; count?: never } | { count: number; amount?: never })>
 export type HomeSummary = Readonly<{
   month: string;
-  // Preserve the existing static calendar until its source-record integration is implemented.
-  source: 'demo-snapshot' | 'records';
-  days: Readonly<Record<number, Readonly<{ primaryLabel: string; secondaryLabel?: string; kind: 'fixed' | 'transaction' | 'free' | 'memo' }>>>;
+  source: 'records';
+  days: Readonly<Record<number, Readonly<{ entries: readonly HomeDayEntry[] }>>>;
   expense: number; freeBalance: number;
 }>
 export type CategoryQuery = { scope?: Category['scope']; direction?: Category['direction'] }
@@ -32,6 +34,7 @@ export type RecordWrite = { kind: ListKind; managementMonth: string; input: Reco
 
 export interface MoneySheetDataAccess {
   getBudget(month: string): Promise<BudgetSummary>
+  updateFoodBudget(month: string, input: FoodBudget): Promise<BudgetSummary>
   createBudgetItem(month: string, input: BudgetItemInput): Promise<Readonly<BudgetItem>>
   updateBudgetItem(month: string, id: string, input: BudgetItemInput): Promise<Readonly<BudgetItem>>
   deleteBudgetItem(month: string, id: string): Promise<void>

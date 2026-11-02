@@ -1,8 +1,8 @@
-import { DataAccessError, type MoneySheetDataAccess, type HomeSummary, type RecordWrite } from '../MoneySheetDataAccess'
+import { DataAccessError, type MoneySheetDataAccess, type RecordWrite } from '../MoneySheetDataAccess'
 import type { BudgetItem, BudgetItemInput, Category, MonthlyBudget, MoneyRecord } from '../models'
-import { initialBudget, initialCategories, initialRecords, initialFoodBudget, demoProfile, legacyCalendarDays, demoCalendarMonth, demoHomeTotals } from './fixtures'
+import { initialBudget, initialCategories, initialRecords, initialFoodBudget, demoProfile } from './fixtures'
 import { allowanceId, validDate, validateRecord, daysInMonth, foodThrough } from './rules'
-import { budgetSummary, dailySummary, monthlySummary, recordsSummary } from './queries'
+import { budgetSummary, dailySummary, monthlySummary, recordsSummary, homeSummary } from './queries'
 
 const clone = <T,>(value: T): T => structuredClone(value)
 const fail = (message: string): never => { throw new DataAccessError('VALIDATION', message) }
@@ -46,6 +46,8 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   const validateBudgetItem = (budget: MonthlyBudget, input: BudgetItemInput, id: string) => {
     if (!input.name.trim() || !categories.some(item => item.id === input.categoryId && item.scope === 'fixedBudget')) fail('항목명과 고정비 카테고리를 입력해 주세요.')
     if (!Number.isSafeInteger(input.amount) || input.amount < 0) fail('예산은 0 이상의 원 단위 정수로 입력해 주세요.')
+    const paid = records['fixed-pay'].filter(item => item.budgetItemId === id && item.date.slice(0, 7) === budget.month).reduce((sum, item) => sum + item.amount, 0)
+    if (input.amount < paid) fail('이미 지급한 금액보다 작게 예산을 설정할 수 없어요.')
     const total = budget.fixed.filter(item => item.id !== id).reduce((sum, item) => sum + item.amount, input.amount) + foodThrough(budget.month, daysInMonth(budget.month), budget.food)
     if (!Number.isSafeInteger(total)) fail('예산 합계를 정확하게 계산할 수 없어요.')
   }
@@ -55,10 +57,12 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     const error = validateRecord(kind, input, managementMonth)
     if (error) fail(error)
     if (kind === 'fixed-pay') {
-      if (!getBudget(managementMonth).fixed.some(item => item.id === input.budgetItemId && item.id !== allowanceId)) fail('고정지출 예산 항목을 선택해 주세요.')
+      const budgetItem = getBudget(managementMonth).fixed.find(item => item.id === input.budgetItemId && item.id !== allowanceId)
+      if (!budgetItem) throw new DataAccessError('VALIDATION', '고정지출 예산 항목을 선택해 주세요.')
       if (id && findRecord(kind, id).date.slice(0, 7) !== managementMonth) fail('기존 지급 기록의 소속 월은 변경할 수 없어요.')
       const paid = records[kind].filter(item => item.id !== id && item.date.slice(0, 7) === managementMonth && item.budgetItemId === input.budgetItemId).reduce((sum, item) => sum + item.amount, input.amount)
       if (!Number.isSafeInteger(paid)) fail('지급액 합계를 정확하게 계산할 수 없어요.')
+      if (paid > budgetItem.amount) fail('잔여 예산을 초과해 지급할 수 없어요. 예산을 먼저 수정해 주세요.')
     }
     if (kind === 'transactions' && input.categoryId && !categories.some(item => item.id === input.categoryId && item.scope === 'mainTransaction' && item.direction === input.direction)) fail('입출금 구분에 맞는 카테고리를 선택해 주세요.')
     if (kind === 'income' && input.direction !== 'income' || (kind === 'extra' || kind === 'fixed-pay') && input.direction !== 'expense') fail('기록 종류에 맞는 입출금 구분을 선택해 주세요.')
@@ -74,6 +78,15 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
 
   return {
     async getBudget(month) { return clone(budgetSummary(getBudget(month), records)) },
+    async updateFoodBudget(month, input) {
+      const budget = editableBudget(month)
+      if ([input.weekday, input.saturday, input.sunday].some(value => !Number.isSafeInteger(value) || value < 0)) fail('식비는 0 이상의 원 단위 정수로 입력해 주세요.')
+      const food = { weekday: input.weekday, saturday: input.saturday, sunday: input.sunday }
+      const total = foodThrough(month, daysInMonth(month), food) + budget.fixed.reduce((sum, item) => sum + item.amount, 0)
+      if (!Number.isSafeInteger(total)) fail('월 예산 합계를 정확하게 계산할 수 없어요.')
+      budget.food = food
+      return clone(budgetSummary(budget, records))
+    },
     async createBudgetItem(month, input) {
       const budget = editableBudget(month)
       const id = createId()
@@ -146,9 +159,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     async getMonthly(month) { return clone(monthlySummary(getBudget(month), records)) },
     async getHome(month) {
       requireMonth(month)
-      const kinds = { red: 'fixed', blue: 'transaction', green: 'free', gray: 'memo' } as const
-      const days: HomeSummary['days'] = month === demoCalendarMonth ? Object.fromEntries(Object.entries(legacyCalendarDays).map(([day, cell]) => [day, { primaryLabel: cell.a, secondaryLabel: cell.b, kind: kinds[cell.type as keyof typeof kinds] }])) : {}
-      return clone({ month, source: 'demo-snapshot' as const, days, expense: month === demoCalendarMonth ? demoHomeTotals.expense : 0, freeBalance: month === demoCalendarMonth ? demoHomeTotals.freeBalance : 0 })
+      return clone(homeSummary(getBudget(month), records, today()))
     },
     async getProfile() { return clone(demoProfile) },
   }
