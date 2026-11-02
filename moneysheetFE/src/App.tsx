@@ -521,6 +521,10 @@ function RecordForm({ kind, item, initialDate, budget, categories, addCategory, 
   const managementMonth = initialDate.slice(0, 7)
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
+    if (isFixed && !selectedBudget) {
+      setError('고정지출 예산 항목을 선택해 주세요.')
+      return
+    }
     if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(amount.trim())) { setError('금액은 0 이상의 원 단위 정수로 입력해 주세요.'); return }
     const value = Number(amount.replace(/,/g, ''))
     const draft: RecordDraft = {
