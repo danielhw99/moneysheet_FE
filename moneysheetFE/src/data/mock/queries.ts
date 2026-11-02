@@ -17,7 +17,8 @@ export function budgetSummary(budget: MonthlyBudget, records: RecordStore): Budg
 export function dailySummary(date: string, budget: MonthlyBudget, records: RecordStore): DailySummary {
   const month = date.slice(0, 7)
   const day = Number(date.slice(8))
-  const allowance = budget.fixed.find(item => item.id === allowanceId)?.amount ?? 0
+  const allowanceItem = budget.fixed.find(item => item.id === allowanceId)
+  const allowance = allowanceItem?.amount ?? 0
   const transactions = records.transactions.filter(item => item.date === date)
   const cumulative = records.transactions.filter(item => item.date.slice(0, 7) === month && item.date <= date)
   const activeMemos = records.memos.filter(item => memoActive(item, date))
@@ -42,6 +43,7 @@ export function dailySummary(date: string, budget: MonthlyBudget, records: Recor
   })
   return {
     date, transactions, activeMemos, payments,
+    allowancePayment: day === 1 && allowanceItem ? { name: allowanceItem.name, amount: allowanceItem.amount } : null,
     mainBalance: freeBalance + remainingFood + income + memoAdjustment,
     freeBalance, carryoverFreeBalance, availableBeforeSpending, remainingFood,
     foodBudget: foodForDate(date, budget.food),

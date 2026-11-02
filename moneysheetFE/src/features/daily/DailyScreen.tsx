@@ -56,7 +56,8 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
         <section className="fixed-panel">
           <button className="panel-heading" onClick={() => go('fixed-pay')}><strong>고정지출</strong><Icon name="chevron" size={17} /></button>
           <div className="fixed-scroll">
-            {dayPayments.length === 0 && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
+            {summary.allowancePayment && <div className="fixed-row automatic-payment"><span><b>{summary.allowancePayment.name}</b><small className="complete">자동 지급 완료</small></span><strong className="amount-expense">{won(summary.allowancePayment.amount)}원</strong></div>}
+            {dayPayments.length === 0 && !summary.allowancePayment && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
             {dayPayments.map(payment => <button className="fixed-row" key={payment.record.id} onClick={() => go('fixed-pay')}><span><b>{payment.itemName}</b><small className={payment.complete ? 'complete' : ''}>{payment.complete ? '지급 완료' : `잔여 ${won(payment.remaining)}원`}</small></span><strong className="amount-expense">{won(payment.record.amount)}원</strong></button>)}
           </div>
           <button className="panel-add" onClick={() => go('fixed-pay')}><Icon name="plus" size={16} />지급 기록</button>

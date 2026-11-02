@@ -14,6 +14,7 @@ export type DailySummary = Readonly<{
   expenseTotal: number; incomeTotal: number;
   transactions: readonly Readonly<MoneyRecord>[]; activeMemos: readonly Readonly<MoneyRecord>[];
   payments: readonly DailyPaymentSummary[];
+  allowancePayment: Readonly<{ name: string; amount: number }> | null;
 }>
 export type MonthlySummary = Readonly<{
   month: string; income: number; extra: number; fixedBudget: number; foodBudget: number;
