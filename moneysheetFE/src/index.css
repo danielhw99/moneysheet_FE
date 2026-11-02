@@ -307,3 +307,13 @@
 .record-form > *, .category-picker { flex-shrink: 0; }
 
 .record-row:has(> .memo-record-open) { grid-template-columns: 42px minmax(0, 1fr); }
+
+/* Async status and disabled form controls preserve the existing form spacing. */
+.query-status { margin: 8px 16px; color: var(--secondary); font-size: 12px; line-height: 1.5; flex-shrink: 0; }
+.form-fields { min-width: 0; border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+
+.form-fields > * { flex-shrink: 0; }
+.record-form .field-error { color: var(--field-error); font-size: 12px; line-height: 1.5; }
+.detail-shell:has(> .record-form) { display: flex; flex-direction: column; }
+.detail-shell:has(> .record-form) > .topbar { flex-shrink: 0; }
+.detail-shell > .record-form { flex: 1; min-height: 0; height: auto; }
