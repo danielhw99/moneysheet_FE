@@ -1,5 +1,7 @@
 import { useState, type InputHTMLAttributes } from 'react'
 
+const validAmountFormat = /^(?:\d+|\d{1,3}(?:,\d{3})+)$/
+
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'defaultValue' | 'onChange' | 'type' | 'inputMode'> & {
   value?: string; defaultValue?: string; onValueChange?: (value: string) => void;
 }
@@ -17,9 +19,10 @@ export default function MoneyInput({ value, defaultValue = '', onValueChange, on
     onPaste={event => {
       onPaste?.(event)
       // Reject invalid pastes rather than turning e.g. 1.5 into 15 or -100 into 100.
-      if (!/^[\d,]*$/.test(event.clipboardData.getData('text'))) event.preventDefault()
+      if (!validAmountFormat.test(event.clipboardData.getData('text'))) event.preventDefault()
     }}
     onBlur={event => {
+      if (!validAmountFormat.test(event.target.value)) { onBlur?.(event); return }
       const digits = event.target.value.replace(/,/g, '')
       update(digits.replace(/\B(?=(\d{3})+(?!\d))/g, ','))
       onBlur?.(event)
