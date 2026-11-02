@@ -1,7 +1,7 @@
 import type { BudgetItem, BudgetItemInput, Category, CategoryInput, FoodBudget, ListKind, MoneyRecord, RecordDraft, UserProfile } from './models'
 
 // FE integration contract only. HTTP URLs, transport DTOs and authentication are not specified here.
-export type BudgetItemSummary = Readonly<BudgetItem & { paid: number; remaining: number; complete: boolean }>
+export type BudgetItemSummary = Readonly<BudgetItem & { paid: number; remaining: number; complete: boolean; automatic: boolean }>
 export type FoodSummary = Readonly<{ total: number; installments: readonly number[] }>
 export type BudgetSummary = Readonly<{
   month: string; items: readonly BudgetItemSummary[]; food: Readonly<FoodBudget>;
@@ -19,11 +19,11 @@ export type MonthlySummary = Readonly<{
   basicTotal: number; totalExpense: number; net: number;
 }>
 export type RecordQuery = { kind: ListKind; memoStatus?: 'pending' | 'completed' } & ({ date: string; month?: never } | { month: string; date?: never })
-export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number }>
+export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number; total: number }>
 export type HomeSummary = Readonly<{
   month: string;
   // Preserve the existing static calendar until its source-record integration is implemented.
-  source: 'demo-snapshot';
+  source: 'demo-snapshot' | 'records';
   days: Readonly<Record<number, Readonly<{ primaryLabel: string; secondaryLabel?: string; kind: 'fixed' | 'transaction' | 'free' | 'memo' }>>>;
   expense: number; freeBalance: number;
 }>

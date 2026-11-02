@@ -6,7 +6,7 @@ export function budgetSummary(budget: MonthlyBudget, records: RecordStore): Budg
   const items = budget.fixed.map(item => {
     const paid = records['fixed-pay'].filter(record => record.budgetItemId === item.id && record.date.slice(0, 7) === budget.month).reduce((sum, record) => sum + record.amount, 0)
     const remaining = item.amount - paid
-    return { ...item, paid, remaining, complete: remaining === 0 }
+    return { ...item, paid, remaining, complete: remaining === 0, automatic: item.id === allowanceId }
   })
   const first = foodThrough(budget.month, 11, budget.food)
   const second = foodThrough(budget.month, 21, budget.food)
@@ -58,6 +58,7 @@ export function recordsSummary(query: RecordQuery, records: RecordStore): Record
     : candidates.filter(item => !query.date || item.date === query.date)
   return {
     rows,
+    total: rows.reduce((sum, item) => sum + item.amount, 0),
     expenseTotal: rows.filter(item => item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0),
     incomeTotal: rows.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0),
     pendingMemoTotal: pending.reduce((sum, item) => sum + recordValue(item), 0),

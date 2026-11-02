@@ -11,7 +11,7 @@ const requireMonth = (month: string) => {
 }
 
 // One instance owns one prototype session. No HTTP, authentication or persistent storage.
-// Do not instantiate alongside the existing App state; phase 2 selects this implementation.
+// DataProvider selects exactly one instance; a future HTTP implementation can replace it.
 export function createMockDataAccess(options: { today?: () => string; createId?: () => string } = {}): MoneySheetDataAccess {
   const today = options.today ?? (() => {
     const now = new Date()
@@ -23,7 +23,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   const budgets: Record<string, MonthlyBudget> = {}
   const getBudget = (month: string): MonthlyBudget => {
     requireMonth(month)
-    return budgets[month] ??= { month, fixed: initialBudget().fixed.map(({ paid: _paid, ...item }) => item), food: clone(initialFoodBudget) }
+    return budgets[month] ??= { month, fixed: initialBudget().fixed, food: clone(initialFoodBudget) }
   }
   const editableBudget = (month: string) => {
     requireMonth(month)

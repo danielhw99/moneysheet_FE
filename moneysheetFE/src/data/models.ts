@@ -8,11 +8,9 @@ export type MoneyRecord = {
 export type RecordDraft = Omit<MoneyRecord, 'id'>
 export type RecordStore = Record<ListKind, MoneyRecord[]>
 
-export type FixedBudgetItem = { id: string; name: string; categoryId: string; amount: number; paid: number }
-export type MonthBudget = { locked: boolean; fixed: FixedBudgetItem[] }
 
 // Source entities exclude editable UI locks and calculated payment totals.
-export type BudgetItem = Omit<FixedBudgetItem, 'paid'>
+export type BudgetItem = { id: string; name: string; categoryId: string; amount: number }
 export type FoodBudget = { weekday: number; saturday: number; sunday: number }
 export type MonthlyBudget = { month: string; fixed: BudgetItem[]; food: FoodBudget }
 export type BudgetItemInput = Omit<BudgetItem, 'id'>

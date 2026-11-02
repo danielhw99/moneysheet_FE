@@ -1,4 +1,4 @@
-import type { Category, RecordStore, MoneyRecord, MonthBudget, UserProfile } from '../models'
+import type { Category, RecordStore, MoneyRecord, BudgetItem, UserProfile } from '../models'
 import { allowanceId } from './rules'
 
 export const initialCategories: Category[] = [
@@ -20,14 +20,13 @@ export const initialRecords = (month: string): RecordStore => {
   }
 }
 
-export const initialBudget = (): MonthBudget => ({
-  locked: true,
+export const initialBudget = (): { fixed: BudgetItem[] } => ({
   fixed: [
-    { id: 'rent', name: '월세', categoryId: 'housing', amount: 800000, paid: 0 },
-    { id: 'phone', name: '휴대폰 요금', categoryId: 'phone', amount: 59000, paid: 0 },
-    { id: 'subscription', name: '구독 서비스', categoryId: 'subscription', amount: 12900, paid: 0 },
-    { id: 'insurance', name: '보험료', categoryId: 'insurance', amount: 80000, paid: 0 },
-    { id: allowanceId, name: '고정여유비', categoryId: 'allowance', amount: 120000, paid: 0 },
+    { id: 'rent', name: '월세', categoryId: 'housing', amount: 800000 },
+    { id: 'phone', name: '휴대폰 요금', categoryId: 'phone', amount: 59000 },
+    { id: 'subscription', name: '구독 서비스', categoryId: 'subscription', amount: 12900 },
+    { id: 'insurance', name: '보험료', categoryId: 'insurance', amount: 80000 },
+    { id: allowanceId, name: '고정여유비', categoryId: 'allowance', amount: 120000 },
   ],
 })
 
@@ -44,4 +43,3 @@ export { defaultFoodBudget as initialFoodBudget } from './rules'
 export const demoProfile: UserProfile = { id: 'demo-user', nickname: '김모니', email: 'money@example.com' }
 export const demoCalendarMonth = '2026-10'
 export const demoHomeTotals = { expense: 1250000, freeBalance: 68100 }
-export const demoComparisonAmount = '67,800' // FE comparison input only; never part of Main calculations.
