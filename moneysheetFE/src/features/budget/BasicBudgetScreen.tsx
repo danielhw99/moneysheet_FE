@@ -1,3 +1,4 @@
+import { initialFoodBudget } from '../../data/mock/fixtures'
 import { useState } from 'react'
 import type { Screen } from '../../types/navigation'
 import { foodThrough, type Category } from '../../moneyRecords'
@@ -54,8 +55,8 @@ export default function BasicBudget({ go, month, budget, categories, addCategory
         <section className="budget-column food-column">
           <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(monthFoodBudget(month))}원</strong></span></div>
           <div className="column-scroll">
-            {['주중|11,000', '토요일|18,000', '일요일|15,000'].map((row) => {
-              const [label, value] = row.split('|')
+            {[['주중', initialFoodBudget.weekday], ['토요일', initialFoodBudget.saturday], ['일요일', initialFoodBudget.sunday]].map(([label, amount]) => {
+              const value = won(Number(amount))
               return <label className="budget-input" key={label}><span>{label}</span><div><input disabled={readOnly} defaultValue={value} /><b>원</b></div></label>
             })}
             <div className="periods">

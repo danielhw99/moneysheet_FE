@@ -1,15 +1,9 @@
+import { legacyCalendarDays as dayData, demoCalendarMonth, demoHomeTotals } from '../../data/mock/fixtures'
+import { won } from '../../utils/money'
 import type { Screen } from '../../types/navigation'
 import Icon from '../../components/Icon'
 import BottomNav from '../../components/BottomNav'
 import { localDateValue } from '../../utils/date'
-
-const dayData: Record<number, { a: string; b?: string; type?: string }> = {
-  1: { a: '고정 850,000', type: 'red' }, 2: { a: '내역 22,000', b: '메모 3건', type: 'blue' },
-  4: { a: '내역 8,500', type: 'blue' }, 7: { a: '여유 42,000', type: 'green' },
-  9: { a: '고정 59,000', type: 'red' }, 12: { a: '내역 31,200', b: '+2건', type: 'blue' },
-  16: { a: '여유 28,000', type: 'green' }, 20: { a: '메모 1건', type: 'gray' },
-  23: { a: '내역 19,800', type: 'blue' }, 27: { a: '고정 12,900', type: 'red' },
-}
 
 export default function Home({ go, month, changeMonth, selectedDate, selectDate }: {
   go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
@@ -21,7 +15,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
   const calendarDays = Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => index - firstWeekday + 1)
   const today = localDateValue(new Date())
-  const hasSampleData = month === '2026-10'
+  const hasSampleData = month === demoCalendarMonth
   return (
     <main className="app-shell">
       <section className="screen-content home-content">
@@ -50,8 +44,8 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
           })}
         </div>
         <button className="month-summary" onClick={() => go('monthly')}>
-          <span><small>{monthIndex + 1}월 지출</small><strong>{hasSampleData ? '1,250,000원' : '0원'}</strong></span>
-          <span className="summary-free"><small>남은 여유비</small><strong>{hasSampleData ? '68,100원' : '0원'}</strong></span>
+          <span><small>{monthIndex + 1}월 지출</small><strong>{`${won(hasSampleData ? demoHomeTotals.expense : 0)}원`}</strong></span>
+          <span className="summary-free"><small>남은 여유비</small><strong>{`${won(hasSampleData ? demoHomeTotals.freeBalance : 0)}원`}</strong></span>
           <Icon name="chevron" />
         </button>
       </section>

@@ -1,3 +1,4 @@
+import { demoComparisonAmount } from '../../data/mock/fixtures'
 import { useState } from 'react'
 import type { Screen } from '../../types/navigation'
 import type { MoneyRecord } from '../../moneyRecords'
@@ -32,7 +33,7 @@ export default function Daily({ go, date, memoRecords, transactions, payments, b
         <section className="balance-card">
           <div className="main-balance"><span>Main 계산 잔액</span><strong>{won(mainBalance)}원</strong></div>
           <div className="account-balance">
-            <label><span>실제 계좌 잔액</span><input disabled={locked} defaultValue="67,800" inputMode="numeric" /><b>원</b></label>
+            <label><span>실제 계좌 잔액</span><input disabled={locked} defaultValue={demoComparisonAmount} inputMode="numeric" /><b>원</b></label>
             <button className={locked ? 'lock-button locked' : 'lock-button'} onClick={() => setLocked(!locked)} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}>
               <Icon name={locked ? 'lock' : 'unlock'} size={17} />
             </button>
