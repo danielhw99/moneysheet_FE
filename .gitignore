@@ -773,3 +773,8 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/jetbrains,vs,java,macos,react,reactnative
+
+# Local coding-agent instructions
+AGENT.md
+AGENTS.md
+CLAUDE.md

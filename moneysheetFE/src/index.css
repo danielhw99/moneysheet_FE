@@ -299,3 +299,11 @@
 .memo-record-open strong { font: 600 12px Inter, sans-serif; }
 
 .screen-content.home-content { overflow-y: auto; }
+
+/* Category creation stays beside the selected category, without a separate page. */
+.category-add { margin: 0 0 16px; min-width: 0; padding: 12px; border: 1px solid var(--divider); border-radius: var(--radius-md); }
+.category-add legend { font-size: 12px; font-weight: 600; }
+.category-picker .field-error, .record-form > .field-error { color: var(--field-error); font-size: 12px; line-height: 1.5; }
+.record-form > *, .category-picker { flex-shrink: 0; }
+
+.record-row:has(> .memo-record-open) { grid-template-columns: 42px minmax(0, 1fr); }

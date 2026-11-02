@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
+import CategoryPicker, { type AddCategory } from './CategoryPicker'
+import { initialCategories, initialRecords, recordValue, memoActive, validateRecord, foodForDate, foodThrough, daysInMonth, type Category, type Direction, type ListKind, type MoneyRecord, type RecordDraft } from './moneyRecords'
 
 type Screen =
   | 'login'
@@ -81,18 +83,8 @@ function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen) => void }) 
   )
 }
 
-const entries = [
-  { title: '점심 · 샐러드', amount: '-11,000원', tone: 'amount-expense' },
-  { title: '편의점', amount: '-4,500원', tone: 'amount-expense' },
-  { title: '중고거래 입금', amount: '+20,000원', tone: 'amount-income' },
-]
 const localDateValue = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-const recordAmount = (amount: string) => Number(amount.replace(/[^\d+-]/g, ''))
-const memos = [
-  { id: 'friends', date: '2026-10-02', title: '친구 정산', amount: '-45,000원' },
-  { id: 'youtube', date: '2026-10-02', title: '유튜브 보전금', amount: '-14,900원' },
-  { id: 'allowance', date: '2026-10-02', title: '아빠 용돈', amount: '+50,000원' },
-]
+const signedWon = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '-' : ''}${won(Math.abs(amount))}원`
 
 function Login({ go, signup = false }: { go: (s: Screen) => void; signup?: boolean }) {
   const [email, setEmail] = useState('')
@@ -222,10 +214,21 @@ function MiniList({ title, onOpen, children, addLabel, onAdd }: { title: string;
   )
 }
 
-function Daily({ go, date, completedMemoDates, toggleMemo }: { go: (s: Screen) => void; date: string; completedMemoDates: Record<string, string>; toggleMemo: (id: string) => void }) {
-  const activeMemos = memos.filter(item => item.date.slice(0, 7) === date.slice(0, 7) && item.date <= date && (!completedMemoDates[item.id] || completedMemoDates[item.id] > date))
-  // Existing October demo balance before temporary memo adjustments; never carry it into another month.
-  const mainBalance = (date.slice(0, 7) === '2026-10' ? 78000 : 0) + activeMemos.reduce((total, item) => total + recordAmount(item.amount), 0)
+function Daily({ go, date, memoRecords, transactions, payments, budget, toggleMemo }: {
+  go: (s: Screen) => void; date: string; memoRecords: MoneyRecord[]; transactions: MoneyRecord[];
+  payments: MoneyRecord[]; budget: MonthBudget; toggleMemo: (id: string) => void;
+}) {
+  const activeMemos = memoRecords.filter(item => memoActive(item, date))
+  const month = date.slice(0, 7)
+  const day = Number(date.slice(8))
+  const allowance = budget.fixed.find(item => item.id === allowanceId)?.amount ?? 0
+  const monthTransactions = transactions.filter(item => item.date.slice(0, 7) === month && item.date <= date)
+  const spending = monthTransactions.reduce((sum, item) => sum + (item.direction === 'expense' ? item.amount : 0), 0)
+  const paidThrough = day >= 22 ? daysInMonth(month) : day >= 12 ? 21 : 11
+  const mainBalance = allowance + foodThrough(month, paidThrough) + monthTransactions.reduce((sum, item) => sum + recordValue(item), 0) + activeMemos.reduce((sum, item) => sum + recordValue(item), 0)
+  const freeBalance = allowance + foodThrough(month, day) - spending
+  const dayTransactions = transactions.filter(item => item.date === date)
+  const dayPayments = payments.filter(item => item.date === date)
   const [locked, setLocked] = useState(true)
   return (
     <main className="app-shell">
@@ -242,23 +245,28 @@ function Daily({ go, date, completedMemoDates, toggleMemo }: { go: (s: Screen) =
           <p className="helper">{locked ? '비교 잔액이 잠겨 있어요' : '비교용 값이며 계산 잔액에는 반영되지 않아요'}</p>
         </section>
         <section className="budget-pair">
-          <div><span>남은 여유비</span><strong>39,000원</strong></div>
-          <div><span>오늘 식비 예산</span><strong>11,000원</strong></div>
+          <div><span>남은 여유비</span><strong>{won(freeBalance)}원</strong></div>
+          <div><span>오늘 식비 예산</span><strong>{won(foodForDate(date))}원</strong></div>
         </section>
         <div className="split-panels">
           <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => go('transactions')}>
-            {date !== '2026-10-02' && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{(date === '2026-10-02' ? entries : []).map((item) => <button className="compact-row" key={item.title} onClick={() => go('transactions')}><span className="truncate">{item.title}</span><b className={item.tone}>{item.amount}</b></button>)}
+            {dayTransactions.length === 0 && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{dayTransactions.map(item => <button className="compact-row" key={item.id} onClick={() => go('transactions')}><span className="truncate">{item.title}</span><b className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{signedWon(recordValue(item))}</b></button>)}
           </MiniList>
           <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" onAdd={() => go('memos')}>
             {activeMemos.length === 0 && <p className="record-empty">미완료 메모가 없습니다.</p>}
-            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} onClick={() => toggleMemo(item.id)} /><button className="memo-main" onClick={() => go('memos')}><span className="truncate">{item.title}</span><b>{item.amount}</b></button></div>)}
+            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} onClick={() => toggleMemo(item.id)} /><button className="memo-main" onClick={() => go('memos')}><span className="truncate">{item.title}</span><b>{signedWon(recordValue(item))}</b></button></div>)}
           </MiniList>
         </div>
         <section className="fixed-panel">
           <button className="panel-heading" onClick={() => go('fixed-pay')}><strong>고정지출</strong><Icon name="chevron" size={17} /></button>
           <div className="fixed-scroll">
-            <button className="fixed-row" onClick={() => go('fixed-pay')}><span><b>월세</b><small>잔여 200,000원</small></span><strong className="amount-expense">600,000원</strong></button>
-            <button className="fixed-row" onClick={() => go('fixed-pay')}><span><b>휴대폰 요금</b><small className="complete">지급 완료</small></span><strong className="amount-expense">59,000원</strong></button>
+            {dayPayments.length === 0 && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
+            {dayPayments.map(payment => {
+              const item = budget.fixed.find(item => item.id === payment.budgetItemId)
+              if (!item) return null
+              const paid = payments.filter(value => value.budgetItemId === item.id && value.date.slice(0, 7) === month && value.date <= date).reduce((sum, value) => sum + value.amount, 0)
+              return <button className="fixed-row" key={payment.id} onClick={() => go('fixed-pay')}><span><b>{item.name}</b><small className={item.amount === paid ? 'complete' : ''}>{item.amount === paid ? '지급 완료' : `잔여 ${won(item.amount - paid)}원`}</small></span><strong className="amount-expense">{won(payment.amount)}원</strong></button>
+            })}
           </div>
           <button className="panel-add" onClick={() => go('fixed-pay')}><Icon name="plus" size={16} />지급 기록</button>
         </section>
@@ -268,37 +276,37 @@ function Daily({ go, date, completedMemoDates, toggleMemo }: { go: (s: Screen) =
   )
 }
 
-type FixedBudgetItem = { id: string; name: string; category: string; amount: number; paid: number }
+type FixedBudgetItem = { id: string; name: string; categoryId: string; amount: number; paid: number }
 type MonthBudget = { locked: boolean; fixed: FixedBudgetItem[] }
 const allowanceId = 'free-allowance'
-const foodBudget = 328000 // Existing food-budget prototype; food editing is separate from fixed budgets.
+const monthFoodBudget = (month: string) => foodThrough(month, daysInMonth(month))
 const won = (amount: number) => amount.toLocaleString('ko-KR')
 const currentMonth = () => {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
-const initialBudget = (includeDemoPayments = false): MonthBudget => ({
+const initialBudget = (): MonthBudget => ({
   locked: true,
   fixed: [
-    { id: 'rent', name: '월세', category: '주거', amount: 800000, paid: includeDemoPayments ? 600000 : 0 },
-    { id: 'phone', name: '휴대폰 요금', category: '통신', amount: 59000, paid: includeDemoPayments ? 59000 : 0 },
-    { id: 'subscription', name: '구독 서비스', category: '구독', amount: 12900, paid: 0 },
-    { id: 'insurance', name: '보험료', category: '보험', amount: 80000, paid: 0 },
-    { id: allowanceId, name: '고정여유비', category: '여유비', amount: 120000, paid: 0 },
+    { id: 'rent', name: '월세', categoryId: 'housing', amount: 800000, paid: 0 },
+    { id: 'phone', name: '휴대폰 요금', categoryId: 'phone', amount: 59000, paid: 0 },
+    { id: 'subscription', name: '구독 서비스', categoryId: 'subscription', amount: 12900, paid: 0 },
+    { id: 'insurance', name: '보험료', categoryId: 'insurance', amount: 80000, paid: 0 },
+    { id: allowanceId, name: '고정여유비', categoryId: 'allowance', amount: 120000, paid: 0 },
   ],
 })
 const fixedTotal = (budget: MonthBudget) => budget.fixed.reduce((total, item) => total + item.amount, 0)
 
 const monthlySections = [
-  { title: '기본지출', desc: '고정지출 + 식비 예산', amount: '1,180,000원', target: 'basic' as Screen },
-  { title: '그 외 지출', desc: '저축계좌 출금', amount: '70,000원', target: 'extra' as Screen },
-  { title: '수입', desc: '이번 달 수동 입력', amount: '4,000,000원', target: 'income' as Screen },
+  { title: '기본지출', desc: '고정지출 + 식비 예산', target: 'basic' as Screen },
+  { title: '그 외 지출', desc: '저축계좌 출금', target: 'extra' as Screen },
+  { title: '수입', desc: '이번 달 수동 입력', target: 'income' as Screen },
 ]
 
-function Monthly({ go, month, changeMonth, budget }: { go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void; budget: MonthBudget }) {
-  const basicTotal = fixedTotal(budget) + foodBudget
-  const totalExpense = basicTotal + 70000
-  const net = 4000000 - totalExpense
+function Monthly({ go, month, changeMonth, budget, income, extra }: { go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void; budget: MonthBudget; income: number; extra: number }) {
+  const basicTotal = fixedTotal(budget) + monthFoodBudget(month)
+  const totalExpense = basicTotal + extra
+  const net = income - totalExpense
   return (
     <main className="app-shell">
       <section className="screen-content">
@@ -312,13 +320,13 @@ function Monthly({ go, month, changeMonth, budget }: { go: (s: Screen) => void; 
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>
               <span className={`section-icon ${item.title === '수입' ? 'income' : item.title === '그 외 지출' ? 'extra' : ''}`}><Icon name={item.title === '기본지출' ? 'wallet' : item.title === '수입' ? 'plus' : 'monthly'} size={19} /></span>
               <span className="monthly-copy"><b>{item.title}</b><small>{item.desc}</small></span>
-              <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{item.target === 'basic' ? `${won(basicTotal)}원` : item.amount}</strong><Icon name="chevron" size={17} />
+              <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{item.target === 'basic' ? `${won(basicTotal)}원` : `${won(item.target === 'income' ? income : extra)}원`}</strong><Icon name="chevron" size={17} />
             </button>
           ))}
         </div>
         <section className="status-card">
           <div className="status-title"><span>이번 달 현황</span><small>예산 기준</small></div>
-          <dl><div><dt>총수입</dt><dd className="amount-income">4,000,000원</dd></div><div><dt>총지출</dt><dd className="amount-expense">{won(totalExpense)}원</dd></div><div className="net"><dt>순증감</dt><dd>{net >= 0 ? '+' : '-'}{won(Math.abs(net))}원</dd></div></dl>
+          <dl><div><dt>총수입</dt><dd className="amount-income">{won(income)}원</dd></div><div><dt>총지출</dt><dd className="amount-expense">{won(totalExpense)}원</dd></div><div className="net"><dt>순증감</dt><dd>{net >= 0 ? '+' : '-'}{won(Math.abs(net))}원</dd></div></dl>
           <p>순증감은 월 수입에서 총지출을 뺀 금액이에요.</p>
         </section>
       </section>
@@ -327,14 +335,14 @@ function Monthly({ go, month, changeMonth, budget }: { go: (s: Screen) => void; 
   )
 }
 
-function FixedBudgetForm({ item, onSave, onCancel }: { item?: FixedBudgetItem; onSave: (values: Pick<FixedBudgetItem, 'name' | 'category' | 'amount'>) => boolean; onCancel: () => void }) {
+function FixedBudgetForm({ item, categories, addCategory, onSave, onDelete, onCancel }: { item?: FixedBudgetItem; categories: Category[]; addCategory: AddCategory; onSave: (values: Pick<FixedBudgetItem, 'name' | 'categoryId' | 'amount'>) => boolean; onDelete: () => boolean; onCancel: () => void }) {
   const [name, setName] = useState(item?.name ?? '')
-  const [category, setCategory] = useState(item?.category ?? '')
+  const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null)
   const [amount, setAmount] = useState(item ? won(item.amount) : '')
   const [error, setError] = useState('')
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (!name.trim() || !category.trim() || !amount.trim()) {
+    if (!name.trim() || !categoryId || !amount.trim()) {
       setError('항목명, 카테고리, 예산 금액을 모두 입력해 주세요.')
       return
     }
@@ -343,7 +351,7 @@ function FixedBudgetForm({ item, onSave, onCancel }: { item?: FixedBudgetItem; o
       setError('예산 금액은 정확하게 계산할 수 있는 0 이상의 원 단위 정수로 입력해 주세요.')
       return
     }
-    if (!onSave({ name: name.trim(), category: category.trim(), amount: numericAmount })) {
+    if (!onSave({ name: name.trim(), categoryId, amount: numericAmount })) {
       setError('예산이 잠겨 있거나 지난달이면 저장할 수 없어요. 금액 합계도 확인해 주세요.')
     }
   }
@@ -352,17 +360,18 @@ function FixedBudgetForm({ item, onSave, onCancel }: { item?: FixedBudgetItem; o
       <Header title={item ? '고정지출 예산 편집' : '고정지출 예산 추가'} onBack={onCancel} />
       <form className="record-form fixed-budget-form" onSubmit={submit} noValidate>
         <label className="field"><span>항목명</span><input required value={name} readOnly={item?.id === allowanceId} onChange={event => setName(event.target.value)} /></label>
-        <label className="field"><span>카테고리</span><input required value={category} onChange={event => setCategory(event.target.value)} /></label>
+        <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} onAdd={addCategory} scope="fixedBudget" optional={false} />
         <label className="field"><span>예산 금액</span><div className="money-input"><input required aria-label="예산 금액" inputMode="numeric" value={amount} onChange={event => setAmount(event.target.value)} /><b>원</b></div></label>
-        {item?.id === allowanceId && <p className="form-help">매월 필요한 고정여유비예요. 1일에 자동 반영됩니다.</p>}
+        {item?.id === allowanceId && <p className="form-help">1일에 자동 반영됩니다. 삭제하면 이번 달 고정여유비는 0원으로 계산돼요.</p>}
         {error && <p className="form-help" role="alert">{error}</p>}
         <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel}>취소</button><button className="primary-button" type="submit">저장</button></div>
+        {item && <button type="button" className="delete-button" onClick={() => { if (!onDelete()) setError('예산 잠금·지난달 여부를 확인해 주세요. 지급 기록이 있는 항목은 기록을 먼저 삭제해 주세요.') }}>삭제</button>}
       </form>
     </main>
   )
 }
 
-function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Screen) => void; month: string; budget: MonthBudget; setLocked: (locked: boolean) => void; saveItem: (item: FixedBudgetItem) => boolean }) {
+function BasicBudget({ go, month, budget, categories, addCategory, setLocked, saveItem, deleteItem }: { go: (s: Screen) => void; month: string; budget: MonthBudget; categories: Category[]; addCategory: AddCategory; setLocked: (locked: boolean) => void; saveItem: (item: FixedBudgetItem) => boolean; deleteItem: (id: string) => boolean }) {
   const [editing, setEditing] = useState<FixedBudgetItem | 'new' | null>(null)
   const [, refreshMonth] = useState(currentMonth)
   const pastMonth = month < currentMonth()
@@ -376,7 +385,11 @@ function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Scree
     }
     if (!readOnly) setEditing(item)
   }
-  if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} onCancel={() => setEditing(null)} onSave={values => {
+  if (editing) return <FixedBudgetForm categories={categories} addCategory={addCategory} item={editing === 'new' ? undefined : editing} onDelete={() => {
+    if (editing === 'new' || !deleteItem(editing.id)) return false
+    setEditing(null)
+    return true
+  }} onCancel={() => setEditing(null)} onSave={values => {
     if (readOnly || month < currentMonth()) return false
     const item = editing === 'new' ? { id: crypto.randomUUID(), paid: 0, ...values } : { ...editing, ...values }
     if (!saveItem(item)) return false
@@ -394,23 +407,23 @@ function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Scree
           <div className="column-scroll">
             {budget.fixed.map(item => {
               const remaining = item.amount - item.paid
-              const state = item.id === allowanceId ? '필수 · 1일 자동 반영' : remaining === 0 ? '완료' : `잔여 ${won(remaining)}원`
+              const state = item.id === allowanceId ? '1일 자동 반영' : remaining === 0 ? '완료' : `잔여 ${won(remaining)}원`
               return <button className="budget-row" key={item.id} disabled={readOnly} onClick={() => openForm(item)}><span><b className="truncate">{item.name}</b><small className={state === '완료' ? 'complete' : ''}>{state}</small></span><strong>{won(item.amount)}</strong></button>
             })}
           </div>
           <button className="panel-add" disabled={readOnly} onClick={() => openForm('new')}><Icon name="plus" size={16} />항목 추가</button>
         </section>
         <section className="budget-column food-column">
-          <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(foodBudget)}원</strong></span></div>
+          <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(monthFoodBudget(month))}원</strong></span></div>
           <div className="column-scroll">
             {['주중|11,000', '토요일|18,000', '일요일|15,000'].map((row) => {
               const [label, value] = row.split('|')
               return <label className="budget-input" key={label}><span>{label}</span><div><input disabled={readOnly} defaultValue={value} /><b>원</b></div></label>
             })}
             <div className="periods">
-              <span><small>1차</small><b>1~11일</b><strong>99,000원</strong></span>
-              <span><small>2차</small><b>12~21일</b><strong>95,000원</strong></span>
-              <span><small>3차</small><b>22일~말일</b><strong>134,000원</strong></span>
+              <span><small>1차</small><b>1~11일</b><strong>{won(foodThrough(month, 11))}원</strong></span>
+              <span><small>2차</small><b>12~21일</b><strong>{won(foodThrough(month, 21) - foodThrough(month, 11))}원</strong></span>
+              <span><small>3차</small><b>22일~말일</b><strong>{won(monthFoodBudget(month) - foodThrough(month, 21))}원</strong></span>
             </div>
           </div>
         </section>
@@ -420,134 +433,134 @@ function BasicBudget({ go, month, budget, setLocked, saveItem }: { go: (s: Scree
   )
 }
 
-type ListKind = 'transactions' | 'memos' | 'fixed-pay' | 'income' | 'extra'
-const listConfig = {
-  transactions: { title: '내역', total: [{ label: '지출 합계', amount: '15,500원', tone: 'amount-expense' }, { label: '입금 합계', amount: '20,000원', tone: 'amount-income' }], add: '거래 추가' },
-  memos: { title: '메모', total: '미완료 보정 -9,900원', add: '메모 추가' },
-  'fixed-pay': { title: '고정지출 지급', total: '10월 지급 659,000원', add: '지급 기록 추가' },
-  income: { title: '수입', total: '월 합계 4,000,000원', add: '수입 추가' },
-  extra: { title: '그 외 지출', total: '월 합계 70,000원', add: '지출 추가' },
+const listConfig: Record<ListKind, { title: string; add: string }> = {
+  transactions: { title: '내역', add: '거래 추가' }, memos: { title: '메모', add: '메모 추가' },
+  'fixed-pay': { title: '고정지출 지급', add: '지급 기록 추가' }, income: { title: '수입', add: '수입 추가' }, extra: { title: '그 외 지출', add: '지출 추가' },
 }
 
-function RecordList({ kind, go, date, changeDate, completedMemoDates, toggleMemo }: {
+function RecordList({ kind, go, date, changeDate, records, categories, addCategory, budget, saveRecord, deleteRecord, toggleMemo }: {
   kind: ListKind; go: (s: Screen) => void; date: string; changeDate: (date: string) => void;
-  completedMemoDates: Record<string, string>; toggleMemo: (id: string) => void;
+  records: MoneyRecord[]; categories: Category[]; addCategory: AddCategory; budget: MonthBudget;
+  saveRecord: (kind: ListKind, id: string | null, draft: RecordDraft, managementMonth: string) => string;
+  deleteRecord: (kind: ListKind, id: string) => void; toggleMemo: (id: string) => void;
 }) {
-  const [editing, setEditing] = useState(false)
-  const [editingMemoId, setEditingMemoId] = useState<string | null>(null)
-  const [transactionType, setTransactionType] = useState<'expense' | 'income'>('expense')
+  const [editing, setEditing] = useState<MoneyRecord | 'new' | null>(null)
   const [memoTab, setMemoTab] = useState<'pending' | 'completed'>('pending')
   const cfg = listConfig[kind]
   const monthly = kind === 'income' || kind === 'extra'
-  const back = monthly ? 'monthly' : 'daily'
-  const monthMemos = memos.filter(item => item.date.slice(0, 7) === date.slice(0, 7) && item.date <= date)
-  const completedAtDate = (id: string) => !!completedMemoDates[id] && completedMemoDates[id] <= date
-  const pendingMemos = monthMemos.filter(item => !completedAtDate(item.id))
-  const completedMemos = monthMemos.filter(item => completedAtDate(item.id))
-  const sampleRows = kind === 'fixed-pay'
-    ? [{ title: '월세 · 1차 지급', amount: '-600,000원' }, { title: '휴대폰 요금', amount: '-59,000원' }]
-    : kind === 'income' ? [{ title: '급여', amount: '+3,600,000원' }, { title: '부수입', amount: '+400,000원' }]
-    : kind === 'extra' ? [{ title: '여행 적금', amount: '-50,000원' }, { title: '경조사', amount: '-20,000원' }] : entries
-  const datedRows = sampleRows.map((item, index) => ({ ...item, id: kind + '-' + index, date: monthly ? '2026-10-0' + (index + 2) : '2026-10-02' }))
-  const rows = kind === 'memos' ? memoTab === 'pending' ? pendingMemos : completedMemos
-    : datedRows.filter(item => monthly ? item.date.slice(0, 7) === date.slice(0, 7) : item.date === date)
+  const month = date.slice(0, 7)
+  const pending = records.filter(item => memoActive(item, date))
+  const completed = records.filter(item => item.completedOn === date)
+  const rows = kind === 'memos' ? memoTab === 'pending' ? pending : completed
+    : records.filter(item => monthly ? item.date.slice(0, 7) === month : item.date === date)
   const moveDate = (offset: number) => {
     const [year, month, day] = date.split('-').map(Number)
-    const next = new Date(year, month - 1 + (monthly ? offset : 0), monthly ? 1 : day + offset)
-    changeDate(localDateValue(next))
+    changeDate(localDateValue(new Date(year, month - 1 + (monthly ? offset : 0), monthly ? 1 : day + offset)))
   }
-  const titleDate = new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8)))
-  const amountTotal = (income: boolean) => rows.reduce((total, item) => {
-    const value = recordAmount(item.amount)
-    return total + (income ? Math.max(value, 0) : Math.max(-value, 0))
-  }, 0)
-  const openRecord = (id: string, amount: string) => {
-    setTransactionType(amount.startsWith('+') ? 'income' : 'expense')
-    setEditingMemoId(kind === 'memos' ? id : null)
-    setEditing(true)
-  }
-  const memoTotal = pendingMemos.reduce((total, item) => total + recordAmount(item.amount), 0)
-  return (
-    <main className="detail-shell">
-      <Header title={editing ? `${cfg.title} ${kind === 'fixed-pay' ? '입력' : '편집'}` : cfg.title} onBack={() => editing ? setEditing(false) : go(back)} />
-      {!editing ? <>
-        <div className="date-strip">
-          <button type="button" aria-label={monthly ? '이전 달' : '이전 날짜'} onClick={() => moveDate(-1)}><Icon name="back" size={17} /></button>
-          <strong>{titleDate.toLocaleDateString('ko-KR', monthly ? { year: 'numeric', month: 'long' } : { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>
-          <button type="button" className="flip" aria-label={monthly ? '다음 달' : '다음 날짜'} onClick={() => moveDate(1)}><Icon name="back" size={17} /></button>
-        </div>
-        {kind === 'memos' && <div className="segment" role="group" aria-label="메모 상태">
-          <button type="button" className={memoTab === 'pending' ? 'active' : ''} aria-pressed={memoTab === 'pending'} onClick={() => setMemoTab('pending')}>미완료 {pendingMemos.length}</button>
-          <button type="button" className={memoTab === 'completed' ? 'active' : ''} aria-pressed={memoTab === 'completed'} onClick={() => setMemoTab('completed')}>완료 이력 {completedMemos.length}</button>
-        </div>}
-        <div className="record-list">
-          {rows.length === 0 && <p className="record-empty">{kind === 'memos' ? memoTab === 'completed' ? '완료된 메모가 없습니다.' : '미완료 메모가 없습니다.' : '해당 기간의 기록이 없습니다.'}</p>}
-          {rows.map((item, index) => kind === 'memos' ? (
-            <div className="record-row memo-record-row" key={item.id}>
-              <label className="memo-record-check"><input type="checkbox" checked={completedAtDate(item.id)} onChange={() => toggleMemo(item.id)} aria-label={item.title + ' 완료'} /></label>
-              <button type="button" className="memo-record-open" onClick={() => openRecord(item.id, item.amount)}>
-                <span className="record-title"><b>{item.title}</b><small>{completedAtDate(item.id) ? '완료일 ' + completedMemoDates[item.id] : '작성일 ' + item.date}</small></span>
-                <strong>{item.amount}</strong><Icon name="chevron" size={16} />
-              </button>
-            </div>
-          ) : (
-            <button className="record-row" key={item.id} onClick={() => openRecord(item.id, item.amount)}>
-              <span className="record-date">{monthly ? Number(item.date.slice(8)) + '일' : '10:30'}</span>
-              <span className="record-title"><b>{item.title}</b><small>{kind === 'fixed-pay' ? (index ? '지급 완료' : '잔여 200,000원') : '생활 · 일반'}</small></span>
-              <strong className={kind === 'income' || (kind === 'transactions' && item.amount.startsWith('+')) ? 'amount-income' : 'amount-expense'}>{item.amount}</strong><Icon name="chevron" size={16} />
+  const amountTotal = (income: boolean) => rows.reduce((total, item) => total + (item.direction === (income ? 'income' : 'expense') ? item.amount : 0), 0)
+  const total = kind === 'memos' ? pending.reduce((sum, item) => sum + recordValue(item), 0)
+    : rows.reduce((sum, item) => sum + Math.abs(item.amount), 0)
+  return <main className="detail-shell">
+    <Header title={editing ? `${cfg.title} ${editing === 'new' ? '추가' : '편집'}` : cfg.title} onBack={() => editing ? setEditing(null) : go(monthly ? 'monthly' : 'daily')} />
+    {editing ? <RecordForm kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={budget} categories={categories} addCategory={addCategory}
+      onSave={draft => { const error = saveRecord(kind, editing === 'new' ? null : editing.id, draft, month); if (!error) setEditing(null); return error }}
+      onDelete={() => { if (editing !== 'new') deleteRecord(kind, editing.id); setEditing(null) }} onCancel={() => setEditing(null)} /> : <>
+      <div className="date-strip">
+        <button type="button" aria-label={monthly ? '이전 달' : '이전 날짜'} onClick={() => moveDate(-1)}><Icon name="back" size={17} /></button>
+        <strong>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', monthly ? { year: 'numeric', month: 'long' } : { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>
+        <button type="button" className="flip" aria-label={monthly ? '다음 달' : '다음 날짜'} onClick={() => moveDate(1)}><Icon name="back" size={17} /></button>
+      </div>
+      {kind === 'memos' && <div className="segment" role="group" aria-label="메모 상태">
+        <button type="button" className={memoTab === 'pending' ? 'active' : ''} aria-pressed={memoTab === 'pending'} onClick={() => setMemoTab('pending')}>미완료 {pending.length}</button>
+        <button type="button" className={memoTab === 'completed' ? 'active' : ''} aria-pressed={memoTab === 'completed'} onClick={() => setMemoTab('completed')}>완료 이력 {completed.length}</button>
+      </div>}
+      <div className="record-list">
+        {rows.length === 0 && <p className="record-empty">{kind === 'memos' ? memoTab === 'completed' ? '이 날짜에 완료한 메모가 없습니다.' : '미완료 메모가 없습니다.' : '해당 기간의 기록이 없습니다.'}</p>}
+        {rows.map(item => {
+          const category = categories.find(category => category.id === item.categoryId)
+          const budgetItem = budget.fixed.find(value => value.id === item.budgetItemId)
+          const detail = kind === 'memos' ? item.completedOn === date ? '완료일 ' + item.completedOn : '작성일 ' + item.date
+            : kind === 'fixed-pay' ? budgetItem ? budgetItem.amount === budgetItem.paid ? '지급 완료' : `잔여 ${won(budgetItem.amount - budgetItem.paid)}원` : '예산 항목 없음'
+            : kind === 'transactions' ? category?.name ?? '미분류' : item.date
+          return <div className={`record-row ${kind === 'memos' ? 'memo-record-row' : ''}`} key={item.id}>
+            {kind === 'memos' ? <label className="memo-record-check"><input type="checkbox" checked={item.completedOn === date} onChange={() => toggleMemo(item.id)} aria-label={item.title + ' 완료'} /></label>
+              : <span className="record-date">{monthly ? Number(item.date.slice(8)) + '일' : item.time}</span>}
+            <button type="button" className="memo-record-open" onClick={() => setEditing(item)}>
+              <span className="record-title"><b>{kind === 'fixed-pay' ? budgetItem?.name ?? item.title : item.title}</b><small>{detail}</small></span>
+              <strong className={kind === 'memos' ? undefined : kind === 'income' || kind === 'transactions' && item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{kind === 'transactions' || kind === 'memos' ? signedWon(recordValue(item)) : won(item.amount) + '원'}</strong><Icon name="chevron" size={16} />
             </button>
-          ))}
-        </div>
-        {kind === 'transactions' ? (
-          <dl className="transaction-totals" aria-label="지출 및 입금 합계">
-            <div><dt>지출 합계</dt><dd className="amount-expense">{won(amountTotal(false))}원</dd></div>
-            <div><dt>입금 합계</dt><dd className="amount-income">{won(amountTotal(true))}원</dd></div>
-          </dl>
-        ) : (
-          <div className="list-total"><span>{kind === 'memos' ? '미완료 보정' : kind === 'fixed-pay' ? '지급 합계' : '월 합계'}</span>
-            <strong className={kind === 'income' ? 'amount-income' : kind === 'extra' || kind === 'fixed-pay' ? 'amount-expense' : undefined}>{kind === 'memos' ? (memoTotal > 0 ? '+' : '') + won(memoTotal) : won(amountTotal(kind === 'income'))}원</strong>
           </div>
-        )}
-        <button className="primary-button bottom-action" onClick={() => { setTransactionType('expense'); setEditingMemoId(null); setEditing(true) }}><Icon name="plus" size={18} />{cfg.add}</button>
-      </> : <RecordForm kind={kind} initialTransactionType={transactionType} initialDate={date} initialMemoCompleted={!!editingMemoId && completedAtDate(editingMemoId)} onSave={completed => {
-        if (kind === 'memos' && editingMemoId && completed !== completedAtDate(editingMemoId)) toggleMemo(editingMemoId)
-        setEditing(false)
-      }} onCancel={() => setEditing(false)} />}
-    </main>
-  )
+        })}
+      </div>
+      {kind === 'transactions' ? <dl className="transaction-totals" aria-label="지출 및 입금 합계">
+        <div><dt>지출 합계</dt><dd className="amount-expense">{won(amountTotal(false))}원</dd></div>
+        <div><dt>입금 합계</dt><dd className="amount-income">{won(amountTotal(true))}원</dd></div>
+      </dl> : <div className="list-total"><span>{kind === 'memos' ? '미완료 보정' : kind === 'fixed-pay' ? '지급 합계' : '월 합계'}</span><strong className={kind === 'memos' ? undefined : kind === 'income' ? 'amount-income' : 'amount-expense'}>{kind === 'memos' ? signedWon(total) : won(total) + '원'}</strong></div>}
+      <button className="primary-button bottom-action" onClick={() => setEditing('new')}><Icon name="plus" size={18} />{cfg.add}</button>
+    </>}
+  </main>
 }
 
-function RecordForm({ kind, initialTransactionType, initialDate, initialMemoCompleted, onSave, onCancel }: { kind: ListKind; initialTransactionType: 'expense' | 'income'; initialDate: string; initialMemoCompleted: boolean; onSave: (completed: boolean) => void; onCancel: () => void }) {
-  const [memoCompleted, setMemoCompleted] = useState(initialMemoCompleted)
-  const [transactionType, setTransactionType] = useState(initialTransactionType)
+function RecordForm({ kind, item, initialDate, budget, categories, addCategory, onSave, onDelete, onCancel }: {
+  kind: ListKind; item?: MoneyRecord; initialDate: string; budget: MonthBudget; categories: Category[]; addCategory: AddCategory;
+  onSave: (draft: RecordDraft) => string; onDelete: () => void; onCancel: () => void;
+}) {
+  const [date, setDate] = useState(item?.date ?? initialDate)
+  const [time, setTime] = useState(item?.time ?? '10:30')
+  const [direction, setDirection] = useState<Direction>(item?.direction ?? 'expense')
+  const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null)
+  const [amount, setAmount] = useState(item ? won(Math.abs(item.amount)) : '')
+  const [title, setTitle] = useState(item?.title ?? '')
+  const [budgetItemId, setBudgetItemId] = useState(item?.budgetItemId ?? '')
+  const [completed, setCompleted] = useState(!!item?.completedOn)
+  const [completedOn, setCompletedOn] = useState(item?.completedOn ?? initialDate)
+  const [error, setError] = useState('')
   const isMemo = kind === 'memos'
   const isFixed = kind === 'fixed-pay'
-  return (
-    <div className="record-form">
-      {(kind === 'transactions' || isMemo) && <div className="segment wide" role="group" aria-label={isMemo ? '메모 입출금 구분' : '거래 구분'}>
-        <button type="button" className={transactionType === 'expense' ? 'active' : ''} aria-pressed={transactionType === 'expense'} onClick={() => setTransactionType('expense')}>{isMemo ? '임시 출금' : '지출'}</button>
-        <button type="button" className={transactionType === 'income' ? 'active' : ''} aria-pressed={transactionType === 'income'} onClick={() => setTransactionType('income')}>{isMemo ? '임시 입금' : '입금'}</button>
-      </div>}
-      <div className="record-date-time">
-        <label className="field"><span>날짜</span><input type="date" name="date" defaultValue={initialDate} required /></label>
-        <label className="field"><span>시간</span><input type="time" name="time" defaultValue="10:30" step={60} required /></label>
-      </div>
-      {isFixed && <>
-        <label className="field"><span>고정지출 예산 항목</span><select defaultValue="월세"><option>월세</option><option>휴대폰 요금</option></select></label>
-        <div className="read-only-pair"><span>항목 예산<b>800,000원</b></span><span>누적 지급<b>600,000원</b></span></div>
-      </>}
-      {kind === 'transactions' && <label className="field"><span>카테고리</span><select key={transactionType} defaultValue={transactionType === 'income' ? '용돈' : '식비'}>
-        {(transactionType === 'income' ? ['용돈', '중고거래', '기타'] : ['식비', '생활', '교통']).map(category => <option key={category}>{category}</option>)}
-      </select></label>}
-      <label className="field"><span>{isFixed ? '이번 지급액' : isMemo ? transactionType === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? transactionType === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><input defaultValue={isFixed ? '200,000' : '45,000'} inputMode="numeric" /><b>원</b></div></label>
-      {!isFixed && <label className="field"><span>내용</span><input defaultValue={isMemo ? '친구 정산' : kind === 'income' ? '급여' : '점심 식사'} /></label>}
-      {isMemo && <label className="policy"><input type="checkbox" checked={memoCompleted} onChange={event => setMemoCompleted(event.target.checked)} /> <span>완료 상태로 저장</span></label>}
-      <p className="form-help">{isMemo ? '메모는 Main 잔액에만 반영되며 여유비에는 영향을 주지 않아요.' : isFixed ? '잔여 예산은 저장 후 자동으로 계산돼요.' : kind === 'transactions' && transactionType === 'expense' ? '본인 지출은 Main 잔액과 여유비에 반영돼요.' : '입금은 Main 잔액에만 반영돼요.'}</p>
-      <div className="form-actions"><button className="secondary-button" onClick={onCancel}>취소</button><button className="primary-button" onClick={() => onSave(memoCompleted)}>저장</button></div>
-      <button className="delete-button" onClick={onCancel}>삭제</button>
+  const selectedBudget = budget.fixed.find(value => value.id === budgetItemId && value.id !== allowanceId)
+  const managementMonth = initialDate.slice(0, 7)
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(amount.trim())) { setError('금액은 0 이상의 원 단위 정수로 입력해 주세요.'); return }
+    const value = Number(amount.replace(/,/g, ''))
+    const draft: RecordDraft = {
+      date, time, direction: kind === 'transactions' || isMemo ? direction : kind === 'income' ? 'income' : 'expense', title: isFixed ? selectedBudget?.name ?? '' : title.trim(),
+      amount: value,
+      categoryId: kind === 'transactions' ? categoryId : null,
+      budgetItemId: isFixed ? budgetItemId : undefined,
+      completedOn: isMemo && completed ? completedOn : null,
+    }
+    const validationError = validateRecord(kind, draft, managementMonth)
+    if (validationError) { setError(validationError); return }
+    setError(onSave(draft))
+  }
+  return <form className="record-form" onSubmit={submit} noValidate>
+    {(kind === 'transactions' || isMemo) && <div className="segment wide" role="group" aria-label={isMemo ? '메모 입출금 구분' : '거래 구분'}>
+      <button type="button" className={direction === 'expense' ? 'active' : ''} aria-pressed={direction === 'expense'} onClick={() => { setDirection('expense'); if (direction !== 'expense') setCategoryId(null) }}>{isMemo ? '임시 출금' : '지출'}</button>
+      <button type="button" className={direction === 'income' ? 'active' : ''} aria-pressed={direction === 'income'} onClick={() => { setDirection('income'); if (direction !== 'income') setCategoryId(null) }}>{isMemo ? '임시 입금' : '입금'}</button>
+    </div>}
+    <div className="record-date-time">
+      <label className="field"><span>날짜</span><input type="date" value={date} min={isFixed ? managementMonth + '-01' : undefined} max={isFixed ? managementMonth + '-' + daysInMonth(managementMonth) : undefined} onChange={event => setDate(event.target.value)} required /></label>
+      <label className="field"><span>시간</span><input type="time" value={time} onChange={event => setTime(event.target.value)} step={60} required /></label>
     </div>
-  )
+    {isFixed && <>
+      <label className="field"><span>고정지출 예산 항목</span><select value={budgetItemId} onChange={event => setBudgetItemId(event.target.value)}><option value="">항목 선택</option>{budget.fixed.filter(value => value.id !== allowanceId).map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
+      {selectedBudget && <div className="read-only-pair"><span>항목 예산<b>{won(selectedBudget.amount)}원</b></span><span>누적 지급<b>{won(selectedBudget.paid)}원</b></span></div>}
+    </>}
+    {kind === 'transactions' && <CategoryPicker key={direction} categories={categories} value={categoryId} onChange={setCategoryId} onAdd={addCategory} scope="mainTransaction" direction={direction} />}
+    <label className="field"><span>{isFixed ? '이번 지급액' : isMemo ? direction === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? direction === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><input value={amount} onChange={event => setAmount(event.target.value)} inputMode="numeric" required /><b>원</b></div></label>
+    {!isFixed && <label className="field"><span>내용</span><input value={title} onChange={event => setTitle(event.target.value)} required /></label>}
+    {isMemo && <>
+      <label className="policy"><input type="checkbox" checked={completed} onChange={event => setCompleted(event.target.checked)} /> <span>완료 상태로 저장</span></label>
+      {completed && <label className="field"><span>완료일</span><input type="date" min={date} max={date.slice(0, 7) + '-' + daysInMonth(date.slice(0, 7))} value={completedOn} onChange={event => setCompletedOn(event.target.value)} required /></label>}
+    </>}
+    {error && <p className="field-error" role="alert">{error}</p>}
+    <p className="form-help">{isMemo ? '메모는 Main 잔액에만 반영돼요. 완료한 날짜의 완료 목록에 저장됩니다.' : isFixed ? '지급일은 선택한 예산과 같은 월이어야 해요. 잔여 예산은 저장 후 계산돼요.' : kind === 'transactions' ? '카테고리는 비워둘 수 있어요. 입력한 기록은 앱 실행 중에 유지됩니다.' : '월별 수입·그 외 지출 기록입니다.'}</p>
+    <div className="form-actions"><button type="button" className="secondary-button" onClick={onCancel}>취소</button><button type="submit" className="primary-button">저장</button></div>
+    {item && <button type="button" className="delete-button" onClick={onDelete}>삭제</button>}
+  </form>
 }
+
 
 function My({ go }: { go: (s: Screen) => void }) {
   return (
@@ -588,20 +601,12 @@ function SimpleSettings({ type, go }: { type: 'account' | 'settings'; go: (s: Sc
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
   const [recordDate, setRecordDate] = useState(() => localDateValue(new Date()))
-  const [completedMemoDates, setCompletedMemoDates] = useState<Record<string, string>>({})
-  const toggleMemo = (id: string) => {
-    const memo = memos.find(item => item.id === id)
-    if (!memo || memo.date > recordDate || memo.date.slice(0, 7) !== recordDate.slice(0, 7)) return
-    setCompletedMemoDates(previous => {
-      const next = { ...previous }
-      if (next[id] && next[id] <= recordDate) delete next[id]
-      else next[id] = recordDate
-      return next
-    })
-  }
   const [month, setMonth] = useState(currentMonth)
-  const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => ({ [currentMonth()]: initialBudget(true) }))
-  const budget = budgets[month]
+  const [categories, setCategories] = useState<Category[]>(initialCategories)
+  const [records, setRecords] = useState(() => initialRecords(currentMonth()))
+  const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => ({ [currentMonth()]: initialBudget() }))
+  const baseBudget = budgets[month]
+  const budget: MonthBudget = { ...baseBudget, fixed: baseBudget.fixed.map(item => ({ ...item, paid: records['fixed-pay'].filter(record => record.budgetItemId === item.id && record.date.slice(0, 7) === month).reduce((sum, record) => sum + record.amount, 0) })) }
   const changeDate = (nextDate: string) => {
     const nextMonth = nextDate.slice(0, 7)
     setBudgets(previous => previous[nextMonth] ? previous : { ...previous, [nextMonth]: initialBudget() })
@@ -613,28 +618,65 @@ export default function App() {
     const next = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     changeDate(recordDate.slice(0, 7) === next ? recordDate : next + '-01')
   }
+  const addCategory: AddCategory = (name, scope, direction) => {
+    const trimmed = name.trim()
+    if (!trimmed) return null
+    const existing = categories.find(item => item.scope === scope && item.direction === direction && item.name.toLocaleLowerCase() === trimmed.toLocaleLowerCase())
+    if (existing) return existing
+    const category: Category = { id: crypto.randomUUID(), name: trimmed, scope, direction }
+    setCategories(previous => [...previous, category])
+    return category
+  }
   const setLocked = (locked: boolean) => {
     if (month < currentMonth()) return
     setBudgets(previous => ({ ...previous, [month]: { ...previous[month], locked } }))
   }
   const saveItem = (item: FixedBudgetItem) => {
     if (budget.locked || month < currentMonth()) return false
-    const existing = budget.fixed.find(value => value.id === item.id)
-    const fixed = existing ? budget.fixed.map(value => value.id === item.id ? item : value) : [...budget.fixed, item]
-    // Guard number precision, without imposing a product-specific amount limit.
-    if (!Number.isSafeInteger(fixedTotal({ ...budget, fixed }) + foodBudget + 70000)) return false
-    setBudgets(previous => ({ ...previous, [month]: { ...previous[month], fixed } }))
+    if (!categories.some(category => category.id === item.categoryId && category.scope === 'fixedBudget')) return false
+    const fixed = budget.fixed.some(value => value.id === item.id) ? budget.fixed.map(value => value.id === item.id ? item : value) : [...budget.fixed, item]
+    if (!Number.isSafeInteger(fixedTotal({ ...budget, fixed }) + monthFoodBudget(month))) return false
+    setBudgets(previous => ({ ...previous, [month]: { ...previous[month], fixed: fixed.map(value => ({ ...value, paid: 0 })) } }))
     return true
   }
-  const view = useMemo(() => {
-    if (screen === 'login' || screen === 'signup') return <Login key={screen} go={setScreen} signup={screen === 'signup'} />
-    if (screen === 'home') return <Home go={setScreen} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />
-    if (screen === 'daily') return <Daily go={setScreen} date={recordDate} completedMemoDates={completedMemoDates} toggleMemo={toggleMemo} />
-    if (screen === 'monthly') return <Monthly go={setScreen} month={month} changeMonth={changeMonth} budget={budget} />
-    if (screen === 'basic') return <BasicBudget go={setScreen} month={month} budget={budget} setLocked={setLocked} saveItem={saveItem} />
-    if (screen === 'my') return <My go={setScreen} />
-    if (screen === 'account' || screen === 'settings') return <SimpleSettings type={screen} go={setScreen} />
-    return <RecordList key={screen} kind={screen as ListKind} go={setScreen} date={recordDate} changeDate={changeDate} completedMemoDates={completedMemoDates} toggleMemo={toggleMemo} />
-  }, [screen, month, budget, recordDate, completedMemoDates])
+  const deleteItem = (id: string) => {
+    if (budget.locked || month < currentMonth()) return false
+    if (records['fixed-pay'].some(record => record.budgetItemId === id && record.date.slice(0, 7) === month)) return false
+    setBudgets(previous => ({ ...previous, [month]: { ...previous[month], fixed: previous[month].fixed.filter(item => item.id !== id) } }))
+    return true
+  }
+  const saveRecord = (kind: ListKind, id: string | null, draft: RecordDraft, managementMonth: string) => {
+    const validationError = validateRecord(kind, draft, managementMonth)
+    if (validationError) return validationError
+    if (id && !records[kind].some(item => item.id === id)) return '수정할 기록을 찾을 수 없어요.'
+    if (kind === 'fixed-pay') {
+      const item = budgets[managementMonth]?.fixed.find(item => item.id === draft.budgetItemId && item.id !== allowanceId)
+      if (!item) return '고정지출 예산 항목을 선택해 주세요.'
+      const paid = records[kind].filter(item => item.id !== id && item.date.slice(0, 7) === managementMonth && item.budgetItemId === draft.budgetItemId).reduce((sum, item) => sum + item.amount, draft.amount)
+      if (!Number.isSafeInteger(paid) || draft.amount < 0) return '지급액 합계를 정확하게 계산할 수 없어요.'
+    }
+    if (kind === 'transactions' && draft.categoryId && !categories.some(category => category.id === draft.categoryId && category.scope === 'mainTransaction' && category.direction === draft.direction)) return '입출금 구분에 맞는 카테고리를 선택해 주세요.'
+    const record: MoneyRecord = { ...draft, id: id ?? crypto.randomUUID() }
+    setRecords(previous => ({ ...previous, [kind]: id ? previous[kind].map(item => item.id === id ? record : item) : [...previous[kind], record] }))
+    return ''
+  }
+  const deleteRecord = (kind: ListKind, id: string) => setRecords(previous => ({ ...previous, [kind]: previous[kind].filter(item => item.id !== id) }))
+  const toggleMemo = (id: string) => {
+    const memo = records.memos.find(item => item.id === id)
+    if (!memo || memo.date > recordDate || memo.date.slice(0, 7) !== recordDate.slice(0, 7)) return
+    const completedOn = memo.completedOn === recordDate ? null : recordDate
+    if (validateRecord('memos', { ...memo, completedOn }, recordDate.slice(0, 7))) return
+    setRecords(previous => ({ ...previous, memos: previous.memos.map(item => item.id === id ? { ...item, completedOn } : item) }))
+  }
+  const monthTotal = (kind: ListKind) => records[kind].filter(item => item.date.slice(0, 7) === month).reduce((sum, item) => sum + item.amount, 0)
+  let view: React.ReactNode
+  if (screen === 'login' || screen === 'signup') view = <Login key={screen} go={setScreen} signup={screen === 'signup'} />
+  else if (screen === 'home') view = <Home go={setScreen} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />
+  else if (screen === 'daily') view = <Daily go={setScreen} date={recordDate} memoRecords={records.memos} transactions={records.transactions} payments={records['fixed-pay']} budget={budget} toggleMemo={toggleMemo} />
+  else if (screen === 'monthly') view = <Monthly go={setScreen} month={month} changeMonth={changeMonth} budget={budget} income={monthTotal('income')} extra={monthTotal('extra')} />
+  else if (screen === 'basic') view = <BasicBudget key={month} go={setScreen} month={month} budget={budget} categories={categories} addCategory={addCategory} setLocked={setLocked} saveItem={saveItem} deleteItem={deleteItem} />
+  else if (screen === 'my') view = <My go={setScreen} />
+  else if (screen === 'account' || screen === 'settings') view = <SimpleSettings type={screen} go={setScreen} />
+  else view = <RecordList key={screen} kind={screen as ListKind} go={setScreen} date={recordDate} changeDate={changeDate} records={records[screen as ListKind]} categories={categories} addCategory={addCategory} budget={budget} saveRecord={saveRecord} deleteRecord={deleteRecord} toggleMemo={toggleMemo} />
   return <div className="prototype"><div className="phone-frame">{view}</div></div>
 }
