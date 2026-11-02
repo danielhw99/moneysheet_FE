@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Category, Direction } from './moneyRecords'
+import type { Category, Direction } from '../moneyRecords'
 
 export type AddCategory = (name: string, scope: Category['scope'], direction?: Direction) => Category | null
 
