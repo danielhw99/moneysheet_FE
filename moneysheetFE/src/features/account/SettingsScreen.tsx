@@ -1,5 +1,4 @@
-import { useDataQuery } from '../../data/useDataQuery'
-import QueryStatus from '../../components/QueryStatus'
+import { useAuth } from '../auth/AuthProvider'
 import type { Screen } from '../../types/navigation'
 import Icon from '../../components/Icon'
 import Header from '../../components/Header'
@@ -19,12 +18,11 @@ export default function SimpleSettings({ type, go }: { type: 'account' | 'settin
 }
 
 function AccountFields() {
-  const query = useDataQuery('profile', api => api.getProfile())
-  const profile = query.data
-  return <><QueryStatus {...query} />{profile && <div className="settings-form">
-        <label className="field"><span>이메일</span><input defaultValue={profile.email} /></label>
-        <label className="field"><span>닉네임</span><input defaultValue={profile.nickname} /></label>
-        <button className="settings-row">비밀번호 변경<Icon name="chevron" /></button>
-        <button className="primary-button">변경사항 저장</button>
+  const { profile } = useAuth()
+  return <>{profile && <div className="settings-form">
+        <label className="field"><span>이메일</span><input value={profile.email} readOnly /></label>
+        <label className="field"><span>닉네임</span><input value={profile.nickname} readOnly /></label>
+        <p className="form-help">프로필 수정과 비밀번호 변경은 준비 중이에요.</p><button className="settings-row" disabled>비밀번호 변경<Icon name="chevron" /></button>
+        <button className="primary-button" disabled>변경사항 저장</button>
       </div>}</>
 }

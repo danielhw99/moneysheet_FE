@@ -9,7 +9,11 @@ type AccessContext = {
 const Context = createContext<AccessContext | null>(null)
 
 export function DataProvider({ children, implementation }: { children: ReactNode; implementation?: MoneySheetDataAccess }) {
-  const [api] = useState(() => implementation ?? createMockDataAccess())
+  const [api] = useState(() => {
+    if (implementation) return implementation
+    if (!import.meta.env.DEV) throw new Error('업무 데이터 API가 아직 연결되지 않았습니다.')
+    return createMockDataAccess()
+  })
   const [revision, setRevision] = useState(0)
   const [pending, setPending] = useState(false)
   const busy = useRef(false)
