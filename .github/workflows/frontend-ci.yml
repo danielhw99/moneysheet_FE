@@ -1,0 +1,39 @@
+name: FE tests
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+concurrency:
+  group: fe-tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: FE tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: moneysheetFE
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: moneysheetFE/pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Unit and React tests
+        run: pnpm test
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Production build
+        run: pnpm build
