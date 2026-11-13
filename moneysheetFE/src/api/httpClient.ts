@@ -15,7 +15,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
   const listeners = new Set<() => void>()
   const invalidateCsrf = () => { token = undefined; pendingCsrf = undefined; generation++ }
 
-  async function send<T>(path: string, method: string, body?: unknown, csrf?: Csrf): Promise<T> {
+  async function send<T>(path: string, method: string, body?: unknown, csrf?: Csrf, notifyUnauthorized = true): Promise<T> {
     const requestGeneration = generation
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -38,7 +38,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
         const retry = response.headers.get('Retry-After')
         const retryAfter = retry && /^\d+$/.test(retry) && Number.isSafeInteger(Number(retry)) ? Math.min(Number(retry), 86400) : undefined
         const code = typeof data?.code === 'string' ? data.code : 'HTTP_ERROR'
-        if (response.status === 401 && code !== 'INVALID_CREDENTIALS' && requestGeneration === generation) {
+        if (notifyUnauthorized && response.status === 401 && code !== 'INVALID_CREDENTIALS' && requestGeneration === generation) {
           invalidateCsrf(); listeners.forEach(listener => listener())
         }
         throw new ApiError(response.status, code,
@@ -69,7 +69,8 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
   }
 
   return {
-    get: <T,>(path: string) => send<T>(path, 'GET'),
+    get: <T,>(path: string, options: { notifyUnauthorized?: boolean } = {}) =>
+      send<T>(path, 'GET', undefined, undefined, options.notifyUnauthorized ?? true),
     async post<T>(path: string, body?: unknown): Promise<T> {
       const current = generation
       const value = await csrf()

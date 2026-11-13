@@ -56,7 +56,12 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
       if (ticket === epoch.current && sequence === checkSequence.current) { accept(value); setNotice('') }
     } catch (error) {
       if (ticket !== epoch.current || sequence !== checkSequence.current) return
-      if (unauthorized(error)) clear(current.current ? '로그인이 만료됐어요. 다시 로그인해 주세요.' : '')
+      if (unauthorized(error)) {
+        epoch.current++
+        api.resetCsrf()
+        clear(current.current ? '로그인이 만료됐어요. 다시 로그인해 주세요.' : '')
+        if (bootstrap) setInitializing(false)
+      }
       else if (bootstrap) setBootstrapError(authErrorMessage(error))
       else setNotice(authErrorMessage(error))
     } finally { if (bootstrap && ticket === epoch.current && sequence === checkSequence.current) setInitializing(false) }

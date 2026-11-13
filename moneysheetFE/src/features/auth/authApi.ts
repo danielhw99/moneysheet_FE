@@ -12,7 +12,8 @@ function profile(value: unknown): UserProfile {
 }
 export function createAuthApi(client: HttpClient = createHttpClient()) {
   return {
-    async me() { return profile(await client.get('/me')) },
+    // AuthProvider owns /me failures so only the latest check can end a session.
+    async me() { return profile(await client.get('/me', { notifyUnauthorized: false })) },
     async signup(input: SignupInput) { return profile(await client.post('/auth/signup', input)) },
     async login(input: LoginInput) {
       const result = profile(await client.post('/auth/login', input))
