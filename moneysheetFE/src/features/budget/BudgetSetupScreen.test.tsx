@@ -100,4 +100,21 @@ describe('budget preparation', () => {
     expect(done).not.toHaveBeenCalled()
   })
 
+  it('announces saving and prevents duplicate submits until a delayed save fails', async () => {
+    const api = createMockDataAccess()
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { weekday: 11000, saturday: 11000, sunday: 11000 } })
+    let reject!: (error: Error) => void
+    api.setupBudget = vi.fn(() => new Promise<Awaited<ReturnType<typeof api.setupBudget>>>((_resolve, fail) => { reject = fail }))
+    render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+    fireEvent.click(await screen.findByRole('button', { name: '예산 저장' }))
+    const saving = await screen.findByRole('button', { name: '저장 중…' })
+    expect(saving).toBeDisabled(); expect(saving).toHaveAttribute('aria-busy', 'true')
+    fireEvent.click(saving)
+    expect(api.setupBudget).toHaveBeenCalledOnce()
+    await act(async () => { reject(new Error('저장 실패')) })
+    expect(await screen.findByRole('alert')).toHaveTextContent('저장 실패')
+    expect(screen.getByRole('button', { name: '예산 저장' })).toBeEnabled()
+    expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
+  })
+
 })

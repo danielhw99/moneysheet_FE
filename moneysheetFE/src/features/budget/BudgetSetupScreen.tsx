@@ -19,6 +19,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
   const [rows, setRows] = useState<Row[]>([])
   const [food, setFood] = useState({ weekday: '', saturday: '', sunday: '' })
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const sequence = useRef(0)
   const readOnly = month !== currentMonth()
   const [attempt, setAttempt] = useState(0)
@@ -54,9 +55,11 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
         if (!item.name.trim() || [...item.name.trim()].length > 100 || !item.categoryId) throw new Error('각 항목의 이름(100자 이내)과 카테고리를 입력해 주세요.')
         return { ...item, name: item.name.trim(), amount: budgetAmount(amount) }
       })
+      setSaving(true)
       await mutate(api => api.setupBudget(month, { items, food: { weekday: budgetAmount(food.weekday), saturday: budgetAmount(food.saturday), sunday: budgetAmount(food.sunday) } }))
       onDone(true)
     } catch (error) { setError(errorMessage(error)) }
+    finally { setSaving(false) }
   }
   const change = (key: number, patch: Partial<DraftItem>) => setRows(previous => previous.map(row => row.key === key ? { ...row, item: { ...row.item, ...patch } } : row))
   return <main className="detail-shell budget-detail"><Header title="월 예산 준비" onBack={() => { if (!pending) onCancel() }} />
@@ -88,7 +91,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
           </section>
         </div>
         {error && <p className="query-status" role="alert">{error}</p>}
-        <div className="setup-actions"><p className="form-help">저장해야 이번 달 예산 설정이 완료돼요.</p><button className="primary-button" type="submit">예산 저장</button></div>
+        <div className="setup-actions"><p className="form-help">저장해야 이번 달 예산 설정이 완료돼요.</p><button className="primary-button" type="submit" aria-busy={saving}>{saving ? '저장 중…' : '예산 저장'}</button></div>
       </fieldset>
     </form>}
   </main>

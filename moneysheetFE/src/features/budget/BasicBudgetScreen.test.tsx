@@ -1,5 +1,5 @@
 import { ApiError } from '../../api/httpClient'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { DataProvider } from '../../data/DataProvider'
@@ -45,13 +45,16 @@ describe('food draft refresh', () => {
   })
   it('opens missing current-month setup automatically and keeps edits through prepare refresh', async () => {
     const api = createMockDataAccess()
-    api.getBudget = vi.fn().mockRejectedValue(new ApiError(409, 'BUDGET_NOT_READY', '예산 미설정'))
+    let finishRefresh!: () => void
+    const refreshed = new Promise<BudgetSummary>((_resolve, reject) => { finishRefresh = () => reject(new ApiError(409, 'BUDGET_NOT_READY', '예산 미설정')) })
+    api.getBudget = vi.fn().mockRejectedValueOnce(new ApiError(409, 'BUDGET_NOT_READY', '예산 미설정')).mockReturnValueOnce(refreshed)
     api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { weekday: null, saturday: null, sunday: null } })
     render(<DataProvider implementation={api}><Editor /></DataProvider>)
     const food = await screen.findByLabelText('주중 식비')
     expect(screen.queryByRole('button', { name: '예산 설정 시작' })).not.toBeInTheDocument()
     fireEvent.change(food, { target: { value: '12345' } })
     await waitFor(() => expect(api.getBudget).toHaveBeenCalledTimes(2))
+    await act(async () => { finishRefresh(); await refreshed.catch(() => undefined) })
     expect(screen.getByLabelText('주중 식비')).toHaveValue('12345')
     expect(api.prepareBudget).toHaveBeenCalledTimes(1)
   })
