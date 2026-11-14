@@ -346,3 +346,45 @@
 .session-note { margin: 0; padding: 8px 12px; background: var(--primary-soft); color: var(--primary-dark); font-size: 11px; line-height: 1.5; flex-shrink: 0; border-bottom: 1px solid var(--divider); }
 .workspace-content { flex: 1; min-height: 0; position: relative; }
 .screen-content.no-bottom-nav { height: 100%; overflow-y: auto; }
+
+/* Budget preparation keeps the add action outside the growing item list. */
+.setup-form { padding: 12px; }
+.setup-fields { display: flex; flex-direction: column; min-height: 0; flex: 1; gap: 12px; }
+.setup-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; flex: 1; min-height: 240px; }
+.setup-panel { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; border: 1px solid var(--divider); border-radius: var(--radius-md); padding: 12px; }
+.setup-panel-head { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.setup-panel-head h2 { font-size: 15px; margin: 0; }
+.setup-panel-head small { font-size: 11px; color: var(--secondary); font-weight: 400; }
+.setup-item-list { overflow-y: auto; min-height: 0; flex: 1; }
+.budget-setup-item { border-bottom: 1px solid var(--divider); padding: 10px 0; display: flex; flex-direction: column; gap: 12px; }
+.budget-empty { padding: 18px 8px; color: var(--secondary); font-size: 12px; line-height: 1.7; }
+.add-budget { min-height: 42px; font-size: 12px; padding: 8px; width: 100%; }
+.setup-actions { flex-shrink: 0; display: grid; gap: 8px; }
+.setup-actions .primary-button { width: 100%; }
+.fixed-budget-head { height: auto; min-height: 116px; flex-wrap: wrap; align-content: center; gap: 8px; }
+.budget-column:has(.fixed-budget-head) { grid-template-rows: auto minmax(0, 1fr) 42px; }
+.setup-food .field { min-width: 0; }
+.setup-panel .form-help { margin: 0; line-height: 1.6; }
+.setup-panel input { min-width: 0; width: 100%; }
+@media (max-width: 360px) {
+  .setup-form { padding: 8px; }
+  .setup-columns { gap: 6px; }
+  .setup-panel { padding: 8px; }
+}
+
+.setup-guide { flex-shrink: 0; display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; margin: 0 12px 8px; border-radius: var(--radius-md); background: var(--primary-soft); }
+.setup-guide b { font-size: 13px; }
+.setup-guide p { font-size: 12px; line-height: 1.6; margin: 4px 0 0; }
+.setup-guide .text-button { flex-shrink: 0; min-height: 36px; font-size: 11px; }
+.guide-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; border: 1px solid var(--divider); border-radius: var(--radius-lg); padding: 20px; color: var(--text); background: white; overflow-y: auto; }
+.guide-dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.guide-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.guide-heading h2 { font-size: 18px; margin: 0; }
+.guide-dialog h3 { font-size: 14px; margin: 18px 0 6px; }
+.guide-dialog p { font-size: 13px; line-height: 1.7; }
+.guide-dialog .primary-button { width: 100%; margin-top: 12px; }
+.guide-dialog button { min-height: 40px; }
+.guide-dialog :focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 3px; }
+
+.setup-guide > div { flex: 1; min-width: 0; }
+.setup-guide .text-button, .guide-heading .text-button { width: auto; flex: 0 0 auto; white-space: nowrap; }

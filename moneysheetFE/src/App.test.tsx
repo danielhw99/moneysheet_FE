@@ -11,7 +11,12 @@ function api(): AuthApi {
   return { me: vi.fn().mockResolvedValue(first), login: vi.fn().mockResolvedValue(first), signup: vi.fn(),
     logout: vi.fn().mockResolvedValue(undefined), resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
 }
-beforeEach(() => vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ code: 'BUDGET_NOT_READY', message: '예산 설정 필요' }), { status: 409 }))))
+beforeEach(() => vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => {
+  const path = String(url)
+  if (path.endsWith('/auth/csrf')) return new Response(JSON.stringify({ token: 'test', headerName: 'X-CSRF-TOKEN' }))
+  if (path.endsWith('/budget-preparation')) return new Response(JSON.stringify({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { weekday: null, saturday: null, sunday: null } }))
+  return new Response(JSON.stringify({ code: 'BUDGET_NOT_READY', message: '예산 설정 필요' }), { status: 409 })
+})))
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 it('resets navigation and date state on user changes, without showing a demo profile', async () => {
   vi.stubEnv('DEV', true)
@@ -36,7 +41,7 @@ it('resets navigation and date state on user changes, without showing a demo pro
 it('does not render business mock screens in a production build', async () => {
   vi.stubEnv('DEV', false)
   render(<App authApi={api()} />)
-  expect(await screen.findByRole('button', { name: '예산 설정 시작' })).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: '예산 저장' })).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: 'MY' }))
   expect(await screen.findByText(first.email)).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Daily' })).not.toBeInTheDocument()
@@ -66,7 +71,7 @@ it('preserves an authenticated session on CSRF logout rejection and allows expli
 it('revalidates budgets after successful same-user focus and online checks', async () => {
   const auth = api()
   render(<App authApi={auth} />)
-  await screen.findByRole('button', { name: '예산 설정 시작' })
+  await screen.findByRole('button', { name: '예산 저장' })
   const requests = () => vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith('/budget')).length
   const initial = requests()
   fireEvent(window, new Event('focus'))
