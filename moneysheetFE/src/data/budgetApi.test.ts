@@ -15,8 +15,8 @@ describe('budget HTTP boundary', () => {
     const { api } = setup({ month: '2026-11', status: 'ready', items: [], food: {}, fixedTotal: 0, foodSummary: { total: 0, installments: [] } })
     await expect(api.getBudget('2026-11')).rejects.toMatchObject({ code: 'PROTOCOL' })
   })
-  it('preserves missing first-month allowance values and never auto-finalizes', async () => {
-    const { api, fetcher } = setup({ month: '2026-11', status: 'draft', copiedFromMonth: null, items: [{ id: null, kind: 'freeAllowance', name: '고정여유비', categoryId: null, amount: null }], food: { weekday: null, saturday: null, sunday: null } })
+  it('preserves draft values and never auto-finalizes', async () => {
+    const { api, fetcher } = setup({ month: '2026-11', status: 'draft', copiedFromMonth: null, items: [{ id: null, name: '고정여유비', categoryId: null, amount: null }], food: { weekday: null, saturday: null, sunday: null } })
     expect((await api.prepareBudget('2026-11')).items[0].amount).toBeNull()
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
@@ -37,11 +37,11 @@ describe('budget HTTP boundary', () => {
       return new Response(JSON.stringify({ code: 'BUDGET_BELOW_PAID', message: '지급액보다 작습니다.' }), { status: 409 })
     })
     const api = createBudgetApi(createHttpClient({ fetcher }))
-    const items = [{ id: '51', kind: 'fixedExpense' as const, name: 'Rent', categoryId: '9', amount: 50 }, { id: null, kind: 'freeAllowance' as const, name: 'Pocket', categoryId: '9', amount: 10 }]
+    const items = [{ id: '51', name: 'Rent', categoryId: '9', amount: 50 }, { id: null, name: 'Pocket', categoryId: '9', amount: 10 }]
     await expect(api.setupBudget('2026-11', { items, food: { weekday: 1, saturday: 1, sunday: 1 } })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
     expect(requests).toHaveLength(1)
     expect(requests[0]).toMatchObject({ path: '/api/v1/months/2026-11/budget-setup', method: 'PUT', body: { items } })
-    await expect(api.updateBudgetItem('2026-11', '51', { kind: 'fixedExpense', name: 'Rent', categoryId: '9', amount: 1 })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
+    await expect(api.updateBudgetItem('2026-11', '51', { name: 'Rent', categoryId: '9', amount: 1 })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
     expect(requests[1].method).toBe('PUT')
     expect(requests).toHaveLength(2)
   })
