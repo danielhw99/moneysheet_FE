@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import type { Screen } from './types/navigation'
 import Login from './features/auth/AuthScreen'
 import My from './features/account/MyScreen'
@@ -46,4 +46,3 @@ function AuthGate() {
 export default function App({ authApi }: { authApi?: AuthApi } = {}) {
   return <AuthProvider api={authApi}><AuthGate /></AuthProvider>
 }
-

@@ -1,4 +1,4 @@
-﻿import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { DataProvider } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
@@ -27,4 +27,3 @@ describe('budget preparation', () => {
     await waitFor(() => expect(api.prepareBudget).not.toHaveBeenCalled())
   })
 })
-

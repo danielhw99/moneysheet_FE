@@ -29,4 +29,21 @@ describe('budget HTTP boundary', () => {
     for (const [, options] of fetcher.mock.calls.slice(1)) expect(new Headers(options?.headers).get('X-CSRF-TOKEN')).toBe('csrf')
     expect(fetcher.mock.calls.map(([, o]) => o?.method)).toEqual(['GET', 'PUT', 'DELETE'])
   })
+  it('preserves IDs and explicit nulls in setup, uses PUT for edits, and never retries a failed write', async () => {
+    const requests: { path: string; method: string; body: unknown }[] = []
+    const fetcher = vi.fn(async (url: RequestInfo | URL, options?: RequestInit) => {
+      if (String(url).endsWith('/auth/csrf')) return new Response(JSON.stringify({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }))
+      requests.push({ path: String(url), method: options?.method ?? '', body: options?.body ? JSON.parse(String(options.body)) : null })
+      return new Response(JSON.stringify({ code: 'BUDGET_BELOW_PAID', message: '지급액보다 작습니다.' }), { status: 409 })
+    })
+    const api = createBudgetApi(createHttpClient({ fetcher }))
+    const items = [{ id: '51', kind: 'fixedExpense' as const, name: 'Rent', categoryId: '9', amount: 50 }, { id: null, kind: 'freeAllowance' as const, name: 'Pocket', categoryId: '9', amount: 10 }]
+    await expect(api.setupBudget('2026-11', { items, food: { weekday: 1, saturday: 1, sunday: 1 } })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
+    expect(requests).toHaveLength(1)
+    expect(requests[0]).toMatchObject({ path: '/api/v1/months/2026-11/budget-setup', method: 'PUT', body: { items } })
+    await expect(api.updateBudgetItem('2026-11', '51', { kind: 'fixedExpense', name: 'Rent', categoryId: '9', amount: 1 })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
+    expect(requests[1].method).toBe('PUT')
+    expect(requests).toHaveLength(2)
+  })
+
 })
