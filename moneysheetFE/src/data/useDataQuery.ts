@@ -1,3 +1,4 @@
+import { ApiError } from '../api/httpClient'
 import { useEffect, useRef, useState } from 'react'
 import type { MoneySheetDataAccess } from './MoneySheetDataAccess'
 import { errorMessage, useDataAccess } from './DataProvider'
@@ -7,7 +8,7 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
   const [attempt, setAttempt] = useState(0)
   const identity = JSON.stringify([key, revision, attempt])
   const loader = useRef(load)
-  const [state, setState] = useState<{ key: string; identity: string; data?: T; loading: boolean; error: string }>({ key: '', identity: '', loading: true, error: '' })
+  const [state, setState] = useState<{ key: string; identity: string; data?: T; loading: boolean; error: string; errorCode?: string }>({ key: '', identity: '', loading: true, error: '' })
   useEffect(() => {
     loader.current = load
   })
@@ -18,7 +19,7 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
     Promise.resolve().then(() => request(api)).then(data => {
       if (active) setState({ key, identity, data, loading: false, error: '' })
     }).catch(error => {
-      if (active) setState(previous => ({ ...previous, key, identity, loading: false, error: errorMessage(error) }))
+      if (active) setState(previous => ({ ...previous, key, identity, loading: false, error: errorMessage(error), errorCode: error instanceof ApiError ? error.code : undefined }))
     })
     // Old screen/date/month responses must never replace the current query.
     return () => { active = false }
@@ -27,6 +28,7 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
     data: state.key === key ? state.data : undefined,
     loading: state.identity !== identity || state.loading,
     error: state.identity === identity ? state.error : '',
+    errorCode: state.identity === identity ? state.errorCode : undefined,
     retry: () => setAttempt(previous => previous + 1),
   }
 }

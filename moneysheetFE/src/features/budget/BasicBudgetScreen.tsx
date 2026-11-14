@@ -1,3 +1,4 @@
+import BudgetSetupScreen from './BudgetSetupScreen'
 import MoneyInput from '../../components/MoneyInput'
 import { useState } from 'react'
 import type { FoodBudget } from '../../data/models'
@@ -15,6 +16,7 @@ import { won } from '../../utils/money'
 export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: Screen) => void; month: string; locked: boolean; setLocked: (locked: boolean) => void }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`budget:${month}`, api => api.getBudget(month))
+  const [setup, setSetup] = useState(false)
   const budget = query.data
   const [foodDraft, setFoodDraft] = useState<Record<keyof FoodBudget, string> | null>(null)
   const [saveError, setSaveError] = useState('')
@@ -42,6 +44,8 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     if (month < nowMonth) { refreshMonth(nowMonth); return }
     if (!readOnly) setEditing(item)
   }
+  if (setup) return <BudgetSetupScreen month={month} onDone={() => { setSetup(false); query.retry() }} onCancel={() => { setSetup(false); query.retry() }} />
+  if (!budget && query.errorCode === 'BUDGET_NOT_READY') return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><p className="notice">이번 달 예산 설정을 먼저 완료해 주세요.</p><button className="primary-button" disabled={month !== currentMonth() || pending} onClick={() => setSetup(true)}>예산 설정 시작</button></main>
   if (!budget) return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><QueryStatus {...query} /></main>
   if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} refreshing={query.loading} loadError={query.error} retry={query.retry}
     onCancel={() => setEditing(null)} onDelete={async () => {

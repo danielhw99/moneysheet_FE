@@ -33,6 +33,8 @@ export type CategoryQuery = { scope?: Category['scope']; direction?: Category['d
 export type RecordWrite = { kind: ListKind; managementMonth: string; input: RecordDraft }
 
 export interface MoneySheetDataAccess {
+  prepareBudget(month: string): Promise<import('./budgetApi').BudgetPreparation>
+  setupBudget(month: string, input: import('./budgetApi').BudgetSetupInput): Promise<BudgetSummary>
   getBudget(month: string): Promise<BudgetSummary>
   updateFoodBudget(month: string, input: FoodBudget): Promise<BudgetSummary>
   createBudgetItem(month: string, input: BudgetItemInput): Promise<Readonly<BudgetItem>>

@@ -77,6 +77,8 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   }
 
   return {
+    async prepareBudget() { throw new Error('예산 준비는 실제 API에서만 제공됩니다.') },
+    async setupBudget() { throw new Error('초기 설정은 실제 API에서만 제공됩니다.') },
     async getBudget(month) { return clone(budgetSummary(getBudget(month), records)) },
     async updateFoodBudget(month, input) {
       const budget = editableBudget(month)
