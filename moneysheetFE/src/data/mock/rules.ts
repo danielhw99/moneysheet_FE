@@ -3,7 +3,6 @@ export { recordValue } from '../values'
 export { validateRecord } from '../validation'
 import type { MoneyRecord, FoodBudget } from '../models'
 
-export const allowanceId = 'free-allowance'
 // Prototype defaults; actual budget configuration is supplied by the service.
 export const defaultFoodBudget: FoodBudget = { weekday: 11000, saturday: 18000, sunday: 15000 }
 export const memoActive = (memo: MoneyRecord, date: string) => memo.date.slice(0, 7) === date.slice(0, 7) && memo.date <= date && (!memo.completedOn || memo.completedOn > date)

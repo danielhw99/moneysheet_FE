@@ -1,7 +1,7 @@
 import { DataAccessError, type MoneySheetDataAccess, type RecordWrite } from '../MoneySheetDataAccess'
 import type { BudgetItem, BudgetItemInput, Category, MonthlyBudget, MoneyRecord } from '../models'
 import { initialBudget, initialCategories, initialRecords, initialFoodBudget, demoProfile } from './fixtures'
-import { allowanceId, validDate, validateRecord, daysInMonth, foodThrough } from './rules'
+import { validDate, validateRecord, daysInMonth, foodThrough } from './rules'
 import { budgetSummary, dailySummary, monthlySummary, recordsSummary, homeSummary } from './queries'
 
 const clone = <T,>(value: T): T => structuredClone(value)
@@ -57,7 +57,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     const error = validateRecord(kind, input, managementMonth)
     if (error) fail(error)
     if (kind === 'fixed-pay') {
-      const budgetItem = getBudget(managementMonth).fixed.find(item => item.id === input.budgetItemId && item.id !== allowanceId)
+      const budgetItem = getBudget(managementMonth).fixed.find(item => item.id === input.budgetItemId)
       if (!budgetItem) throw new DataAccessError('VALIDATION', '고정지출 예산 항목을 선택해 주세요.')
       if (id && findRecord(kind, id).date.slice(0, 7) !== managementMonth) fail('기존 지급 기록의 소속 월은 변경할 수 없어요.')
       const paid = records[kind].filter(item => item.id !== id && item.date.slice(0, 7) === managementMonth && item.budgetItemId === input.budgetItemId).reduce((sum, item) => sum + item.amount, input.amount)

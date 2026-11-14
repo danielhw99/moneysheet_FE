@@ -1,7 +1,7 @@
 import type { BudgetItem, BudgetItemInput, Category, CategoryInput, FoodBudget, ListKind, MoneyRecord, RecordDraft, UserProfile } from './models'
 
 // FE integration contract only. HTTP URLs, transport DTOs and authentication are not specified here.
-export type BudgetItemSummary = Readonly<BudgetItem & { paid: number; remaining: number; complete: boolean; automatic: boolean }>
+export type BudgetItemSummary = Readonly<BudgetItem & { paid: number; remaining: number; complete: boolean }>
 export type FoodSummary = Readonly<{ total: number; installments: readonly number[] }>
 export type BudgetSummary = Readonly<{
   month: string; items: readonly BudgetItemSummary[]; food: Readonly<FoodBudget>;
@@ -14,7 +14,6 @@ export type DailySummary = Readonly<{
   expenseTotal: number; incomeTotal: number;
   transactions: readonly Readonly<MoneyRecord>[]; activeMemos: readonly Readonly<MoneyRecord>[];
   payments: readonly DailyPaymentSummary[];
-  allowancePayment: Readonly<{ name: string; amount: number }> | null;
 }>
 export type MonthlySummary = Readonly<{
   month: string; income: number; extra: number; fixedBudget: number; foodBudget: number;

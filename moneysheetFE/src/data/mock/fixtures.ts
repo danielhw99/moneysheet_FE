@@ -1,5 +1,4 @@
 import type { Category, RecordStore, MoneyRecord, BudgetItem, UserProfile } from '../models'
-import { allowanceId } from './rules'
 
 export const initialCategories: Category[] = [
   ...[['housing', '주거'], ['phone', '통신'], ['subscription', '구독'], ['insurance', '보험'], ['allowance', '여유비']].map(([id, name]) => ({ id, name, scope: 'fixedBudget' as const })),
@@ -26,7 +25,6 @@ export const initialBudget = (): { fixed: BudgetItem[] } => ({
     { id: 'phone', name: '휴대폰 요금', categoryId: 'phone', amount: 59000 },
     { id: 'subscription', name: '구독 서비스', categoryId: 'subscription', amount: 12900 },
     { id: 'insurance', name: '보험료', categoryId: 'insurance', amount: 80000 },
-    { id: allowanceId, name: '고정여유비', categoryId: 'allowance', amount: 120000 },
   ],
 })
 

@@ -330,7 +330,6 @@
 .time-picker-options button { min-height: 36px; border: 0; border-radius: 6px; background: var(--surface); cursor: pointer; }
 .time-picker-options button[aria-pressed="true"] { background: var(--primary); color: white; }
 
-.fixed-row.automatic-payment { cursor: default; }
 
 /* Calendar values use category dots; wrapping keeps large amounts visible. */
 .dot.black { background: #111; }

@@ -26,7 +26,7 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
   const [error, setError] = useState('')
   const isMemo = kind === 'memos'
   const isFixed = kind === 'fixed-pay'
-  const selectedBudget = budget?.items.find(value => value.id === budgetItemId && !value.automatic)
+  const selectedBudget = budget?.items.find(value => value.id === budgetItemId)
   const managementMonth = initialDate.slice(0, 7)
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -71,7 +71,7 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
       <div className="field"><span>시간</span><TimePicker value={time} onChange={setTime} disabled={pending || refreshing} /></div>
     </div>
     {isFixed && <>
-      <label className="field"><span>고정지출 예산 항목</span><select value={budgetItemId} onChange={event => setBudgetItemId(event.target.value)}><option value="">항목 선택</option>{(budget?.items ?? []).filter(value => !value.automatic).map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
+      <label className="field"><span>고정지출 예산 항목</span><select value={budgetItemId} onChange={event => setBudgetItemId(event.target.value)}><option value="">항목 선택</option>{(budget?.items ?? []).map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
       {selectedBudget && <div className="read-only-pair"><span>항목 예산<b>{won(selectedBudget.amount)}원</b></span><span>누적 지급<b>{won(selectedBudget.paid)}원</b></span></div>}
     </>}
     {kind === 'transactions' && <CategoryPicker key={direction} value={categoryId} onChange={setCategoryId} scope="mainTransaction" direction={direction} />}

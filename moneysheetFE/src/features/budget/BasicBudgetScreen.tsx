@@ -71,7 +71,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
           <div className="column-head"><b>고정지출</b><span>합계 <strong>{won(budget.fixedTotal)}원</strong></span></div>
           <div className="column-scroll">
             {budget.items.map(item => {
-              const state = item.automatic ? '1일 자동 반영' : item.complete ? '완료' : `잔여 ${won(item.remaining)}원`
+              const state = item.complete ? '완료' : `잔여 ${won(item.remaining)}원`
               return <button className="budget-row" key={item.id} disabled={readOnly} onClick={() => openForm(item)}><span><b className="truncate">{item.name}</b><small className={state === '완료' ? 'complete' : ''}>{state}</small></span><strong>{won(item.amount)}</strong></button>
             })}
           </div>
