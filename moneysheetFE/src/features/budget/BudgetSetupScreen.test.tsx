@@ -1,6 +1,7 @@
+import type { BudgetPreparation } from '../../data/budgetApi'
 import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingProvider'
 import { StrictMode } from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { DataProvider } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
@@ -21,9 +22,9 @@ describe('budget preparation', () => {
     expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
     expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(), { items: [], food: { weekday: 11000, saturday: 11000, sunday: 11000 } })
   })
-  it('does not write past or future budgets', async () => {
+  it.each(['2000-01', '2999-01'])('does not write read-only budget %s', async month => {
     const api = createMockDataAccess(); api.prepareBudget = vi.fn()
-    render(<DataProvider implementation={api}><BudgetSetupScreen month="2000-01" onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+    render(<DataProvider implementation={api}><BudgetSetupScreen month={month} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
     expect(await screen.findByRole('alert')).toHaveTextContent('현재 월만')
     await waitFor(() => expect(api.prepareBudget).not.toHaveBeenCalled())
   })
@@ -73,6 +74,30 @@ describe('budget preparation', () => {
     expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
     expect(done).not.toHaveBeenCalled()
     localStorage.clear()
+  })
+
+  it('rejects missing or zero food without calling setup', async () => {
+    const api = createMockDataAccess()
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { weekday: null, saturday: null, sunday: null } })
+    api.setupBudget = vi.fn()
+    render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+    await screen.findByRole('button', { name: '예산 저장' })
+    fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    for (const label of ['주중 식비', '토요일 식비', '일요일 식비']) fireEvent.change(screen.getByLabelText(label), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
+    expect(api.setupBudget).not.toHaveBeenCalled()
+  })
+  it('ignores a delayed ready response after leaving the setup screen', async () => {
+    const api = createMockDataAccess()
+    let resolve!: (value: BudgetPreparation) => void
+    api.prepareBudget = vi.fn(() => new Promise<BudgetPreparation>(done => { resolve = done }))
+    const done = vi.fn()
+    const rendered = render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider>)
+    await waitFor(() => expect(api.prepareBudget).toHaveBeenCalledOnce())
+    rendered.unmount()
+    await act(async () => { resolve({ month: currentMonth(), status: 'ready', copiedFromMonth: null, items: [], food: { weekday: 1, saturday: 1, sunday: 1 } }) })
+    expect(done).not.toHaveBeenCalled()
   })
 
 })
