@@ -77,3 +77,12 @@ CodeRabbit 보완:
 - 기존 데이터 ID와 금액은 보존하며 과거 월도 새 계산을 사용합니다.
 - BE V2 적용과 FE/BE 배포를 함께 수행해야 합니다. 이전 BE에는 새 쓰기 DTO가 호환되지 않습니다.
 - 현재 HTTP 연동 완료 범위는 인증·카테고리·예산입니다. Daily/Home/Monthly와 기록 연동은 FE #20 후속이며 mock 계산 테스트를 실제 요약 API 검증으로 간주하지 않습니다.
+
+## FE #25 — 자동 예산 준비·튜토리얼
+
+- 현재 월 BUDGET_NOT_READY → 설정 화면 자동 진입 → POST prepare 자동 호출. GET은 생성하지 않음.
+- prepare는 DRAFT 초안만 준비하며 최종 PUT 저장 성공 후에만 예산 설정 완료. 실패 시 명시적 재시도, 편집값 유지. 지난/미래 월은 준비하지 않음.
+- 첫 안내 진행은 features/onboarding에서 관리. `moneysheet:onboarding:v1:<userId>`에 unseen/setup/overview/done/skipped 문자열만 현재 브라우저에 저장. 예산 READY는 BE 응답만 신뢰.
+- 저장이 차단되면 안내 상태는 현재 mount 메모리에만 유지. 계정은 분리하며 새 기기/브라우저 동기화는 제공하지 않음.
+- API에 가입 일시/신규 사용자 플래그가 없어 브라우저의 첫 미설정 예산 준비를 기준으로 안내. 전달 복사가 확인되면 신규 안내를 강제하지 않음. copiedFromMonth=null을 복사 안 됨의 확정 근거로 사용하지 않음.
+- 저장 직후 핵심 안내와 업무 메뉴의 사용 가이드 다시 보기를 제공. 실제 Daily/Home/Monthly/기록 API 미연동은 기존 FE #20 후속이며 이번 변경으로 완료되지 않음.

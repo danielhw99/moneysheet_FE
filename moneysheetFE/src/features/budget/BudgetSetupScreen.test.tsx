@@ -1,3 +1,4 @@
+import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingProvider'
 import { StrictMode } from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
@@ -52,6 +53,26 @@ describe('budget preparation', () => {
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider>)
     await waitFor(() => expect(done).toHaveBeenCalledWith(false))
     expect(screen.queryByLabelText('주중 식비')).not.toBeInTheDocument()
+  })
+
+  it('skipping the tutorial never finalizes the budget or loses food input', async () => {
+    localStorage.clear()
+    const api = createMockDataAccess()
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { weekday: null, saturday: null, sunday: null } })
+    api.setupBudget = vi.fn().mockRejectedValue(new Error('실패'))
+    const done = vi.fn()
+    function State() { return <output data-testid="tutorial-state">{useOnboarding()?.stage}</output> }
+    render(<OnboardingProvider userId="setup-test"><State /><DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider></OnboardingProvider>)
+    await screen.findByRole('complementary', { name: '첫 예산 설정 안내' })
+    for (const label of ['주중 식비', '토요일 식비', '일요일 식비']) fireEvent.change(screen.getByLabelText(label), { target: { value: '11000' } })
+    fireEvent.click(screen.getByRole('button', { name: '안내 건너뛰기' }))
+    expect(screen.getByTestId('tutorial-state')).toHaveTextContent('skipped')
+    expect(api.setupBudget).not.toHaveBeenCalled(); expect(done).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('실패')
+    expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
+    expect(done).not.toHaveBeenCalled()
+    localStorage.clear()
   })
 
 })

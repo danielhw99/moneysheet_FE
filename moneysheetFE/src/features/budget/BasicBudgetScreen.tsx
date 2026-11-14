@@ -1,3 +1,4 @@
+import { useOnboarding } from '../onboarding/OnboardingProvider'
 import { budgetAmount } from './budgetInput'
 import BudgetSetupScreen from './BudgetSetupScreen'
 import MoneyInput from '../../components/MoneyInput'
@@ -16,6 +17,7 @@ import { won } from '../../utils/money'
 
 export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: Screen) => void; month: string; locked: boolean; setLocked: (locked: boolean) => void }) {
   const { pending, mutate } = useDataAccess()
+  const guide = useOnboarding()
   const query = useDataQuery(`budget:${month}`, api => api.getBudget(month))
   const [setup, setSetup] = useState(false)
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     if (month < nowMonth) { refreshMonth(nowMonth); return }
     if (!readOnly) setEditing(item)
   }
-  if (setup) return <BudgetSetupScreen month={month} onDone={() => { setSetup(false); query.retry() }} onCancel={() => go('monthly')} />
+  if (setup) return <BudgetSetupScreen month={month} onDone={() => { guide?.finishSetup(); setSetup(false); query.retry() }} onCancel={() => go('monthly')} />
   if (!budget && query.errorCode === 'BUDGET_NOT_READY') return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><p className="notice">{month === currentMonth() ? '예산 설정을 준비하고 있어요…' : '이 월에는 완료된 예산이 없어요. 현재 월에서 예산을 설정해 주세요.'}</p></main>
   if (!budget) return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><QueryStatus {...query} /></main>
   if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} refreshing={query.loading} loadError={query.error} retry={query.retry}

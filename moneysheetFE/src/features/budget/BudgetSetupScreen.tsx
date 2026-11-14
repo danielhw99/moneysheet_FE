@@ -1,3 +1,5 @@
+import { useOnboarding } from '../onboarding/OnboardingProvider'
+import SetupGuide from '../onboarding/SetupGuide'
 import { useEffect, useRef, useState } from 'react'
 import QueryStatus from '../../components/QueryStatus'
 import Header from '../../components/Header'
@@ -11,6 +13,8 @@ import { budgetAmount } from './budgetInput'
 type Row = { key: number; item: DraftItem; amount: string }
 export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: string; onDone: (saved: boolean) => void; onCancel: () => void }) {
   const { mutate, pending } = useDataAccess()
+  const guide = useOnboarding()
+  const beginSetup = guide?.beginSetup
   const [draft, setDraft] = useState<BudgetPreparation | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [food, setFood] = useState({ weekday: '', saturday: '', sunday: '' })
@@ -33,13 +37,14 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     request.current.promise.then(value => {
       if (!active) return
       if (value.status === 'ready') { done.current(false); return }
+      beginSetup?.(value.copiedFromMonth !== null)
       setDraft(value)
       setRows(value.items.map(item => ({ key: sequence.current++, item, amount: item.amount === null ? '' : String(item.amount) })))
       setFood({ weekday: value.food.weekday === null ? '' : String(value.food.weekday), saturday: value.food.saturday === null ? '' : String(value.food.saturday), sunday: value.food.sunday === null ? '' : String(value.food.sunday) })
     }).catch(error => { if (active) setError(errorMessage(error)) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [month, readOnly, attempt, mutate])
+  }, [month, readOnly, attempt, mutate, beginSetup])
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
     if (pending || !draft || readOnly) return
@@ -58,6 +63,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     <p className="notice">{month} 예산을 설정하면 생활비 관리를 시작할 수 있어요. 직전 월이 있으면 예산 목록과 식비만 복사합니다.</p>
     {readOnly && <p role="alert">현재 월만 예산을 준비할 수 있어요.</p>}
     {!draft && !readOnly && <QueryStatus loading={loading} error={error} retry={() => setAttempt(value => value + 1)} />}
+    {draft && <SetupGuide />}
     {draft && <form className="record-form setup-form" onSubmit={save} noValidate>
       <fieldset className="form-fields setup-fields" disabled={pending || readOnly || loading}>
         <p className="notice">{draft.copiedFromMonth ? `${draft.copiedFromMonth} 예산을 불러왔어요. 확인하고 저장해 주세요.` : '고정비는 필요한 만큼 추가하고, 식비 3가지는 꼭 입력해 주세요.'}</p>
