@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { MoneySheetDataAccess } from './MoneySheetDataAccess'
-import { createMockDataAccess } from './mock/createMockDataAccess'
+import { createHttpDataAccess } from './http/createHttpDataAccess'
 
 type AccessContext = {
   api: MoneySheetDataAccess; revision: number; pending: boolean;
@@ -8,15 +8,20 @@ type AccessContext = {
 }
 const Context = createContext<AccessContext | null>(null)
 
-export function DataProvider({ children, implementation }: { children: ReactNode; implementation?: MoneySheetDataAccess }) {
+export function DataProvider({ children, implementation, refreshToken = 0 }: { children: ReactNode; implementation?: MoneySheetDataAccess; refreshToken?: number }) {
   const [api] = useState(() => {
     if (implementation) return implementation
-    if (!import.meta.env.DEV) throw new Error('업무 데이터 API가 아직 연결되지 않았습니다.')
-    return createMockDataAccess()
+    return createHttpDataAccess()
   })
   const [revision, setRevision] = useState(0)
   const [pending, setPending] = useState(false)
   const busy = useRef(false)
+  const lastRefresh = useRef(refreshToken)
+  useEffect(() => {
+    if (lastRefresh.current === refreshToken) return
+    lastRefresh.current = refreshToken
+    setRevision(previous => previous + 1)
+  }, [refreshToken])
   const mutate = useCallback(async <T,>(operation: (api: MoneySheetDataAccess) => Promise<T>): Promise<T> => {
     if (busy.current) throw new Error('다른 저장 작업이 진행 중이에요. 잠시 후 다시 시도해 주세요.')
     busy.current = true

@@ -1,6 +1,7 @@
+import { budgetAmount } from './budgetInput'
 import MoneyInput from '../../components/MoneyInput'
 import { useState } from 'react'
-import type { BudgetItemInput } from '../../data/models'
+import type { BudgetItemInput, BudgetKind } from '../../data/models'
 import type { BudgetItemSummary } from '../../data/MoneySheetDataAccess'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
 import CategoryPicker from '../../components/CategoryPicker'
@@ -13,6 +14,7 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
   onDelete: () => Promise<void>; onCancel: () => void;
 }) {
   const { pending } = useDataAccess()
+  const [kind, setKind] = useState<BudgetKind>(item?.kind ?? (item?.automatic ? 'freeAllowance' : 'fixedExpense'))
   const [name, setName] = useState(item?.name ?? '')
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null)
   const [amount, setAmount] = useState(item ? won(item.amount) : '')
@@ -24,16 +26,14 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
       setError('항목명, 카테고리, 예산 금액을 모두 입력해 주세요.')
       return
     }
-    const numericAmount = Number(amount.trim().replace(/,/g, ''))
-    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(amount.trim()) || !Number.isSafeInteger(numericAmount)) {
-      setError('예산 금액은 정확하게 계산할 수 있는 0 이상의 원 단위 정수로 입력해 주세요.')
-      return
-    }
-    if (item && numericAmount < item.paid) {
+    let numericAmount: number
+    try { numericAmount = budgetAmount(amount.trim()) } catch (error) { setError(errorMessage(error)); return }
+    if ([...name.trim()].length > 100) { setError('항목명은 100자 이내로 입력해 주세요.'); return }
+    if (item && !item.automatic && numericAmount < item.paid) {
       setError(`이미 지급한 ${won(item.paid)}원보다 작게 예산을 설정할 수 없어요.`)
       return
     }
-    try { await onSave({ name: name.trim(), categoryId, amount: numericAmount }) } catch (error) { setError(errorMessage(error)) }
+    try { await onSave({ kind, name: name.trim(), categoryId, amount: numericAmount }) } catch (error) { setError(errorMessage(error)) }
   }
   const remove = async () => {
     if (pending || refreshing || loadError) return
@@ -45,6 +45,7 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
       <QueryStatus loading={refreshing} error={loadError} retry={retry} />
       <form className="record-form fixed-budget-form" onSubmit={submit} noValidate>
         <fieldset className="form-fields" disabled={pending || refreshing || !!loadError}>
+        <label className="field"><span>항목 종류</span><select value={kind} disabled={!!item} onChange={event => setKind(event.target.value as BudgetKind)}><option value="fixedExpense">고정지출</option><option value="freeAllowance">고정여유비</option></select></label>
         <label className="field"><span>항목명</span><input required value={name} readOnly={item?.automatic} onChange={event => setName(event.target.value)} /></label>
         <CategoryPicker value={categoryId} onChange={setCategoryId} scope="fixedBudget" optional={false} />
         <label className="field"><span>예산 금액</span><div className="money-input"><MoneyInput required aria-label="예산 금액" value={amount} onValueChange={setAmount} /><b>원</b></div></label>
