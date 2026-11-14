@@ -16,7 +16,7 @@ export function authErrorMessage(error: unknown): string {
   return '서버 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.'
 }
 type AuthState = {
-  profile: UserProfile | null; sessionKey: string; initializing: boolean; bootstrapError: string;
+  profile: UserProfile | null; sessionKey: string; validationRevision: number; initializing: boolean; bootstrapError: string;
   notice: string; busy: boolean; retry: () => void;
   login: (input: LoginInput) => Promise<void>; signup: (input: SignupInput) => Promise<void>; logout: () => Promise<void>;
 }
@@ -26,6 +26,7 @@ const unauthorized = (error: unknown) => error instanceof ApiError && error.stat
 export function AuthProvider({ children, api: implementation }: { children: ReactNode; api?: AuthApi }) {
   const [api] = useState(() => implementation ?? createAuthApi())
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [validationRevision, setValidationRevision] = useState(0)
   const [sessionNumber, setSessionNumber] = useState(0)
   const [initializing, setInitializing] = useState(true)
   const [bootstrapError, setBootstrapError] = useState('')
@@ -53,7 +54,7 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
     if (bootstrap) { setInitializing(true); setBootstrapError('') }
     try {
       const value = await api.me()
-      if (ticket === epoch.current && sequence === checkSequence.current) { accept(value); setNotice('') }
+      if (ticket === epoch.current && sequence === checkSequence.current) { accept(value); setNotice(''); setValidationRevision(previous => previous + 1) }
     } catch (error) {
       if (ticket !== epoch.current || sequence !== checkSequence.current) return
       if (unauthorized(error)) {
@@ -76,10 +77,12 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
     const focus = () => { if (current.current) void check() }
     const visible = () => { if (document.visibilityState === 'visible') focus() }
     window.addEventListener('focus', focus)
+    window.addEventListener('online', focus)
     document.addEventListener('visibilitychange', visible)
     return () => {
       epoch.current++; stop()
       window.removeEventListener('focus', focus)
+      window.removeEventListener('online', focus)
       document.removeEventListener('visibilitychange', visible)
     }
   }, [api, check, clear])
@@ -95,7 +98,7 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
   }
 
   return <Context.Provider value={{ profile, sessionKey: `${profile?.id ?? 'anonymous'}:${sessionNumber}`,
-    initializing, bootstrapError, notice, busy, retry: () => { void check(true) },
+    validationRevision, initializing, bootstrapError, notice, busy, retry: () => { void check(true) },
     login: input => run(() => api.login(input), value => accept(value, true)),
     signup: input => run(() => api.signup(input), () => setNotice('회원가입이 완료됐어요. 로그인해 주세요.')),
     logout: async () => {

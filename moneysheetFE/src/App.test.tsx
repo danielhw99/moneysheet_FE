@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import App from './App'
@@ -61,4 +61,17 @@ it('preserves an authenticated session on CSRF logout rejection and allows expli
   expect(auth.logout).toHaveBeenCalledTimes(1)
   await userEvent.click(screen.getByRole('button', { name: '로그아웃' }))
   expect(await screen.findByRole('button', { name: '로그인' })).toBeInTheDocument()
+})
+
+it('revalidates budgets after successful same-user focus and online checks', async () => {
+  const auth = api()
+  render(<App authApi={auth} />)
+  await screen.findByRole('button', { name: '예산 설정 시작' })
+  const requests = () => vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith('/budget')).length
+  const initial = requests()
+  fireEvent(window, new Event('focus'))
+  await waitFor(() => expect(requests()).toBeGreaterThan(initial))
+  const afterFocus = requests()
+  fireEvent(window, new Event('online'))
+  await waitFor(() => expect(requests()).toBeGreaterThan(afterFocus))
 })

@@ -31,8 +31,8 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     try { input = { weekday: budgetAmount(values.weekday), saturday: budgetAmount(values.saturday), sunday: budgetAmount(values.sunday) } }
     catch (error) { setSaveError(errorMessage(error)); return }
     try {
-      const saved = await mutate(api => api.updateFoodBudget(month, input))
-      setFoodDraft({ weekday: won(saved.food.weekday), saturday: won(saved.food.saturday), sunday: won(saved.food.sunday) })
+      await mutate(api => api.updateFoodBudget(month, input))
+      setFoodDraft(null)
       setLocked(true)
     } catch (error) { setSaveError(errorMessage(error)) }
   }

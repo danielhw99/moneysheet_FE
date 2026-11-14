@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { MoneySheetDataAccess } from './MoneySheetDataAccess'
 import { createHttpDataAccess } from './http/createHttpDataAccess'
 
@@ -8,7 +8,7 @@ type AccessContext = {
 }
 const Context = createContext<AccessContext | null>(null)
 
-export function DataProvider({ children, implementation }: { children: ReactNode; implementation?: MoneySheetDataAccess }) {
+export function DataProvider({ children, implementation, refreshToken = 0 }: { children: ReactNode; implementation?: MoneySheetDataAccess; refreshToken?: number }) {
   const [api] = useState(() => {
     if (implementation) return implementation
     return createHttpDataAccess()
@@ -16,6 +16,12 @@ export function DataProvider({ children, implementation }: { children: ReactNode
   const [revision, setRevision] = useState(0)
   const [pending, setPending] = useState(false)
   const busy = useRef(false)
+  const lastRefresh = useRef(refreshToken)
+  useEffect(() => {
+    if (lastRefresh.current === refreshToken) return
+    lastRefresh.current = refreshToken
+    setRevision(previous => previous + 1)
+  }, [refreshToken])
   const mutate = useCallback(async <T,>(operation: (api: MoneySheetDataAccess) => Promise<T>): Promise<T> => {
     if (busy.current) throw new Error('다른 저장 작업이 진행 중이에요. 잠시 후 다시 시도해 주세요.')
     busy.current = true

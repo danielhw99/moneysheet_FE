@@ -41,7 +41,7 @@ function AuthGate() {
   if (auth.initializing) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="status">로그인 상태를 확인하고 있어요…</p></main></div></div>
   if (auth.bootstrapError) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="alert">{auth.bootstrapError}</p><button className="primary-button" onClick={auth.retry}>다시 확인</button></main></div></div>
   if (!auth.profile) return <div className="prototype"><div className="phone-frame"><Login key={screen} signup={screen === 'signup'} go={next => { if (next === 'login' || next === 'signup') setScreen(next) }} /></div></div>
-  return <DataProvider key={auth.sessionKey}><Screens /></DataProvider>
+  return <DataProvider key={auth.sessionKey} refreshToken={auth.validationRevision}><Screens /></DataProvider>
 }
 export default function App({ authApi }: { authApi?: AuthApi } = {}) {
   return <AuthProvider api={authApi}><AuthGate /></AuthProvider>
