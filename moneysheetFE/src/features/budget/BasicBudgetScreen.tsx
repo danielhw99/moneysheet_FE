@@ -1,3 +1,4 @@
+import { budgetAmount } from './budgetInput'
 import BudgetSetupScreen from './BudgetSetupScreen'
 import MoneyInput from '../../components/MoneyInput'
 import { useState } from 'react'
@@ -23,12 +24,12 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
   const hasUnsavedFood = foodDraft !== null && (['weekday', 'saturday', 'sunday'] as const).some(key => foodDraft[key].replace(/,/g, '') !== String(budget?.food[key] ?? ''))
   const saveFood = async () => {
     if (!budget || locked || pending || query.loading || query.error) return
-    if (month < currentMonth()) { setSaveError('지난달 식비 예산은 수정할 수 없어요.'); return }
+    if (month !== currentMonth()) { setSaveError('지난달 식비 예산은 수정할 수 없어요.'); return }
     setSaveError('')
     const values = foodDraft ?? { weekday: won(budget.food.weekday), saturday: won(budget.food.saturday), sunday: won(budget.food.sunday) }
-    if (Object.values(values).some(value => !/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(value))) { setSaveError('주중·토요일·일요일 식비를 원 단위 정수로 입력해 주세요.'); return }
-    const input: FoodBudget = { weekday: Number(values.weekday.replace(/,/g, '')), saturday: Number(values.saturday.replace(/,/g, '')), sunday: Number(values.sunday.replace(/,/g, '')) }
-    if (Object.values(input).some(value => !Number.isSafeInteger(value))) { setSaveError('정확하게 계산할 수 있는 식비를 입력해 주세요.'); return }
+    let input: FoodBudget
+    try { input = { weekday: budgetAmount(values.weekday), saturday: budgetAmount(values.saturday), sunday: budgetAmount(values.sunday) } }
+    catch (error) { setSaveError(errorMessage(error)); return }
     try {
       const saved = await mutate(api => api.updateFoodBudget(month, input))
       setFoodDraft({ weekday: won(saved.food.weekday), saturday: won(saved.food.saturday), sunday: won(saved.food.sunday) })
@@ -38,7 +39,8 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
   const [editing, setEditing] = useState<BudgetItemSummary | 'new' | null>(null)
   const [, refreshMonth] = useState(currentMonth)
   const pastMonth = month < currentMonth()
-  const readOnly = locked || pastMonth || pending || query.loading || !!query.error
+  const futureMonth = month > currentMonth()
+  const readOnly = locked || pastMonth || futureMonth || pending || query.loading || !!query.error
   const openForm = (item: BudgetItemSummary | 'new') => {
     const nowMonth = currentMonth()
     if (month < nowMonth) { refreshMonth(nowMonth); return }
@@ -49,17 +51,17 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
   if (!budget) return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><QueryStatus {...query} /></main>
   if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} refreshing={query.loading} loadError={query.error} retry={query.retry}
     onCancel={() => setEditing(null)} onDelete={async () => {
-      if (locked || month < currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
+      if (locked || month !== currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
       if (editing !== 'new') await mutate(api => api.deleteBudgetItem(month, editing.id))
       setEditing(null)
     }} onSave={async input => {
-      if (locked || month < currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
+      if (locked || month !== currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
       await mutate(api => editing === 'new' ? api.createBudgetItem(month, input) : api.updateBudgetItem(month, editing.id, input))
       setEditing(null)
     }} />
   return (
     <main className="detail-shell budget-detail">
-      <Header title="기본지출" onBack={() => go('monthly')} right={<button className={`lock-button ${locked ? 'locked' : ''}`} disabled={pastMonth || pending || query.loading || !!query.error} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>} />
+      <Header title="기본지출" onBack={() => go('monthly')} right={<button className={`lock-button ${locked ? 'locked' : ''}`} disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>} />
       <QueryStatus {...query} />
       <div className="sub-month">{month.replace('-', '.')} <span>{pastMonth ? '지난달 · 조회 전용' : locked ? '예산 잠금' : '편집 중'}</span></div>
       <p className="notice">{pastMonth ? '지난달 예산은 수정할 수 없어요.' : locked ? hasUnsavedFood && !query.loading ? '미저장 식비 변경이 있어요. 잠금을 해제하고 저장해 주세요.' : '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : `수정한 값은 ${Number(month.slice(5))}월 전체에 적용됩니다.`}</p>

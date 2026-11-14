@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
 import type { MoneySheetDataAccess } from './MoneySheetDataAccess'
-import { createMockDataAccess } from './mock/createMockDataAccess'
+import { createHttpDataAccess } from './http/createHttpDataAccess'
 
 type AccessContext = {
   api: MoneySheetDataAccess; revision: number; pending: boolean;
@@ -11,8 +11,7 @@ const Context = createContext<AccessContext | null>(null)
 export function DataProvider({ children, implementation }: { children: ReactNode; implementation?: MoneySheetDataAccess }) {
   const [api] = useState(() => {
     if (implementation) return implementation
-    if (!import.meta.env.DEV) throw new Error('업무 데이터 API가 아직 연결되지 않았습니다.')
-    return createMockDataAccess()
+    return createHttpDataAccess()
   })
   const [revision, setRevision] = useState(0)
   const [pending, setPending] = useState(false)
