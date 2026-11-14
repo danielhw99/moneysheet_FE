@@ -68,23 +68,28 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
     return work
   }
 
+  async function write<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+    const current = generation
+    const value = await csrf()
+    if (generation !== current) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요. 다시 시도해 주세요.')
+    try { return await send<T>(path, method, body, value) } catch (error) {
+      if (error instanceof ApiError && error.code === 'CSRF_INVALID' && current === generation) {
+        invalidateCsrf()
+        try { await csrf() } catch { /* Retry remains an explicit user action. */ }
+      }
+      throw error
+    }
+  }
   return {
     get: <T,>(path: string, options: { notifyUnauthorized?: boolean } = {}) =>
       send<T>(path, 'GET', undefined, undefined, options.notifyUnauthorized ?? true),
-    async post<T>(path: string, body?: unknown): Promise<T> {
-      const current = generation
-      const value = await csrf()
-      if (generation !== current) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요. 다시 시도해 주세요.')
-      try { return await send<T>(path, 'POST', body, value) } catch (error) {
-        if (error instanceof ApiError && error.code === 'CSRF_INVALID' && current === generation) {
-          invalidateCsrf()
-          // Refresh the token, but never repeat a state-changing request automatically.
-          try { await csrf() } catch { /* The next explicit attempt can fetch a new token. */ }
-        }
-        throw error
-      }
-    },
+    post: <T,>(path: string, body?: unknown) => write<T>('POST', path, body),
+    put: <T,>(path: string, body?: unknown) => write<T>('PUT', path, body),
+    delete: (path: string) => write<void>('DELETE', path),
     invalidateCsrf,
     onUnauthorized(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   }
 }
+
+// Auth and business requests share session invalidation and CSRF state.
+export const httpClient = createHttpClient()

@@ -1,4 +1,4 @@
-import { ApiError, createHttpClient, type HttpClient } from '../../api/httpClient'
+import { ApiError, httpClient, type HttpClient } from '../../api/httpClient'
 import type { UserProfile } from '../../data/models'
 export type LoginInput = { email: string; password: string }
 export type SignupInput = LoginInput & { nickname: string; privacyPolicyVersion: string; privacyAgreed: boolean }
@@ -10,7 +10,7 @@ function profile(value: unknown): UserProfile {
   }
   return { id: data.id, email: data.email, nickname: data.nickname }
 }
-export function createAuthApi(client: HttpClient = createHttpClient()) {
+export function createAuthApi(client: HttpClient = httpClient) {
   return {
     // AuthProvider owns /me failures so only the latest check can end a session.
     async me() { return profile(await client.get('/me', { notifyUnauthorized: false })) },

@@ -10,7 +10,8 @@ export type RecordStore = Record<ListKind, MoneyRecord[]>
 
 
 // Source entities exclude editable UI locks and calculated payment totals.
-export type BudgetItem = { id: string; name: string; categoryId: string; amount: number }
+export type BudgetKind = 'fixedExpense' | 'freeAllowance'
+export type BudgetItem = { kind?: BudgetKind; id: string; name: string; categoryId: string; amount: number }
 export type FoodBudget = { weekday: number; saturday: number; sunday: number }
 export type MonthlyBudget = { month: string; fixed: BudgetItem[]; food: FoodBudget }
 export type BudgetItemInput = Omit<BudgetItem, 'id'>
