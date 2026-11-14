@@ -1,7 +1,7 @@
 import { budgetAmount } from './budgetInput'
 import BudgetSetupScreen from './BudgetSetupScreen'
 import MoneyInput from '../../components/MoneyInput'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FoodBudget } from '../../data/models'
 import type { Screen } from '../../types/navigation'
 import type { BudgetItemSummary } from '../../data/MoneySheetDataAccess'
@@ -18,6 +18,9 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`budget:${month}`, api => api.getBudget(month))
   const [setup, setSetup] = useState(false)
+  useEffect(() => {
+    if (query.errorCode === 'BUDGET_NOT_READY' && month === currentMonth()) setSetup(true)
+  }, [query.errorCode, month])
   const budget = query.data
   const [foodDraft, setFoodDraft] = useState<Record<keyof FoodBudget, string> | null>(null)
   const [saveError, setSaveError] = useState('')
@@ -46,8 +49,8 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     if (month < nowMonth) { refreshMonth(nowMonth); return }
     if (!readOnly) setEditing(item)
   }
-  if (setup) return <BudgetSetupScreen month={month} onDone={() => { setSetup(false); query.retry() }} onCancel={() => { setSetup(false); query.retry() }} />
-  if (!budget && query.errorCode === 'BUDGET_NOT_READY') return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><p className="notice">이번 달 예산 설정을 먼저 완료해 주세요.</p><button className="primary-button" disabled={month !== currentMonth() || pending} onClick={() => setSetup(true)}>예산 설정 시작</button></main>
+  if (setup) return <BudgetSetupScreen month={month} onDone={() => { setSetup(false); query.retry() }} onCancel={() => go('monthly')} />
+  if (!budget && query.errorCode === 'BUDGET_NOT_READY') return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><p className="notice">{month === currentMonth() ? '예산 설정을 준비하고 있어요…' : '이 월에는 완료된 예산이 없어요. 현재 월에서 예산을 설정해 주세요.'}</p></main>
   if (!budget) return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><QueryStatus {...query} /></main>
   if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} refreshing={query.loading} loadError={query.error} retry={query.retry}
     onCancel={() => setEditing(null)} onDelete={async () => {
@@ -68,14 +71,15 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
       {saveError && <p className="query-status" role="alert">{saveError}</p>}
       <div className="budget-columns">
         <section className="budget-column">
-          <div className="column-head"><b>고정지출</b><span>합계 <strong>{won(budget.fixedTotal)}원</strong></span></div>
+          <div className="column-head fixed-budget-head"><b>고정지출</b><span>합계 <strong>{won(budget.fixedTotal)}원</strong></span><button type="button" className="primary-button add-budget" disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} onClick={() => { if (locked) setLocked(false); setEditing('new') }}>{locked ? '잠금 해제하고 고정비 추가' : '+ 고정비 추가'}</button></div>
           <div className="column-scroll">
+            {budget.items.length === 0 && <p className="budget-empty">등록한 고정비가 없어요. 위의 고정비 추가 버튼으로 입력하세요.</p>}
             {budget.items.map(item => {
               const state = item.complete ? '완료' : `잔여 ${won(item.remaining)}원`
               return <button className="budget-row" key={item.id} disabled={readOnly} onClick={() => openForm(item)}><span><b className="truncate">{item.name}</b><small className={state === '완료' ? 'complete' : ''}>{state}</small></span><strong>{won(item.amount)}</strong></button>
             })}
           </div>
-          <button className="panel-add" disabled={readOnly} onClick={() => openForm('new')}><Icon name="plus" size={16} />항목 추가</button>
+          <button className="panel-add" disabled={readOnly} onClick={() => openForm('new')}><Icon name="plus" size={16} />고정비 추가</button>
         </section>
         <section className="budget-column food-column">
           <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(budget.foodSummary.total)}원</strong></span></div>

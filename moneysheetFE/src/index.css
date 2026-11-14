@@ -346,3 +346,28 @@
 .session-note { margin: 0; padding: 8px 12px; background: var(--primary-soft); color: var(--primary-dark); font-size: 11px; line-height: 1.5; flex-shrink: 0; border-bottom: 1px solid var(--divider); }
 .workspace-content { flex: 1; min-height: 0; position: relative; }
 .screen-content.no-bottom-nav { height: 100%; overflow-y: auto; }
+
+/* Budget preparation keeps the add action outside the growing item list. */
+.setup-form { padding: 12px; }
+.setup-fields { display: flex; flex-direction: column; min-height: 0; flex: 1; gap: 12px; }
+.setup-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; flex: 1; min-height: 240px; }
+.setup-panel { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; border: 1px solid var(--divider); border-radius: var(--radius-md); padding: 12px; }
+.setup-panel-head { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.setup-panel-head h2 { font-size: 15px; margin: 0; }
+.setup-panel-head small { font-size: 11px; color: var(--secondary); font-weight: 400; }
+.setup-item-list { overflow-y: auto; min-height: 0; flex: 1; }
+.budget-setup-item { border-bottom: 1px solid var(--divider); padding: 10px 0; display: flex; flex-direction: column; gap: 12px; }
+.budget-empty { padding: 18px 8px; color: var(--secondary); font-size: 12px; line-height: 1.7; }
+.add-budget { min-height: 42px; font-size: 12px; padding: 8px; width: 100%; }
+.setup-actions { flex-shrink: 0; display: grid; gap: 8px; }
+.setup-actions .primary-button { width: 100%; }
+.fixed-budget-head { height: auto; min-height: 116px; flex-wrap: wrap; align-content: center; gap: 8px; }
+.budget-column:has(.fixed-budget-head) { grid-template-rows: auto minmax(0, 1fr) 42px; }
+.setup-food .field { min-width: 0; }
+.setup-panel .form-help { margin: 0; line-height: 1.6; }
+.setup-panel input { min-width: 0; width: 100%; }
+@media (max-width: 360px) {
+  .setup-form { padding: 8px; }
+  .setup-columns { gap: 6px; }
+  .setup-panel { padding: 8px; }
+}
