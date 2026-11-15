@@ -24,6 +24,7 @@ export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; 
 export type HomeDayEntry = Readonly<{ kind: 'fixed' | 'transaction' | 'free' | 'memo'; label: string } & ({ amount: number; count?: never } | { count: number; amount?: never })>
 export type HomeSummary = Readonly<{
   month: string;
+  asOfDate: string;
   source: 'records';
   days: Readonly<Record<number, Readonly<{ entries: readonly HomeDayEntry[] }>>>;
   expense: number; freeBalance: number;

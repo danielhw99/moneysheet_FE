@@ -388,3 +388,6 @@
 
 .setup-guide > div { flex: 1; min-width: 0; }
 .setup-guide .text-button, .guide-heading .text-button { width: auto; flex: 0 0 auto; white-space: nowrap; }
+
+.workspace-content.with-workspace-nav { padding-bottom: 70px; }
+.workspace-status { padding: 16px; overflow-y: auto; }

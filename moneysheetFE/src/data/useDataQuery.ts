@@ -8,18 +8,18 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
   const [attempt, setAttempt] = useState(0)
   const identity = JSON.stringify([key, revision, attempt])
   const loader = useRef(load)
-  const [state, setState] = useState<{ key: string; identity: string; data?: T; loading: boolean; error: string; errorCode?: string }>({ key: '', identity: '', loading: true, error: '' })
+  const [state, setState] = useState<{ key: string; identity: string; data?: T; loading: boolean; error: string; errorCode?: string; lastErrorCode?: string }>({ key: '', identity: '', loading: true, error: '' })
   useEffect(() => {
     loader.current = load
   })
   useEffect(() => {
     let active = true
     const request = loader.current
-    setState(previous => ({ key, identity, data: previous.key === key ? previous.data : undefined, loading: true, error: '' }))
+    setState(previous => ({ key, identity, data: previous.key === key ? previous.data : undefined, loading: true, error: '', lastErrorCode: previous.key === key ? previous.errorCode ?? previous.lastErrorCode : undefined }))
     Promise.resolve().then(() => request(api)).then(data => {
       if (active) setState({ key, identity, data, loading: false, error: '' })
     }).catch(error => {
-      if (active) setState(previous => ({ ...previous, key, identity, loading: false, error: errorMessage(error), errorCode: error instanceof ApiError ? error.code : undefined }))
+      if (active) setState(previous => ({ ...previous, key, identity, loading: false, lastErrorCode: undefined, error: errorMessage(error), errorCode: error instanceof ApiError ? error.code : undefined }))
     })
     // Old screen/date/month responses must never replace the current query.
     return () => { active = false }
@@ -29,6 +29,8 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
     loading: state.identity !== identity || state.loading,
     error: state.identity === identity ? state.error : '',
     errorCode: state.identity === identity ? state.errorCode : undefined,
+    // Keep an existing setup mounted while its successful preparation invalidates queries.
+    lastErrorCode: state.key === key ? state.errorCode ?? state.lastErrorCode : undefined,
     retry: () => setAttempt(previous => previous + 1),
   }
 }

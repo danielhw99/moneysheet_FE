@@ -1,3 +1,4 @@
+import { currentMonth } from '../../utils/date'
 import type { Screen } from '../../types/navigation'
 import { useDataQuery } from '../../data/useDataQuery'
 import QueryStatus from '../../components/QueryStatus'
@@ -21,7 +22,7 @@ export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) =>
         <div className="month-head monthly-head">
           <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
           <strong className="month-picker">{month.slice(0, 4)}년 {Number(month.slice(5))}월</strong>
-          <button className="icon-button flip" aria-label="다음 달" onClick={() => changeMonth(1)}><Icon name="back" /></button>
+          <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
         </div>
         <QueryStatus {...query} />
         <div className="monthly-list">

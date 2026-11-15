@@ -5,7 +5,7 @@ import { won } from '../../utils/money'
 import type { Screen } from '../../types/navigation'
 import Icon from '../../components/Icon'
 import BottomNav from '../../components/BottomNav'
-import { localDateValue } from '../../utils/date'
+import { currentMonth, localDateValue } from '../../utils/date'
 
 export default function Home({ go, month, changeMonth, selectedDate, selectDate }: {
   go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
@@ -20,14 +20,14 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
   const firstWeekday = new Date(year, monthIndex, 1).getDay()
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
   const calendarDays = Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => index - firstWeekday + 1)
-  const today = localDateValue(new Date())
+  const today = summary?.asOfDate ?? localDateValue(new Date())
   return (
     <main className="app-shell">
       <section className="screen-content home-content">
         <div className="month-head">
           <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
           <strong className="month-picker">{year}년 {monthIndex + 1}월</strong>
-          <button className="icon-button flip" aria-label="다음 달" onClick={() => changeMonth(1)}><Icon name="back" /></button>
+          <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
         </div>
         <QueryStatus {...query} />
         <div className="legend">

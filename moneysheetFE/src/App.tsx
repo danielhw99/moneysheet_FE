@@ -10,31 +10,54 @@ import { localDateValue } from './utils/date'
 import { DataProvider, useDataAccess } from './data/DataProvider'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import type { AuthApi } from './features/auth/authApi'
+import Home from './features/home/HomeScreen'
+import Daily from './features/daily/DailyScreen'
+import Monthly from './features/monthly/MonthlyScreen'
+import RecordList from './features/records/RecordList'
+import BottomNav from './components/BottomNav'
+import QueryStatus from './components/QueryStatus'
+import { useDataQuery } from './data/useDataQuery'
+import { currentMonth } from './utils/date'
 
 function Screens() {
-  const [screen, setScreen] = useState<Screen>('basic')
+  const [screen, setScreen] = useState<Screen>('home')
   const [recordDate, setRecordDate] = useState(() => localDateValue(new Date()))
   const [budgetLocks, setBudgetLocks] = useState<Record<string, boolean>>({})
   const { pending } = useDataAccess()
-  const auth = useAuth()
-  const guide = useOnboarding()
-  const month = recordDate.slice(0, 7)
-  const go = (next: Screen) => { if (!pending && next !== 'login' && next !== 'signup') setScreen(next) }
+  const auth = useAuth(), guide = useOnboarding(), month = recordDate.slice(0, 7)
+  const readiness = useDataQuery(`workspace-budget:${month}`, api => api.getBudget(month))
+  const go = (next: Screen, menu = false) => {
+    if (pending || next === 'login' || next === 'signup') return
+    if (menu && (next === 'daily' || next === 'monthly')) setRecordDate(localDateValue(new Date()))
+    setScreen(next)
+  }
   const changeDate = (date: string) => { if (!pending) setRecordDate(date) }
   const changeMonth = (offset: number) => {
+    if (pending) return
     const date = new Date(Number(month.slice(0, 4)), Number(month.slice(5)) - 1 + offset, 1)
     const next = localDateValue(date).slice(0, 7)
-    changeDate(recordDate.slice(0, 7) === next ? recordDate : next + '-01')
+    if (next <= currentMonth()) changeDate(next + '-01')
   }
-  let view: React.ReactNode
-  if (screen === 'basic') view = <BasicBudget key={month} go={go} month={month} locked={budgetLocks[month] ?? true} setLocked={locked => setBudgetLocks(previous => ({ ...previous, [month]: locked }))} />
-  else if (screen === 'my') view = <My go={go} showNavigation={false} />
+  const basic = <BasicBudget key={month} go={go} month={month} locked={budgetLocks[month] ?? true} setLocked={locked => setBudgetLocks(previous => ({ ...previous, [month]: locked }))} />
+  const business = !['my','account','settings'].includes(screen)
+  let view: React.ReactNode, ownNavigation = false
+  if (screen === 'my') { view = <My go={go} />; ownNavigation = true }
   else if (screen === 'account' || screen === 'settings') view = <SimpleSettings type={screen} go={go} />
-  else view = <main className="detail-shell"><h1>자금 현황</h1><p className="notice">내역·메모·자금 현황의 서버 연결은 준비 중이에요. 현재는 예산 관리만 사용할 수 있어요.</p><div className="sub-month"><button disabled={pending} onClick={() => changeMonth(-1)} aria-label="이전 월">◀</button><span>{month}</span><button disabled={pending} onClick={() => changeMonth(1)} aria-label="다음 월">▶</button></div><button className="primary-button" onClick={() => go('basic')}>선택한 월 예산 보기</button></main>
+  else if (business && readiness.lastErrorCode === 'BUDGET_NOT_READY' && month === currentMonth()) view = basic
+  else if (business && (!readiness.data || readiness.error)) view = <main className="detail-shell workspace-status">
+    <h1>자금 현황</h1><div className="sub-month"><button disabled={pending} onClick={() => changeMonth(-1)} aria-label="이전 월">◀</button><span>{month}</span><button disabled={pending || month >= currentMonth()} onClick={() => changeMonth(1)} aria-label="다음 월">▶</button></div>
+    {readiness.errorCode === 'BUDGET_NOT_READY' ? <><p className="notice">이 월에는 완료된 예산이 없어요. 이번 달 예산을 먼저 설정해 주세요.</p><button className="primary-button" onClick={() => { changeDate(localDateValue(new Date())); go('basic') }}>이번 달 예산 설정</button></> : <QueryStatus {...readiness} />}
+  </main>
+  else if (screen === 'basic') view = basic
+  else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />; ownNavigation = true }
+  else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} />; ownNavigation = true }
+  else if (screen === 'monthly') { view = <Monthly go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
+  else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} />
+  const navScreen = screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
   return <div className="prototype"><div className="phone-frame signed-in-frame">
-    <nav className="session-note" aria-label="업무 메뉴"><button disabled={pending} onClick={() => go('basic')}>예산</button> · <button disabled={pending} onClick={() => go('monthly')}>월 선택</button> · <button disabled={pending} onClick={() => go('my')}>MY</button> · <button onClick={guide?.openGuide}>사용 가이드</button></nav>
+    <nav className="session-note" aria-label="업무 메뉴"><button disabled={pending} onClick={() => go('basic')}>예산</button> · <button disabled={pending} onClick={() => go('monthly')}>월 선택</button> · <button disabled={pending} aria-label="계정 메뉴" onClick={() => go('my')}>MY</button> · <button onClick={guide?.openGuide}>사용 가이드</button></nav>
     {auth.notice && <p className="session-note" role="status">{auth.notice}</p>}
-    <div className="workspace-content">{view}</div>
+    <div className={`workspace-content ${ownNavigation ? '' : 'with-workspace-nav'}`}>{view}{!ownNavigation && <BottomNav screen={navScreen} go={go} />}</div>
     <GuideDialog />
   </div></div>
 }

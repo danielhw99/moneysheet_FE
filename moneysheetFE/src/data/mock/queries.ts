@@ -96,5 +96,5 @@ export function homeSummary(budget: MonthlyBudget, records: RecordStore, today: 
     entries.push({ label: '여유비', amount: daily.freeBalance, kind: 'free' })
     days[day] = { entries }
   }
-  return { month, source: 'records', days, expense: monthlySummary(budget, records).totalExpense, freeBalance: futureMonth ? 0 : dailySummary(asOf, budget, records).freeBalance }
+  return { month, asOfDate: asOf, source: 'records', days, expense: monthlySummary(budget, records).totalExpense, freeBalance: futureMonth ? 0 : dailySummary(asOf, budget, records).freeBalance }
 }

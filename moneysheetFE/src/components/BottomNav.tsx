@@ -8,11 +8,11 @@ const navItems: { key: Screen; label: string; icon: IconName }[] = [
   { key: 'my', label: 'MY', icon: 'user' },
 ]
 
-export default function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen) => void }) {
+export default function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen, menu?: boolean) => void }) {
   return (
     <nav className="bottom-nav">
       {navItems.map((item) => (
-        <button key={item.key} className={screen === item.key ? 'nav-item active' : 'nav-item'} onClick={() => go(item.key)}>
+        <button key={item.key} className={screen === item.key ? 'nav-item active' : 'nav-item'} onClick={() => go(item.key, true)}>
           <Icon name={item.icon} size={21} /><span>{item.label}</span>
         </button>
       ))}
