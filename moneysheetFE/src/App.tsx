@@ -44,7 +44,7 @@ function Screens() {
   if (screen === 'my') { view = <My go={go} />; ownNavigation = true }
   else if (screen === 'account' || screen === 'settings') view = <SimpleSettings type={screen} go={go} />
   else if (business && readiness.lastErrorCode === 'BUDGET_NOT_READY' && month === currentMonth()) view = basic
-  else if (business && (!readiness.data || readiness.error)) view = <main className="detail-shell workspace-status">
+  else if (business && (!readiness.data || (readiness.error && screen !== 'basic'))) view = <main className="detail-shell workspace-status">
     <h1>자금 현황</h1><div className="sub-month"><button disabled={pending} onClick={() => changeMonth(-1)} aria-label="이전 월">◀</button><span>{month}</span><button disabled={pending || month >= currentMonth()} onClick={() => changeMonth(1)} aria-label="다음 월">▶</button></div>
     {readiness.errorCode === 'BUDGET_NOT_READY' ? <><p className="notice">이 월에는 완료된 예산이 없어요. 이번 달 예산을 먼저 설정해 주세요.</p><button className="primary-button" onClick={() => { changeDate(localDateValue(new Date())); go('basic') }}>이번 달 예산 설정</button></> : <QueryStatus {...readiness} />}
   </main>

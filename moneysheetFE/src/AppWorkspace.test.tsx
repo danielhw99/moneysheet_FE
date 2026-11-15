@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { httpClient } from './api/httpClient'
-import { financeResponse, profile, today } from './test/financeFixtures'
+import { financeResponse, profile, today, budget } from './test/financeFixtures'
 import type { AuthApi } from './features/auth/authApi'
 const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
@@ -37,4 +37,31 @@ it('resets selected month and cached workspace when the authenticated user chang
  await waitFor(()=>expect(service.me).toHaveBeenCalledTimes(2))
  await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  await waitFor(()=>expect(String(vi.mocked(fetch).mock.calls.filter(([p])=>String(p).includes('/summaries/home')).at(-1)?.[0])).toContain('month='+today.slice(0,7)))
+})
+
+it('preserves unsaved food after a fixed-item save succeeds but budget reloads fail',async()=>{
+ let failReload=false
+ const item={id:'51',name:'Rent',categoryId:'9',amount:10000,paid:0,remaining:10000,complete:false}
+ vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL,options?:RequestInit)=>{
+  const path=new URL(String(url),'http://localhost').pathname
+  if(path.endsWith('/budget')) return failReload
+   ? new Response(JSON.stringify({code:'INTERNAL_ERROR',message:'Reload failed'}),{status:503})
+   : new Response(JSON.stringify({...budget(),items:[item],fixedTotal:10000}))
+  if(path.endsWith('/categories')) return new Response(JSON.stringify({items:[{id:'9',name:'Housing',scope:'fixedBudget',direction:null}]}))
+  if(path.endsWith('/budget-items/51') && options?.method==='PUT') {
+   failReload=true
+   return new Response(JSON.stringify({id:'51',name:'Rent',categoryId:'9',amount:15000}))
+  }
+  return financeResponse(url)
+ }))
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'예산'}))
+ await screen.findByLabelText(/주중/);await userEvent.click(screen.getByRole('button',{name:'예산 잠금 해제'}))
+ fireEvent.change(screen.getByLabelText(/주중/),{target:{value:'12345'}})
+ await userEvent.click(screen.getByRole('button',{name:/Rent/}))
+ const amount=screen.getByLabelText(/예산 금액/);await userEvent.clear(amount);await userEvent.type(amount,'15000')
+ await userEvent.click(screen.getByRole('button',{name:'저장'}))
+ await screen.findByText('Reload failed')
+ const food=screen.getByLabelText(/주중/) as HTMLInputElement
+ expect(food.value.replace(/,/g,'')).toBe('12345');expect(food).toBeDisabled()
 })
