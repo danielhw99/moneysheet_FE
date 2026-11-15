@@ -131,7 +131,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
       else requireMonth(query.month!)
       return clone(recordsSummary(query, records))
     },
-    async getRecord(kind, id) { return clone(findRecord(kind, id)) },
+    async getRecord(kind, month, id) { return clone(findRecord(kind, id)) },
     async createRecord(request) {
       validateWrite(request)
       const record: MoneyRecord = { ...clone(request.input), id: createId() }
@@ -145,15 +145,15 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
       records[request.kind] = records[request.kind].map(item => item.id === id ? record : item)
       return clone(record)
     },
-    async deleteRecord(kind, id) {
+    async deleteRecord(kind, month, id) {
       findRecord(kind, id)
       records[kind] = records[kind].filter(item => item.id !== id)
     },
-    async completeMemo(id, completedOn) {
+    async completeMemo(month, id, completedOn) {
       if (!completedOn || !validDate(completedOn)) fail('완료일을 확인해 주세요.')
       return saveMemo(id, completedOn)
     },
-    async cancelMemoCompletion(id) { return saveMemo(id, null) },
+    async cancelMemoCompletion(month, id) { return saveMemo(id, null) },
     async getDaily(date) {
       if (!validDate(date)) fail('날짜를 확인해 주세요.')
       return clone(dailySummary(date, getBudget(date.slice(0, 7)), records))

@@ -45,7 +45,7 @@ export default function RecordList({ kind, go, date, changeDate }: {
   }
   const toggleMemo = async (item: Readonly<MoneyRecord>) => {
     setActionError('')
-    try { await mutate(api => item.completedOn === date ? api.cancelMemoCompletion(item.id) : api.completeMemo(item.id, date)) }
+    try { await mutate(api => item.completedOn === date ? api.cancelMemoCompletion(month, item.id) : api.completeMemo(month, item.id, date)) }
     catch (error) { setActionError(errorMessage(error)) }
   }
   return <main className="detail-shell">
@@ -57,7 +57,7 @@ export default function RecordList({ kind, go, date, changeDate }: {
         await mutate(api => editing === 'new' ? api.createRecord({ kind, managementMonth: month, input }) : api.updateRecord(editing.id, { kind, managementMonth: month, input }))
         setEditing(null)
       }}
-      onDelete={async () => { if (editing !== 'new') await mutate(api => api.deleteRecord(kind, editing.id)); setEditing(null) }} onCancel={() => setEditing(null)} /> : <>
+      onDelete={async () => { if (editing !== 'new') await mutate(api => api.deleteRecord(kind, month, editing.id)); setEditing(null) }} onCancel={() => setEditing(null)} /> : <>
       <div className="date-strip">
         <button type="button" disabled={pending} aria-label={monthly ? '이전 달' : '이전 날짜'} onClick={() => moveDate(-1)}><Icon name="back" size={17} /></button>
         <strong>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', monthly ? { year: 'numeric', month: 'long' } : { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>

@@ -67,7 +67,7 @@ export function recordsSummary(query: RecordQuery, records: RecordStore): Record
     ? query.memoStatus === 'pending' ? pending : records.memos.filter(item => query.date ? item.completedOn === query.date : item.completedOn?.slice(0, 7) === month)
     : candidates.filter(item => !query.date || item.date === query.date)
   return {
-    rows,
+    rows, nextCursor: null,
     total: rows.reduce((sum, item) => sum + item.amount, 0),
     expenseTotal: rows.filter(item => item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0),
     incomeTotal: rows.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0),

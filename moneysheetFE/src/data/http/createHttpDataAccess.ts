@@ -1,5 +1,6 @@
 import { ApiError, httpClient, type HttpClient } from '../../api/httpClient'
 import { createAuthApi } from '../../features/auth/authApi'
+import { createRecordApi } from '../recordApi'
 import { createBudgetApi } from '../budgetApi'
 import type { MoneySheetDataAccess } from '../MoneySheetDataAccess'
 
@@ -8,8 +9,7 @@ export function createHttpDataAccess(client: HttpClient = httpClient): MoneyShee
   return {
     ...createBudgetApi(client),
     getProfile: () => createAuthApi(client).me(),
-    getRecords: unavailable, getRecord: unavailable, createRecord: unavailable,
-    updateRecord: unavailable, deleteRecord: unavailable, completeMemo: unavailable,
-    cancelMemoCompletion: unavailable, getDaily: unavailable, getMonthly: unavailable, getHome: unavailable,
+    ...createRecordApi(client),
+    getDaily: unavailable, getMonthly: unavailable, getHome: unavailable,
   }
 }
