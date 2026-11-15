@@ -5,7 +5,7 @@ import { won } from '../../utils/money'
 import type { Screen } from '../../types/navigation'
 import Icon from '../../components/Icon'
 import BottomNav from '../../components/BottomNav'
-import { localDateValue } from '../../utils/date'
+import { currentMonth, localDateValue } from '../../utils/date'
 
 export default function Home({ go, month, changeMonth, selectedDate, selectDate }: {
   go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
@@ -27,7 +27,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
         <div className="month-head">
           <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
           <strong className="month-picker">{year}년 {monthIndex + 1}월</strong>
-          <button className="icon-button flip" aria-label="다음 달" onClick={() => changeMonth(1)}><Icon name="back" /></button>
+          <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
         </div>
         <QueryStatus {...query} />
         <div className="legend">
@@ -50,7 +50,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
         </div>
         {summary && <button className="month-summary" onClick={() => go('monthly')}>
           <span><small>{monthIndex + 1}월 총지출</small><strong>{`${won(summary.expense)}원`}</strong></span>
-          <span className="summary-free"><small>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
+          <span className="summary-free"><small title={`${summary.asOfDate} 기준`}>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
           <Icon name="chevron" />
         </button>}
       </section>

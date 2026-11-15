@@ -86,3 +86,16 @@ CodeRabbit 보완:
 - 저장이 차단되면 안내 상태는 현재 mount 메모리에만 유지. 계정은 분리하며 새 기기/브라우저 동기화는 제공하지 않음.
 - API에 가입 일시/신규 사용자 플래그가 없어 브라우저의 첫 미설정 예산 준비를 기준으로 안내. 전달 복사가 확인되면 신규 안내를 강제하지 않음. copiedFromMonth=null을 복사 안 됨의 확정 근거로 사용하지 않음.
 - 저장 직후 핵심 안내와 업무 메뉴의 사용 가이드 다시 보기를 제공. 실제 Daily/Home/Monthly/기록 API 미연동은 기존 FE #20 후속이며 이번 변경으로 완료되지 않음.
+
+## FE #20 — 실제 기록·요약 연결
+
+- 운영 DataProvider는 createHttpDataAccess만 사용합니다. 인증·예산·카테고리에 이어 recordApi/summaryApi가 실제 BE API에 연결됩니다. mock 계산·fixtures는 테스트용이며 오류 시 mock으로 대체하지 않습니다.
+- records detail/delete/completion은 관리 월을 명시적으로 받습니다. transactions/memos/fixed-payments/cash-flows DTO를 MoneyRecord로 변환하고, 서버 ID는 int64 문자열 그대로 유지합니다. 쓰기 본문에는 도메인별 필드만 보냅니다.
+- 메모 completedOn은 일반 저장 본문에서 제외합니다. 완료/취소는 Daily·목록의 체크 동작으로 별도 completion endpoint를 호출합니다. 저장과 완료를 묶어 부분 실패 시 신규 기록을 재생성하지 않습니다.
+- 금액은1..9,999,999,999원, 관리 월 날짜, 분 단위 시각과 소속 ID를 검증합니다. 응답 날짜·금액·ID·필수 속성·메모 상태가 계약과 다르면 PROTOCOL 오류를 보여주며 임의0원으로 바꾸지 않습니다.
+- Daily/Main/Monthly 수치·지급 잔액은 서버 값입니다. Home 날짜 배열만 기존 화면용 날짜 맵으로 변환하며 asOfDate를 유지합니다. 금액/건수 달력 항목은 구분하고 미래 free 항목을 만들어 넣지 않습니다.
+- getRecords의 nextCursor는 더 보기에 사용합니다. 전체 합계는 서버 필터 전체 값이고 로드한 rows로 재계산하지 않습니다. 동일 ID 중복 방지, 날짜/월/메모 탭/저장 revision 변경 시 이전 페이지 응답 무시, 읽기 실패 시 행 유지 및 명시적 재시도를 제공합니다.
+- 쓰기 성공만 기존 DataProvider revision을 갱신합니다. 실패 시 편집 입력 유지·자동 재전송 없음. 세션이 바뀌면 DataProvider 전체를 새로 만들어 이전 계정의 화면·날짜·캐시를 폐기합니다.
+- 홈·Daily·Monthly·기록 화면을 복원합니다. 현재 월 BUDGET_NOT_READY면 기존 자동 예산 준비 화면으로 진입하고, 준비/카테고리 저장 후 재조회 중에도 편집 화면을 유지합니다. 지난/미래 월을 자동 준비하지 않습니다.
+- 실제 비교 잔액은 날짜별 화면 상태이며 서버 계산에 보내지 않습니다. Daily 메뉴는 오늘, Monthly 메뉴는 이번 달, 달력 날짜 선택은 선택일 Daily로 이동합니다.
+- 개발 프록시는 기본 localhost8080입니다. 다른 테스트 BE를 쓰려면 서버 실행 환경변수 MONEYSHEET_API_TARGET=http://127.0.0.1:18080을 설정할 수 있습니다. 클라이언트 API 경로는 계속 동일 출처 /api/v1이며 production 호스팅 설정을 바꾸지 않습니다.

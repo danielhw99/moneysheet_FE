@@ -20,7 +20,7 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
   const summary = query.data
   const toggleMemo = async (id: string) => {
     setActionError('')
-    try { await mutate(api => api.completeMemo(id, date)) } catch (error) { setActionError(errorMessage(error)) }
+    try { await mutate(api => api.completeMemo(date.slice(0, 7), id, date)) } catch (error) { setActionError(errorMessage(error)) }
   }
   if (!summary) return <main className="app-shell"><section className="screen-content"><Header title="Daily" onBack={() => go('home')} /><QueryStatus {...query} /></section><BottomNav screen="daily" go={go} /></main>
   const { mainBalance, freeBalance, transactions: dayTransactions, activeMemos, payments: dayPayments } = summary

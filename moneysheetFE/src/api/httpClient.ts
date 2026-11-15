@@ -85,7 +85,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
       send<T>(path, 'GET', undefined, undefined, options.notifyUnauthorized ?? true),
     post: <T,>(path: string, body?: unknown) => write<T>('POST', path, body),
     put: <T,>(path: string, body?: unknown) => write<T>('PUT', path, body),
-    delete: (path: string) => write<void>('DELETE', path),
+    delete: <T = void,>(path: string) => write<T>('DELETE', path),
     invalidateCsrf,
     onUnauthorized(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   }

@@ -388,3 +388,13 @@
 
 .setup-guide > div { flex: 1; min-width: 0; }
 .setup-guide .text-button, .guide-heading .text-button { width: auto; flex: 0 0 auto; white-space: nowrap; }
+
+.workspace-content.with-workspace-nav { padding-bottom: 70px; }
+.workspace-status { padding: 16px; overflow-y: auto; }
+
+.records-detail { display: flex; flex-direction: column; }
+.records-detail > .topbar, .records-detail > .date-strip, .records-detail > .segment { flex-shrink: 0; }
+.records-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.records-detail .bottom-action { position: static; margin: 8px 16px 16px; width: calc(100% - 32px); flex-shrink: 0; }
+.records-detail .transaction-totals, .records-detail .list-total { flex-shrink: 0; }
+.records-detail .load-more { display: block; margin: 12px auto; min-height: 44px; }

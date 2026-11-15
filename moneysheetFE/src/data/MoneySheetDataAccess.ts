@@ -19,11 +19,12 @@ export type MonthlySummary = Readonly<{
   month: string; income: number; extra: number; fixedBudget: number; foodBudget: number;
   basicTotal: number; totalExpense: number; net: number;
 }>
-export type RecordQuery = { kind: ListKind; memoStatus?: 'pending' | 'completed' } & ({ date: string; month?: never } | { month: string; date?: never })
-export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number; total: number }>
+export type RecordQuery = { kind: ListKind; memoStatus?: 'pending' | 'completed'; cursor?: string; limit?: number } & ({ date: string; month?: never } | { month: string; date?: never })
+export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; nextCursor: string | null; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number; total: number }>
 export type HomeDayEntry = Readonly<{ kind: 'fixed' | 'transaction' | 'free' | 'memo'; label: string } & ({ amount: number; count?: never } | { count: number; amount?: never })>
 export type HomeSummary = Readonly<{
   month: string;
+  asOfDate: string;
   source: 'records';
   days: Readonly<Record<number, Readonly<{ entries: readonly HomeDayEntry[] }>>>;
   expense: number; freeBalance: number;
@@ -42,12 +43,12 @@ export interface MoneySheetDataAccess {
   getCategories(query?: CategoryQuery): Promise<readonly Readonly<Category>[]>
   createCategory(input: CategoryInput): Promise<Readonly<Category>>
   getRecords(query: RecordQuery): Promise<RecordsSummary>
-  getRecord(kind: ListKind, id: string): Promise<Readonly<MoneyRecord>>
+  getRecord(kind: ListKind, month: string, id: string): Promise<Readonly<MoneyRecord>>
   createRecord(request: RecordWrite): Promise<Readonly<MoneyRecord>>
   updateRecord(id: string, request: RecordWrite): Promise<Readonly<MoneyRecord>>
-  deleteRecord(kind: ListKind, id: string): Promise<void>
-  completeMemo(id: string, completedOn: string): Promise<Readonly<MoneyRecord>>
-  cancelMemoCompletion(id: string): Promise<Readonly<MoneyRecord>>
+  deleteRecord(kind: ListKind, month: string, id: string): Promise<void>
+  completeMemo(month: string, id: string, completedOn: string): Promise<Readonly<MoneyRecord>>
+  cancelMemoCompletion(month: string, id: string): Promise<Readonly<MoneyRecord>>
   getDaily(date: string): Promise<DailySummary>
   getMonthly(month: string): Promise<MonthlySummary>
   getHome(month: string): Promise<HomeSummary>
