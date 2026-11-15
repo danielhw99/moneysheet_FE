@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import App from './App'
@@ -26,4 +26,15 @@ it('connects Monthly income/expense screens and retains actual authenticated pro
  await userEvent.click(screen.getByRole('button',{name:'뒤로가기'}))
  await userEvent.click(await screen.findByRole('button',{name:'MY'}))
  expect(await screen.findByText(profile.email)).toBeInTheDocument()
+})
+
+it('resets selected month and cached workspace when the authenticated user changes',async()=>{
+ const service=auth();vi.mocked(service.me).mockResolvedValueOnce(profile).mockResolvedValueOnce({...profile,id:'2'})
+ render(<App authApi={service}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
+ await waitFor(()=>expect(String(vi.mocked(fetch).mock.calls.filter(([p])=>String(p).includes('/summaries/home')).at(-1)?.[0])).not.toContain('month='+today.slice(0,7)))
+ fireEvent(window,new Event('focus'))
+ await waitFor(()=>expect(service.me).toHaveBeenCalledTimes(2))
+ await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await waitFor(()=>expect(String(vi.mocked(fetch).mock.calls.filter(([p])=>String(p).includes('/summaries/home')).at(-1)?.[0])).toContain('month='+today.slice(0,7)))
 })

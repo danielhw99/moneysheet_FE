@@ -24,6 +24,7 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
   const [error, setError] = useState('')
   const isMemo = kind === 'memos'
   const isFixed = kind === 'fixed-pay'
+  const amountLabel = isFixed ? '이번 지급액' : isMemo ? direction === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? direction === 'income' ? '입금 금액' : '지출 금액' : '금액'
   const selectedBudget = budget?.items.find(value => value.id === budgetItemId)
   const managementMonth = initialDate.slice(0, 7)
   const submit = async (event: React.FormEvent) => {
@@ -69,11 +70,11 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
       <div className="field"><span>시간</span><TimePicker value={time} onChange={setTime} disabled={pending || refreshing} /></div>
     </div>
     {isFixed && <>
-      <label className="field"><span>고정지출 예산 항목</span><select value={budgetItemId} onChange={event => setBudgetItemId(event.target.value)}><option value="">항목 선택</option>{(budget?.items ?? []).map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
-      {selectedBudget && <div className="read-only-pair"><span>항목 예산<b>{won(selectedBudget.amount)}원</b></span><span>누적 지급<b>{won(selectedBudget.paid)}원</b></span></div>}
+      <label className="field"><span>고정지출 예산 항목</span><select aria-label="고정지출 예산 항목" value={budgetItemId} onChange={event => setBudgetItemId(event.target.value)}><option value="">항목 선택</option>{(budget?.items ?? []).map(value => <option key={value.id} value={value.id}>{value.name}</option>)}</select></label>
+      {selectedBudget && <div className="read-only-pair"><span>항목 예산<b>{won(selectedBudget.amount)}원</b></span><span>월 누적 지급<b>{won(selectedBudget.paid)}원</b></span></div>}
     </>}
     {kind === 'transactions' && <CategoryPicker key={direction} value={categoryId} onChange={setCategoryId} scope="mainTransaction" direction={direction} />}
-    <label className="field"><span>{isFixed ? '이번 지급액' : isMemo ? direction === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? direction === 'income' ? '입금 금액' : '지출 금액' : '금액'}</span><div className="money-input"><MoneyInput value={amount} onValueChange={setAmount} required /><b>원</b></div></label>
+    <label className="field"><span>{amountLabel}</span><div className="money-input"><MoneyInput aria-label={amountLabel} value={amount} onValueChange={setAmount} required /><b>원</b></div></label>
     {!isFixed && <label className="field"><span>내용</span><input value={title} onChange={event => setTitle(event.target.value)} required /></label>}
     {isMemo && <p className="form-help">완료·취소는 메모 목록의 체크박스에서 처리해 주세요.{item?.completedOn ? ` 완료일: ${item.completedOn}` : ''}</p>}
     {error && <p className="field-error" role="alert">{error}</p>}

@@ -20,7 +20,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
   const firstWeekday = new Date(year, monthIndex, 1).getDay()
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
   const calendarDays = Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => index - firstWeekday + 1)
-  const today = summary?.asOfDate ?? localDateValue(new Date())
+  const today = localDateValue(new Date())
   return (
     <main className="app-shell">
       <section className="screen-content home-content">
@@ -50,7 +50,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
         </div>
         {summary && <button className="month-summary" onClick={() => go('monthly')}>
           <span><small>{monthIndex + 1}월 총지출</small><strong>{`${won(summary.expense)}원`}</strong></span>
-          <span className="summary-free"><small>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
+          <span className="summary-free"><small title={`${summary.asOfDate} 기준`}>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
           <Icon name="chevron" />
         </button>}
       </section>
