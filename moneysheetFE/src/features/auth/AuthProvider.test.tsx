@@ -10,7 +10,7 @@ const profile = { id: '1', email: 'user@example.com', nickname: 'User' }
 function fakeApi(): AuthApi {
   return { me: vi.fn().mockRejectedValue(new ApiError(401, 'UNAUTHENTICATED', 'login')),
     signup: vi.fn().mockResolvedValue(profile), login: vi.fn().mockResolvedValue(profile),
-    logout: vi.fn().mockResolvedValue(undefined), resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
+    logout: vi.fn().mockResolvedValue(undefined), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
 }
 function Probe({ signup = false }: { signup?: boolean }) {
   const auth = useAuth()

@@ -18,6 +18,9 @@ export function authErrorMessage(error: unknown): string {
 type AuthState = {
   profile: UserProfile | null; sessionKey: string; validationRevision: number; initializing: boolean; bootstrapError: string;
   notice: string; busy: boolean; retry: () => void;
+  updateProfile: (input: { nickname: string }) => Promise<void>;
+  changePassword: (input: { currentPassword: string; newPassword: string }) => Promise<void>;
+  deleteAccount: (input: { currentPassword: string }) => Promise<void>;
   login: (input: LoginInput) => Promise<void>; signup: (input: SignupInput) => Promise<void>; logout: () => Promise<void>;
 }
 const Context = createContext<AuthState | null>(null)
@@ -101,6 +104,12 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
     validationRevision, initializing, bootstrapError, notice, busy, retry: () => { void check(true) },
     login: input => run(() => api.login(input), value => accept(value, true)),
     signup: input => run(() => api.signup(input), () => setNotice('회원가입이 완료됐어요. 로그인해 주세요.')),
+    updateProfile: input => run(() => api.updateProfile(input), value => accept(value)),
+    changePassword: input => run(() => api.changePassword(input), () => { api.resetCsrf(); clear('비밀번호가 변경됐어요. 다시 로그인해 주세요.') }),
+    deleteAccount: input => run(() => api.deleteAccount(input), () => {
+      if (current.current) try { localStorage.removeItem(`moneysheet:onboarding:v1:${current.current.id}`) } catch { /* In-memory session still ends. */ }
+      api.resetCsrf(); clear('회원 탈퇴가 완료됐어요.')
+    }),
     logout: async () => {
       try { await run(() => api.logout(), () => clear()) } catch (error) {
         if (unauthorized(error)) clear('로그인이 만료됐어요. 다시 로그인해 주세요.')

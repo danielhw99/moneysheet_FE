@@ -20,6 +20,9 @@ export function createAuthApi(client: HttpClient = httpClient) {
       client.invalidateCsrf()
       return result
     },
+    async updateProfile(input: { nickname: string }) { return profile(await client.patch('/me', input)) },
+    async changePassword(input: { currentPassword: string; newPassword: string }) { await client.put<void>('/me/password', input); client.invalidateCsrf() },
+    async deleteAccount(input: { currentPassword: string }) { await client.post<void>('/me/deletion', input); client.invalidateCsrf() },
     async logout() { await client.post<void>('/auth/logout'); client.invalidateCsrf() },
     onUnauthorized: client.onUnauthorized,
     resetCsrf: client.invalidateCsrf,

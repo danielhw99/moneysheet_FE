@@ -5,7 +5,7 @@ import App from './App'
 import { httpClient } from './api/httpClient'
 import { financeResponse, profile, today, budget } from './test/financeFixtures'
 import type { AuthApi } from './features/auth/authApi'
-const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
+const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
 it('restores the calendar, selected Daily and record input using server summary data',async()=>{

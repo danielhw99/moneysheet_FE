@@ -18,3 +18,9 @@ it('rejects incompatible profile responses instead of falling back to mock login
   const auth = createAuthApi(createHttpClient({ fetcher: vi.fn().mockResolvedValue(json({ ...profile, id: 1 })) }))
   await expect(auth.me()).rejects.toMatchObject({ code: 'PROTOCOL' })
 })
+
+it('sends account methods and bodies with CSRF, never trimming passwords',async()=>{
+ const fetcher=vi.fn().mockImplementation((url:string,options:RequestInit)=>Promise.resolve(url.endsWith('/csrf')?new Response(JSON.stringify({token:'token',headerName:'X-CSRF-TOKEN'})):options.method==='PATCH'?new Response(JSON.stringify({...profile,nickname:'New'})):new Response(null,{status:204})))
+ const a=createAuthApi(createHttpClient({fetcher}));expect(await a.updateProfile({nickname:'New'})).toMatchObject({nickname:'New'});await a.changePassword({currentPassword:' current ',newPassword:' a unique new password! '});await a.deleteAccount({currentPassword:' current '})
+ expect(fetcher.mock.calls.filter(([url])=>!url.endsWith('/csrf')).map(([url,options])=>[url,options.method,JSON.parse(options.body)])).toEqual([['/api/v1/me','PATCH',{nickname:'New'}],['/api/v1/me/password','PUT',{currentPassword:' current ',newPassword:' a unique new password! '}],['/api/v1/me/deletion','POST',{currentPassword:' current '}]])
+})
