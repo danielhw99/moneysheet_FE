@@ -398,3 +398,9 @@
 .records-detail .bottom-action { position: static; margin: 8px 16px 16px; width: calc(100% - 32px); flex-shrink: 0; }
 .records-detail .transaction-totals, .records-detail .list-total { flex-shrink: 0; }
 .records-detail .load-more { display: block; margin: 12px auto; min-height: 44px; }
+
+.account-dialog .field { margin-top: 12px; }
+.account-dialog h2 { font-size: 18px; font-weight: 700; }
+.account-confirm { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-top: 16px; }
+.account-confirm input { flex: 0 0 auto; margin-top: 3px; }
+.account-delete { color: #b42318; }

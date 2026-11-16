@@ -68,7 +68,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
     return work
   }
 
-  async function write<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  async function write<T>(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: unknown): Promise<T> {
     const current = generation
     const value = await csrf()
     if (generation !== current) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요. 다시 시도해 주세요.')
@@ -84,6 +84,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
     get: <T,>(path: string, options: { notifyUnauthorized?: boolean } = {}) =>
       send<T>(path, 'GET', undefined, undefined, options.notifyUnauthorized ?? true),
     post: <T,>(path: string, body?: unknown) => write<T>('POST', path, body),
+    patch: <T,>(path: string, body?: unknown) => write<T>('PATCH', path, body),
     put: <T,>(path: string, body?: unknown) => write<T>('PUT', path, body),
     delete: <T = void,>(path: string) => write<T>('DELETE', path),
     invalidateCsrf,
