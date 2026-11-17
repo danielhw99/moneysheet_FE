@@ -28,7 +28,7 @@ function Screens() {
   const readiness = useDataQuery(`workspace-budget:${month}`, api => api.getBudget(month))
   const go = (next: Screen, menu = false) => {
     if (pending || next === 'login' || next === 'signup') return
-    if (menu && (next === 'daily' || next === 'monthly')) setRecordDate(localDateValue(new Date()))
+    if (menu && next === 'daily') setRecordDate(localDateValue(new Date()))
     setScreen(next)
   }
   const changeDate = (date: string) => { if (!pending) setRecordDate(date) }
