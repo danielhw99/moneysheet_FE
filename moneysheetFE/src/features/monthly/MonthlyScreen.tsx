@@ -26,11 +26,11 @@ export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) =>
         </div>
         <QueryStatus {...query} />
         <div className="monthly-list">
-          {data && monthlySections.map((item) => (
+          {monthlySections.map((item) => (
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>
               <span className={`section-icon ${item.title === '수입' ? 'income' : item.title === '그 외 지출' ? 'extra' : ''}`}><Icon name={item.title === '기본지출' ? 'wallet' : item.title === '수입' ? 'plus' : 'monthly'} size={19} /></span>
               <span className="monthly-copy"><b>{item.title}</b><small>{item.desc}</small></span>
-              <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{item.target === 'basic' ? `${won(basicTotal)}원` : `${won(item.target === 'income' ? income : extra)}원`}</strong><Icon name="chevron" size={17} />
+              <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{query.loading ? '집계 중' : query.error ? '집계 실패' : data ? `${won(item.target === 'basic' ? basicTotal : item.target === 'income' ? income : extra)}원` : '—'}</strong><Icon name="chevron" size={17} />
             </button>
           ))}
         </div>

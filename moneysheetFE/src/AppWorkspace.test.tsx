@@ -9,6 +9,20 @@ import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
+it('provides app settings outside MY and reopens the guide from its dropdown',async()=>{
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
+ HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ expect(screen.queryByRole('navigation',{name:'업무 메뉴'})).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
+ await userEvent.click(screen.getByRole('button',{name:'사용 가이드'}))
+ expect(await screen.findByRole('dialog',{name:'moneysheet 사용 가이드'})).toBeVisible()
+ await userEvent.click(screen.getByRole('button',{name:'사용 가이드 닫기'}))
+ await userEvent.click(screen.getByRole('button',{name:'MY'}))
+ expect(screen.queryByRole('button',{name:'앱 설정'})).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'계정관리'}))
+ expect(screen.getByRole('button',{name:'앱 설정'})).toBeInTheDocument()
+})
 it('keeps the viewed month when entering Monthly and returns to today from the Daily menu',async()=>{
  const last=localDateValue(new Date(Number(today.slice(0,4)),Number(today.slice(5,7))-1,0))
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
@@ -81,7 +95,8 @@ it('preserves unsaved food after a fixed-item save succeeds but budget reloads f
   return financeResponse(url)
  }))
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
- await userEvent.click(screen.getByRole('button',{name:'예산'}))
+ await userEvent.click(screen.getByRole('button',{name:'Monthly'}))
+ await userEvent.click(await screen.findByRole('button',{name:/기본지출/}))
  await screen.findByLabelText(/주중/);await userEvent.click(screen.getByRole('button',{name:'예산 잠금 해제'}))
  fireEvent.change(screen.getByLabelText(/주중/),{target:{value:'12345'}})
  await userEvent.click(screen.getByRole('button',{name:/Rent/}))

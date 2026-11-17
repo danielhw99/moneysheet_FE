@@ -18,6 +18,18 @@ beforeEach(() => vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => 
   return new Response(JSON.stringify({ code: 'BUDGET_NOT_READY', message: '예산 설정 필요' }), { status: 409 })
 })))
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+it('keeps app settings accessible before the first budget is configured', async () => {
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
+ HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
+ render(<App authApi={api()} />)
+ await screen.findByRole('button',{name:'예산 저장'})
+ expect(screen.queryByRole('navigation',{name:'업무 메뉴'})).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
+ await userEvent.click(screen.getByRole('button',{name:'사용 가이드'}))
+ expect(await screen.findByRole('dialog',{name:'moneysheet 사용 가이드'})).toBeVisible()
+ await userEvent.click(screen.getByRole('button',{name:'사용 가이드 닫기'}))
+ expect(screen.getByRole('button',{name:'예산 저장'})).toBeInTheDocument()
+})
 it('resets navigation and date state on user changes, without showing a demo profile', async () => {
   vi.stubEnv('DEV', true)
   const auth = api(); vi.mocked(auth.me).mockResolvedValueOnce(first).mockResolvedValueOnce(second)
@@ -26,7 +38,7 @@ it('resets navigation and date state on user changes, without showing a demo pro
   await userEvent.click(screen.getByRole('button', { name: 'MY' }))
   expect(await screen.findByText(first.email)).toBeInTheDocument()
   fireEvent(window, new Event('focus'))
-  await screen.findByRole('button', { name: '예산' })
+  await waitFor(() => expect(auth.me).toHaveBeenCalledTimes(2))
   await userEvent.click(screen.getByRole('button', { name: 'MY' }))
   expect(await screen.findByText(second.email)).toBeInTheDocument()
   expect(screen.queryByText(first.email)).not.toBeInTheDocument()
