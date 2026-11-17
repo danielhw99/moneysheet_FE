@@ -17,13 +17,15 @@ describe('ordinary fixed budgets and monthly free balance', () => {
     expect(dailySummary('2026-11-01', budget, records).freeBalance).toBe(11000)
     expect(dailySummary('2026-10-01', { ...budget, month: '2026-10' }, records).freeBalance).toBe(11000)
   })
-  it('keeps Main deposits and active memos out of free balance', () => {
+  it('carries Daily income in free balance without duplicating it in Main', () => {
     const records = empty()
     records.transactions.push({ id: 'deposit', date: '2026-11-01', time: '12:00', title: 'deposit', amount: 5000, direction: 'income', categoryId: null, completedOn: null })
     records.memos.push({ id: 'memo', date: '2026-11-01', time: '12:00', title: 'temporary', amount: 2000, direction: 'expense', categoryId: null, completedOn: null })
+    records.income.push({ id: 'monthly', date: '2026-11-01', time: '12:00', title: 'salary', amount: 7000, direction: 'income', categoryId: null, completedOn: null })
     const day = dailySummary('2026-11-01', budget, records)
-    expect(day.freeBalance).toBe(11000)
-    expect(day.mainBalance).toBe(day.freeBalance + day.remainingFood + 5000 - 2000)
+    expect(day.freeBalance).toBe(16000)
+    expect(day.mainBalance).toBe(day.freeBalance + day.remainingFood - 2000)
+    expect(dailySummary('2026-11-02', budget, records)).toMatchObject({ carryoverFreeBalance: 16000, availableBeforeSpending: 27000, freeBalance: 27000 })
   })
   it('never auto-pays an old allowance ID and counts only recorded payments', () => {
     const records = empty()

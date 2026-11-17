@@ -21,17 +21,18 @@ export function dailySummary(date: string, budget: MonthlyBudget, records: Recor
   const cumulative = records.transactions.filter(item => item.date.slice(0, 7) === month && item.date <= date)
   const activeMemos = records.memos.filter(item => memoActive(item, date))
   const previousSpending = cumulative.filter(item => item.date < date && item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0)
+  const previousIncome = cumulative.filter(item => item.date < date && item.direction === 'income').reduce((sum, item) => sum + item.amount, 0)
   const expenseTotal = transactions.filter(item => item.direction === 'expense').reduce((sum, item) => sum + item.amount, 0)
-  const carryoverFreeBalance = foodThrough(month, day - 1, budget.food) - previousSpending
+  const incomeTotal = transactions.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0)
+  const carryoverFreeBalance = foodThrough(month, day - 1, budget.food) - previousSpending + previousIncome
   const availableBeforeSpending = carryoverFreeBalance + foodForDate(date, budget.food)
-  const freeBalance = availableBeforeSpending - expenseTotal
+  const freeBalance = availableBeforeSpending - expenseTotal + incomeTotal
   const roundStart = day >= 22 ? 22 : day >= 12 ? 12 : 1
   const roundEnd = day >= 22 ? daysInMonth(month) : day >= 12 ? 21 : 11
   const allocatedBeforeRound = foodThrough(month, roundStart - 1, budget.food)
   const roundBudget = foodThrough(month, roundEnd, budget.food) - allocatedBeforeRound
   const allocatedInRound = foodThrough(month, day, budget.food) - allocatedBeforeRound
   const remainingFood = roundBudget - allocatedInRound
-  const income = cumulative.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0)
   const memoAdjustment = activeMemos.reduce((sum, item) => sum + recordValue(item), 0)
   const payments = records['fixed-pay'].filter(record => record.date === date).flatMap(record => {
     const item = budget.fixed.find(item => item.id === record.budgetItemId)
@@ -41,11 +42,11 @@ export function dailySummary(date: string, budget: MonthlyBudget, records: Recor
   })
   return {
     date, transactions, activeMemos, payments,
-    mainBalance: freeBalance + remainingFood + income + memoAdjustment,
+    mainBalance: freeBalance + remainingFood + memoAdjustment,
     freeBalance, carryoverFreeBalance, availableBeforeSpending, remainingFood,
     foodBudget: foodForDate(date, budget.food),
     expenseTotal,
-    incomeTotal: transactions.filter(item => item.direction === 'income').reduce((sum, item) => sum + item.amount, 0),
+    incomeTotal,
   }
 }
 
