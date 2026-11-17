@@ -12,7 +12,7 @@ function api():AuthApi{return {me:vi.fn().mockResolvedValue(profile),login:vi.fn
 function Probe(){const a=useAuth();if(a.initializing)return null;if(!a.profile)return <p>로그인 필요 {a.notice}</p>;return <><p>현재 사용자: {a.profile.nickname}</p><Settings type="account" go={()=>{}}/></>}
 const start=(a:AuthApi)=>render(<AuthProvider api={a}><Probe/></AuthProvider>)
 it('updates nickname without logging out or letting an old profile overwrite it',async()=>{
- const a=api();start(a);const field=await screen.findByLabelText('닉네임');let resolve!:(v:typeof profile)=>void;vi.mocked(a.me).mockReturnValueOnce(new Promise(r=>{resolve=r}));act(()=>window.dispatchEvent(new Event('focus')))
+ const a=api();start(a);const field=await screen.findByLabelText('닉네임');await waitFor(()=>expect(field).toHaveValue('Nick'));let resolve!:(v:typeof profile)=>void;vi.mocked(a.me).mockReturnValueOnce(new Promise(r=>{resolve=r}));act(()=>window.dispatchEvent(new Event('focus')))
  fireEvent.change(field,{target:{value:' New '}});fireEvent.click(screen.getByRole('button',{name:'닉네임 저장'}));expect(await screen.findByText('현재 사용자: New')).toBeInTheDocument();await act(async()=>resolve(profile));expect(screen.getByText('현재 사용자: New')).toBeInTheDocument();expect(a.updateProfile).toHaveBeenCalledWith({nickname:'New'})
 })
 it('keeps password inputs and session on incorrect current password',async()=>{

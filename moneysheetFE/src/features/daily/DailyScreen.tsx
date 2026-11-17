@@ -85,14 +85,16 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
  const [amount, setAmount] = useState(initial.actualBalance === null ? '' : String(initial.actualBalance))
  const [locked, setLocked] = useState(initial.locked)
  const [dirty, setDirty] = useState(false)
+ const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
-  if (dirty || blocked || pending) return
+  if (dirty || blocked || pending || saving) return
   setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
   setLocked(initial.locked)
- }, [initial, dirty, blocked, pending])
+ }, [initial, dirty, blocked, pending, saving])
  const toggle = async () => {
-  if (blocked || pending) return
+  if (blocked || pending || saving) return
+  setSaving(true)
   setError('')
   try {
    if (amount !== '' && !/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(amount)) throw new Error('금액의 쉼표 위치를 확인해 주세요.')
@@ -103,11 +105,12 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
    setLocked(saved.locked)
    setDirty(false)
   } catch (e) { setError(errorMessage(e)) }
+  finally { setSaving(false) }
  }
  return <>
   <div className="account-balance">
-   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} placeholder="미입력" /><b>원</b></label>
-   <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
+   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} placeholder="미입력" /><b>원</b></label>
+   <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || saving || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
   </div>
   <p className="helper">{pending ? '저장 중…' : locked ? amount === '' ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '실제 잔액이 저장되어 잠겨 있어요.' : '입력 후 잠금을 누르면 저장돼요. 계산 잔액에는 반영되지 않아요.'}</p>
   {error && <p role="alert">{error}</p>}
