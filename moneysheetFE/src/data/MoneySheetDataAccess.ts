@@ -32,7 +32,10 @@ export type HomeSummary = Readonly<{
 export type CategoryQuery = { scope?: Category['scope']; direction?: Category['direction'] }
 export type RecordWrite = { kind: ListKind; managementMonth: string; input: RecordDraft }
 
+export type DailyBalanceCheck = Readonly<{ date: string; actualBalance: number | null; locked: boolean }>
 export interface MoneySheetDataAccess {
+  getBalanceCheck(date: string): Promise<DailyBalanceCheck>
+  saveBalanceCheck(date: string, input: { actualBalance: number | null; locked: boolean }): Promise<DailyBalanceCheck>
   prepareBudget(month: string): Promise<import('./budgetApi').BudgetPreparation>
   setupBudget(month: string, input: import('./budgetApi').BudgetSetupInput): Promise<BudgetSummary>
   getBudget(month: string): Promise<BudgetSummary>
