@@ -15,6 +15,7 @@ import Daily from './features/daily/DailyScreen'
 import Monthly from './features/monthly/MonthlyScreen'
 import RecordList from './features/records/RecordList'
 import BottomNav from './components/BottomNav'
+import AppSettings from './components/AppSettings'
 import QueryStatus from './components/QueryStatus'
 import { useDataQuery } from './data/useDataQuery'
 import { currentMonth } from './utils/date'
@@ -55,7 +56,7 @@ function Screens() {
   else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} />
   const navScreen = screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
   return <div className="prototype"><div className="phone-frame signed-in-frame">
-    <nav className="session-note" aria-label="업무 메뉴"><button disabled={pending} onClick={() => go('basic')}>예산</button> · <button disabled={pending} onClick={() => go('monthly')}>월 선택</button> · <button disabled={pending} aria-label="계정 메뉴" onClick={() => go('my')}>MY</button> · <button onClick={guide?.openGuide}>사용 가이드</button></nav>
+    {screen !== 'my' && <AppSettings key={screen} disabled={pending} openGuide={() => guide?.openGuide()} />}
     {auth.notice && <p className="session-note" role="status">{auth.notice}</p>}
     <div className={`workspace-content ${ownNavigation ? '' : 'with-workspace-nav'}`}>{view}{!ownNavigation && <BottomNav screen={navScreen} go={go} />}</div>
     <GuideDialog />
