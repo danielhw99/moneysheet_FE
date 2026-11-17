@@ -5,9 +5,35 @@ import App from './App'
 import { httpClient } from './api/httpClient'
 import { financeResponse, profile, today, budget } from './test/financeFixtures'
 import type { AuthApi } from './features/auth/authApi'
+import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
+it('keeps the viewed month when entering Monthly and returns to today from the Daily menu',async()=>{
+ const last=localDateValue(new Date(Number(today.slice(0,4)),Number(today.slice(5,7))-1,0))
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
+ await userEvent.click(await screen.findByRole('button',{name:new RegExp('^'+last+'$')}))
+ await screen.findByText('123,456원')
+ await userEvent.click(screen.getByRole('button',{name:'Monthly'}))
+ await waitFor(()=>expect(vi.mocked(fetch).mock.calls.filter(([url])=>String(url).includes('/summaries/monthly')).at(-1)?.[0]).toContain('month='+last.slice(0,7)))
+ await userEvent.click(screen.getByRole('button',{name:'Daily'}))
+ await waitFor(()=>expect(vi.mocked(fetch).mock.calls.filter(([url])=>String(url).includes('/summaries/daily')).at(-1)?.[0]).toContain('date='+today))
+})
+it('synchronizes Daily date navigation across a month boundary with the home calendar',async()=>{
+ const last=localDateValue(new Date(Number(today.slice(0,4)),Number(today.slice(5,7))-1,0))
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
+ await userEvent.click(await screen.findByRole('button',{name:new RegExp('^'+last+'$')}))
+ await screen.findByText('123,456원')
+ await userEvent.click(screen.getByRole('button',{name:'다음 날짜'}))
+ const first=today.slice(0,7)+'-01'
+ await waitFor(()=>expect(vi.mocked(fetch).mock.calls.some(([url])=>String(url).includes('/summaries/daily?date='+first))).toBe(true))
+ await userEvent.click(screen.getByRole('button',{name:'이전 날짜'}))
+ await userEvent.click(screen.getByRole('button',{name:'뒤로가기'}))
+ const selected=await screen.findByRole('button',{name:new RegExp('^'+last+'$')})
+ expect(selected).toHaveClass('selected')
+})
 it('restores the calendar, selected Daily and record input using server summary data',async()=>{
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  expect(document.querySelector('.calendar')).toBeInTheDocument()

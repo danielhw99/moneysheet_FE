@@ -10,8 +10,9 @@ import Header from '../../components/Header'
 import BottomNav from '../../components/BottomNav'
 import MiniList from '../../components/MiniList'
 import QueryStatus from '../../components/QueryStatus'
+import { currentMonth, localDateValue } from '../../utils/date'
 
-export default function Daily({ go, date }: { go: (s: Screen) => void; date: string }) {
+export default function Daily({ go, date, changeDate }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
@@ -20,12 +21,26 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
     setActionError('')
     try { await mutate(api => api.completeMemo(date.slice(0, 7), id, date)) } catch (error) { setActionError(errorMessage(error)) }
   }
-  if (!summary) return <main className="app-shell"><section className="screen-content"><Header title="Daily" onBack={() => go('home')} /><QueryStatus {...query} /></section><BottomNav screen="daily" go={go} /></main>
+  const adjacentDate = (offset: number) => {
+    const next = new Date(date + 'T12:00:00')
+    next.setDate(next.getDate() + offset)
+    return localDateValue(next)
+  }
+  const moveDate = (offset: number) => {
+    const next = adjacentDate(offset)
+    if (!pending && next.slice(0, 7) <= currentMonth()) changeDate?.(next)
+  }
+  const dateHeader = <><Header title="Daily" onBack={() => go('home')} /><div className="date-strip">
+    <button type="button" disabled={pending || !changeDate} aria-label="이전 날짜" onClick={() => moveDate(-1)}><Icon name="back" size={17} /></button>
+    <strong>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>
+    <button type="button" className="flip" disabled={pending || !changeDate || adjacentDate(1).slice(0, 7) > currentMonth()} aria-label="다음 날짜" onClick={() => moveDate(1)}><Icon name="back" size={17} /></button>
+  </div></>
+  if (!summary) return <main className="app-shell"><section className="screen-content">{dateHeader}<QueryStatus {...query} /></section><BottomNav screen="daily" go={go} /></main>
   const { mainBalance, freeBalance, transactions: dayTransactions, activeMemos, payments: dayPayments } = summary
   return (
     <main className="app-shell">
       <section className="screen-content daily-content">
-        <Header title={new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8))).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })} onBack={() => go('home')} />
+        {dateHeader}
         <QueryStatus loading={false} error={query.error} retry={query.retry} />
         {actionError && <p className="query-status" role="alert">{actionError}</p>}
         <section className="balance-card">
@@ -70,14 +85,16 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
  const [amount, setAmount] = useState(initial.actualBalance === null ? '' : String(initial.actualBalance))
  const [locked, setLocked] = useState(initial.locked)
  const [dirty, setDirty] = useState(false)
+ const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
-  if (dirty || blocked || pending) return
+  if (dirty || blocked || pending || saving) return
   setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
   setLocked(initial.locked)
- }, [initial, dirty, blocked, pending])
+ }, [initial, dirty, blocked, pending, saving])
  const toggle = async () => {
-  if (blocked || pending) return
+  if (blocked || pending || saving) return
+  setSaving(true)
   setError('')
   try {
    if (amount !== '' && !/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(amount)) throw new Error('금액의 쉼표 위치를 확인해 주세요.')
@@ -88,11 +105,12 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
    setLocked(saved.locked)
    setDirty(false)
   } catch (e) { setError(errorMessage(e)) }
+  finally { setSaving(false) }
  }
  return <>
   <div className="account-balance">
-   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} placeholder="미입력" /><b>원</b></label>
-   <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
+   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} placeholder="미입력" /><b>원</b></label>
+   <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || saving || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
   </div>
   <p className="helper">{pending ? '저장 중…' : locked ? amount === '' ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '실제 잔액이 저장되어 잠겨 있어요.' : '입력 후 잠금을 누르면 저장돼요. 계산 잔액에는 반영되지 않아요.'}</p>
   {error && <p role="alert">{error}</p>}

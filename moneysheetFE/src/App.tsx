@@ -28,7 +28,7 @@ function Screens() {
   const readiness = useDataQuery(`workspace-budget:${month}`, api => api.getBudget(month))
   const go = (next: Screen, menu = false) => {
     if (pending || next === 'login' || next === 'signup') return
-    if (menu && (next === 'daily' || next === 'monthly')) setRecordDate(localDateValue(new Date()))
+    if (menu && next === 'daily') setRecordDate(localDateValue(new Date()))
     setScreen(next)
   }
   const changeDate = (date: string) => { if (!pending) setRecordDate(date) }
@@ -50,7 +50,7 @@ function Screens() {
   </main>
   else if (screen === 'basic') view = basic
   else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />; ownNavigation = true }
-  else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} />; ownNavigation = true }
+  else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} changeDate={changeDate} />; ownNavigation = true }
   else if (screen === 'monthly') { view = <Monthly go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
   else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} />
   const navScreen = screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
