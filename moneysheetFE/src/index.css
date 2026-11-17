@@ -388,7 +388,7 @@
 .setup-guide b { font-size: 13px; }
 .setup-guide p { font-size: 12px; line-height: 1.6; margin: 4px 0 0; }
 .setup-guide .text-button { flex-shrink: 0; min-height: 36px; font-size: 11px; }
-.guide-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; border: 1px solid var(--divider); border-radius: var(--radius-lg); padding: 20px; color: var(--text); background: white; overflow-y: auto; }
+.guide-dialog { box-sizing: border-box; width: min(358px, calc(100vw - 32px)); max-height: min(812px, calc(100dvh - 32px)); margin: auto; border: 1px solid var(--divider); border-radius: var(--radius-lg); padding: 20px; color: var(--text); background: white; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; overflow-wrap: anywhere; }
 .guide-dialog::backdrop { background: rgb(0 0 0 / 40%); }
 .guide-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .guide-heading h2 { font-size: 18px; margin: 0; }
