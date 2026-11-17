@@ -29,6 +29,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   const records = clone(initialRecords(today().slice(0, 7)))
   const categories = clone(initialCategories)
   const budgets: Record<string, MonthlyBudget> = {}
+  const balanceChecks = new Map<string, { date: string; actualBalance: number | null; locked: boolean }>()
   const getBudget = (month: string): MonthlyBudget => {
     requireMonth(month)
     return budgets[month] ??= { month, fixed: initialBudget().fixed, food: clone(initialFoodBudget) }
@@ -77,6 +78,14 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   }
 
   return {
+    async getBalanceCheck(date) {
+      if (!validDate(date) || date > today()) fail('올바른 날짜를 선택해 주세요.')
+      return clone(balanceChecks.get(date) ?? { date, actualBalance: null, locked: true })
+    },
+    async saveBalanceCheck(date, input) {
+      if (!validDate(date) || date > today() || input.actualBalance !== null && (!Number.isSafeInteger(input.actualBalance) || input.actualBalance < 0 || input.actualBalance > 9999999999)) fail('날짜와 실제 잔액을 확인해 주세요.')
+      const value = { date, ...input }; balanceChecks.set(date, value); return clone(value)
+    },
     async prepareBudget() { throw new Error('예산 준비는 실제 API에서만 제공됩니다.') },
     async setupBudget() { throw new Error('초기 설정은 실제 API에서만 제공됩니다.') },
     async getBudget(month) { return clone(budgetSummary(getBudget(month), records)) },
