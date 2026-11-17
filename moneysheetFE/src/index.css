@@ -399,7 +399,18 @@
 .records-detail .transaction-totals, .records-detail .list-total { flex-shrink: 0; }
 .records-detail .load-more { display: block; margin: 12px auto; min-height: 44px; }
 
-.account-dialog .field { margin-top: 12px; }
+.account-dialog {
+  /* Keep a 16px inset within both the 390x844 app frame and smaller viewports. */
+  box-sizing: border-box;
+  width: min(358px, calc(100vw - 32px));
+  max-height: min(812px, calc(100dvh - 32px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+.account-dialog .field { margin-top: 12px; min-width: 0; }
+.account-dialog .field input { min-width: 0; width: 100%; }
 .account-dialog h2 { font-size: 18px; font-weight: 700; }
 .account-confirm { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-top: 16px; }
 .account-confirm input { flex: 0 0 auto; margin-top: 3px; }
