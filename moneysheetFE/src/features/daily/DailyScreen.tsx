@@ -10,8 +10,9 @@ import Header from '../../components/Header'
 import BottomNav from '../../components/BottomNav'
 import MiniList from '../../components/MiniList'
 import QueryStatus from '../../components/QueryStatus'
+import { currentMonth, localDateValue } from '../../utils/date'
 
-export default function Daily({ go, date }: { go: (s: Screen) => void; date: string }) {
+export default function Daily({ go, date, changeDate }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
@@ -20,12 +21,26 @@ export default function Daily({ go, date }: { go: (s: Screen) => void; date: str
     setActionError('')
     try { await mutate(api => api.completeMemo(date.slice(0, 7), id, date)) } catch (error) { setActionError(errorMessage(error)) }
   }
-  if (!summary) return <main className="app-shell"><section className="screen-content"><Header title="Daily" onBack={() => go('home')} /><QueryStatus {...query} /></section><BottomNav screen="daily" go={go} /></main>
+  const adjacentDate = (offset: number) => {
+    const next = new Date(date + 'T12:00:00')
+    next.setDate(next.getDate() + offset)
+    return localDateValue(next)
+  }
+  const moveDate = (offset: number) => {
+    const next = adjacentDate(offset)
+    if (!pending && next.slice(0, 7) <= currentMonth()) changeDate?.(next)
+  }
+  const dateHeader = <><Header title="Daily" onBack={() => go('home')} /><div className="date-strip">
+    <button type="button" disabled={pending || !changeDate} aria-label="이전 날짜" onClick={() => moveDate(-1)}><Icon name="back" size={17} /></button>
+    <strong>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>
+    <button type="button" className="flip" disabled={pending || !changeDate || adjacentDate(1).slice(0, 7) > currentMonth()} aria-label="다음 날짜" onClick={() => moveDate(1)}><Icon name="back" size={17} /></button>
+  </div></>
+  if (!summary) return <main className="app-shell"><section className="screen-content">{dateHeader}<QueryStatus {...query} /></section><BottomNav screen="daily" go={go} /></main>
   const { mainBalance, freeBalance, transactions: dayTransactions, activeMemos, payments: dayPayments } = summary
   return (
     <main className="app-shell">
       <section className="screen-content daily-content">
-        <Header title={new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8))).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })} onBack={() => go('home')} />
+        {dateHeader}
         <QueryStatus loading={false} error={query.error} retry={query.retry} />
         {actionError && <p className="query-status" role="alert">{actionError}</p>}
         <section className="balance-card">

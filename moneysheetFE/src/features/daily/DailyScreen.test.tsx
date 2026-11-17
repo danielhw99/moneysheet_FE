@@ -4,12 +4,39 @@ import Daily from './DailyScreen'
 import { DataProvider } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
 import type { DailyBalanceCheck } from '../../data/MoneySheetDataAccess'
+import { currentMonth, daysInMonth } from '../../utils/date'
 function deferred<T>() {
  let resolve!: (value: T) => void
  const promise=new Promise<T>(done=>{ resolve=done })
  return {promise,resolve}
 }
 describe('Daily actual balance', () => {
+ it.each([
+  ['2026-11-01','이전 날짜','2026-10-31'],
+  ['2026-01-01','이전 날짜','2025-12-31'],
+  ['2024-03-01','이전 날짜','2024-02-29'],
+  ['2024-02-29','다음 날짜','2024-03-01'],
+ ])('moves %s through %s to %s', async (date,label,expected) => {
+  const api=createMockDataAccess({today:()=> '2026-11-17'}), changeDate=vi.fn()
+  render(<DataProvider implementation={api}><Daily date={date} go={()=>{}} changeDate={changeDate} /></DataProvider>)
+  fireEvent.click(screen.getByRole('button',{name:label}))
+  expect(changeDate).toHaveBeenCalledWith(expected)
+ })
+ it('prevents navigation into a future month', () => {
+  const date=`${currentMonth()}-${daysInMonth(currentMonth())}`, changeDate=vi.fn()
+  render(<DataProvider implementation={createMockDataAccess()}><Daily date={date} go={()=>{}} changeDate={changeDate} /></DataProvider>)
+  expect(screen.getByRole('button',{name:'다음 날짜'})).toBeDisabled()
+  fireEvent.click(screen.getByRole('button',{name:'다음 날짜'}))
+  expect(changeDate).not.toHaveBeenCalled()
+ })
+ it('keeps navigation available after a summary query fails', async () => {
+  const api=createMockDataAccess(), changeDate=vi.fn()
+  vi.spyOn(api,'getDaily').mockRejectedValue(new Error('조회 실패'))
+  render(<DataProvider implementation={api}><Daily date="2026-11-01" go={()=>{}} changeDate={changeDate} /></DataProvider>)
+  await screen.findByText('조회 실패')
+  fireEvent.click(screen.getByRole('button',{name:'이전 날짜'}))
+  expect(changeDate).toHaveBeenCalledWith('2026-10-31')
+ })
  it('syncs a same-date refetch when clean and preserves unsaved edits', async () => {
   const api=createMockDataAccess({today:()=> '2026-11-17'})
   await api.saveBalanceCheck('2026-11-17',{actualBalance:100,locked:false})
@@ -54,13 +81,18 @@ describe('Daily actual balance', () => {
   await api.saveBalanceCheck('2026-11-16',{actualBalance:200,locked:false})
   const late=deferred<DailyBalanceCheck>()
   vi.spyOn(api,'saveBalanceCheck').mockImplementationOnce(()=>late.promise)
-  const ui=(date:string)=><DataProvider implementation={api}><Daily date={date} go={()=>{}} /></DataProvider>
+  const changeDate=vi.fn()
+  const ui=(date:string)=><DataProvider implementation={api}><Daily date={date} go={()=>{}} changeDate={changeDate} /></DataProvider>
   const view=render(ui('2026-11-17'))
   const field=await screen.findByLabelText('실제 계좌 잔액')
   fireEvent.change(field,{target:{value:'333'}})
   fireEvent.click(screen.getByRole('button',{name:'잔액 잠금'}))
   await waitFor(()=>expect(field).toBeDisabled())
   expect(screen.getByRole('button',{name:'잔액 잠금'})).toBeDisabled()
+  expect(screen.getByRole('button',{name:'이전 날짜'})).toBeDisabled()
+  expect(screen.getByRole('button',{name:'다음 날짜'})).toBeDisabled()
+  fireEvent.click(screen.getByRole('button',{name:'이전 날짜'}))
+  expect(changeDate).not.toHaveBeenCalled()
   view.rerender(ui('2026-11-16'))
   await waitFor(()=>expect(screen.getByLabelText('실제 계좌 잔액')).toHaveValue('200'))
   expect(screen.getByLabelText('실제 계좌 잔액')).toBeDisabled()
