@@ -39,7 +39,7 @@ export default function CategoryPicker({ value, onChange, scope, direction, opti
         <option value="__add__">＋ 카테고리 추가</option>
       </select>
     </label>
-    <QueryStatus {...query} quietLoading={!!query.data} />
+    <div className="category-picker-status"><QueryStatus {...query} quietLoading={!!query.data} /></div>
     {adding && <fieldset className="category-add" disabled={pending}><legend>카테고리 추가</legend>
       <label className="field"><span>새 카테고리 이름</span><input autoFocus value={name} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void add() } }} /></label>
       {error && <p className="field-error" role="alert">{error}</p>}

@@ -18,6 +18,7 @@ it('shows a visible loading status until the initial records query completes',as
  const service=api();service.getRecords.mockImplementation(()=>new Promise(done=>{resolve=done}))
  render(<View service={service}/>)
  expect(await screen.findByRole('status')).toHaveTextContent('불러오는 중')
+ expect(screen.getByRole('status')).not.toHaveClass('query-status-loading')
  await act(async()=>resolve(page([])))
  expect(await screen.findByText('해당 기간의 기록이 없습니다.')).toBeInTheDocument()
  expect(screen.queryByRole('status')).not.toBeInTheDocument()

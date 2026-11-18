@@ -45,6 +45,7 @@ describe('budget preparation', () => {
       expect(screen.getAllByRole('status')).toHaveLength(1)
     })
     expect(await screen.findByRole('status')).toHaveTextContent('불러오는 중')
+    expect(screen.getByRole('status')).not.toHaveClass('query-status-loading')
     await act(async () => { resolveInitial([category]) })
     expect(await screen.findByRole('option', { name: 'Housing' })).toBeInTheDocument()
 
