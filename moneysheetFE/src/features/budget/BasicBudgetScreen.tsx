@@ -52,8 +52,8 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     if (!readOnly) setEditing(item)
   }
   if (setup) return <BudgetSetupScreen month={month} onDone={() => { guide?.finishSetup(); setSetup(false); query.retry() }} onCancel={() => go('monthly')} />
-  if (!budget && query.errorCode === 'BUDGET_NOT_READY') return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><p className="notice">{month === currentMonth() ? '예산 설정을 준비하고 있어요…' : '이 월에는 완료된 예산이 없어요. 현재 월에서 예산을 설정해 주세요.'}</p></main>
-  if (!budget) return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} /><QueryStatus {...query} /></main>
+  if (!budget && query.errorCode === 'BUDGET_NOT_READY') return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} centerTitle /><p className="notice">{month === currentMonth() ? '예산 설정을 준비하고 있어요…' : '이 월에는 완료된 예산이 없어요. 현재 월에서 예산을 설정해 주세요.'}</p></main>
+  if (!budget) return <main className="detail-shell"><Header title="기본지출" onBack={() => go('monthly')} centerTitle /><QueryStatus {...query} /></main>
   if (editing) return <FixedBudgetForm item={editing === 'new' ? undefined : editing} refreshing={query.loading} loadError={query.error} retry={query.retry}
     onCancel={() => setEditing(null)} onDelete={async () => {
       if (locked || month !== currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
@@ -66,7 +66,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     }} />
   return (
     <main className="detail-shell budget-detail">
-      <Header title="기본지출" onBack={() => go('monthly')} right={<button className={`lock-button ${locked ? 'locked' : ''}`} disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>} />
+      <Header title="기본지출" onBack={() => go('monthly')} centerTitle right={<button className={`lock-button ${locked ? 'locked' : ''}`} disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>} />
       <QueryStatus {...query} quietLoading />
       <div className="sub-month">{month.replace('-', '.')} <span>{pastMonth ? '지난달 · 조회 전용' : locked ? '예산 잠금' : '편집 중'}</span></div>
       <p className="notice">{pastMonth ? '지난달 예산은 수정할 수 없어요.' : locked ? hasUnsavedFood && !query.loading ? '미저장 식비 변경이 있어요. 잠금을 해제하고 저장해 주세요.' : '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : `수정한 값은 ${Number(month.slice(5))}월 전체에 적용됩니다.`}</p>

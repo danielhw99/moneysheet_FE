@@ -61,6 +61,11 @@
 .topbar-side { display: flex; justify-content: center; }
 .topbar-side.right { justify-content: flex-end; padding-right: 8px; }
 .topbar-title { font-size: 16px; font-weight: 700; text-align: center; letter-spacing: -.2px; }
+.topbar.centered-title { position: relative; }
+.topbar.centered-title .topbar-title { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.topbar.centered-title .topbar-side { position: relative; z-index: 1; }
+.topbar.centered-title .topbar-side:first-child { grid-column: 1; }
+.topbar.centered-title .topbar-side.right { grid-column: 3; }
 
 .auth-screen { overflow-y: auto; height: 100%; padding: 84px 28px 32px; background: linear-gradient(180deg, #f4faf7 0%, #fff 35%); }
 .brand-mark { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: white; background: var(--primary); margin-bottom: 14px; }
