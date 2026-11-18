@@ -29,7 +29,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
           <strong className="month-picker">{year}년 {monthIndex + 1}월</strong>
           <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
         </div>
-        <QueryStatus {...query} />
+        <QueryStatus {...query} quietLoading />
         <div className="legend">
           <span><i className="dot blue" />내역</span><span><i className="dot red" />고정지출</span>
           <span><i className="dot green" />여유비</span><span><i className="dot black" />메모</span>
