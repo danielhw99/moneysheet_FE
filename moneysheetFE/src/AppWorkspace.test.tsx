@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { httpClient } from './api/httpClient'
-import { financeResponse, profile, today, budget } from './test/financeFixtures'
+import { financeResponse, profile, today, budget, home as homeSummary } from './test/financeFixtures'
 import type { AuthApi } from './features/auth/authApi'
 import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
@@ -82,8 +82,12 @@ it('resets selected month and cached workspace when the authenticated user chang
 it('keeps the home frame and month header while budget readiness is loading',async()=>{
  let resolveBudget!: (response:Response)=>void
  const pendingBudget=new Promise<Response>(resolve=>{resolveBudget=resolve})
+ let resolveHome!: (response:Response)=>void
+ const pendingHome=new Promise<Response>(resolve=>{resolveHome=resolve})
  vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>{
-  if(new URL(String(url),'http://localhost').pathname.endsWith('/budget')) return pendingBudget
+  const path=new URL(String(url),'http://localhost').pathname
+  if(path.endsWith('/budget')) return pendingBudget
+  if(path.endsWith('/summaries/home')) return pendingHome
   return financeResponse(url)
  }))
  render(<App authApi={auth()}/>)
@@ -94,9 +98,17 @@ it('keeps the home frame and month header while budget readiness is loading',asy
  expect(screen.getByRole('status')).toHaveTextContent('불러오는 중')
  expect(document.querySelector('main.app-shell')).toBeInTheDocument()
  expect(screen.queryByText('자금 현황')).not.toBeInTheDocument()
+ expect(vi.mocked(fetch).mock.calls.some(([url])=>new URL(String(url),'http://localhost').pathname.endsWith('/summaries/home'))).toBe(false)
  await act(async()=>{resolveBudget(new Response(JSON.stringify(budget()),{status:200}))})
  expect(await screen.findByRole('button',{name:new RegExp('^'+today+'$')})).toBeInTheDocument()
  expect(screen.getByText(monthTitle)).toBeInTheDocument()
+ expect(screen.getByRole('status')).toHaveTextContent('불러오는 중')
+ expect(screen.queryByRole('button',{name:/총지출/})).not.toBeInTheDocument()
+ const summary=homeSummary()
+ await act(async()=>{resolveHome(new Response(JSON.stringify(summary),{status:200}))})
+ const monthSummary=await screen.findByRole('button',{name:/총지출/})
+ expect(monthSummary).toHaveTextContent(`${summary.expense.toLocaleString('ko-KR')}원`)
+ expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
 
 it('uses the home frame for a past month without a completed budget and preserves setup navigation',async()=>{

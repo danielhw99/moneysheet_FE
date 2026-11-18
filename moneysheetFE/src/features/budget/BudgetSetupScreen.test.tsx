@@ -5,6 +5,8 @@ import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { DataProvider } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
+import type { MoneySheetDataAccess } from '../../data/MoneySheetDataAccess'
+import type { Category } from '../../data/models'
 import { currentMonth } from '../../utils/date'
 import BudgetSetupScreen from './BudgetSetupScreen'
 
@@ -21,6 +23,37 @@ describe('budget preparation', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('저장 실패')
     expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
     expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(), { items: [], food: { weekday: 11000, saturday: 11000, sunday: 11000 } })
+  })
+  it('shows the initial category lookup and keeps loaded choices during refresh', async () => {
+    const api = createMockDataAccess()
+    const category: Readonly<Category> = { id: '9', name: 'Housing', scope: 'fixedBudget' }
+    let resolveInitial!: (value: Awaited<ReturnType<MoneySheetDataAccess['getCategories']>>) => void
+    let resolveRefresh!: (value: Awaited<ReturnType<MoneySheetDataAccess['getCategories']>>) => void
+    api.prepareBudget = vi.fn().mockResolvedValue({
+      month: currentMonth(), status: 'draft', copiedFromMonth: null,
+      items: [{ id: null, name: 'Rent', categoryId: null, amount: 100 }],
+      food: { weekday: 11000, saturday: 11000, sunday: 11000 },
+    })
+    api.getCategories = vi.fn<MoneySheetDataAccess['getCategories']>()
+      .mockImplementationOnce(() => new Promise(resolve => { resolveInitial = resolve }))
+      .mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve }))
+    const view = render(<DataProvider implementation={api} refreshToken={0}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+
+    await screen.findByRole('button', { name: '예산 저장' })
+    await waitFor(() => {
+      expect(api.getCategories).toHaveBeenCalledOnce()
+      expect(screen.getAllByRole('status')).toHaveLength(1)
+    })
+    expect(await screen.findByRole('status')).toHaveTextContent('불러오는 중')
+    await act(async () => { resolveInitial([category]) })
+    expect(await screen.findByRole('option', { name: 'Housing' })).toBeInTheDocument()
+
+    view.rerender(<DataProvider implementation={api} refreshToken={1}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+    await waitFor(() => expect(api.getCategories).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('status')).toHaveClass('query-status-loading')
+    expect(screen.getByRole('option', { name: 'Housing' })).toBeInTheDocument()
+    await act(async () => { resolveRefresh([category]) })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
   it.each(['2000-01', '2999-01'])('does not write read-only budget %s', async month => {
     const api = createMockDataAccess(); api.prepareBudget = vi.fn()

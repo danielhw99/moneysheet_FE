@@ -35,7 +35,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
     <main className="app-shell">
       <section className="screen-content home-content">
         <HomeMonthHeader month={month} changeMonth={changeMonth} />
-        <QueryStatus {...query} quietLoading />
+        {query.error ? <QueryStatus {...query} /> : summary && query.loading ? <QueryStatus {...query} quietLoading /> : null}
         <div className="legend">
           <span><i className="dot blue" />내역</span><span><i className="dot red" />고정지출</span>
           <span><i className="dot green" />여유비</span><span><i className="dot black" />메모</span>
@@ -59,6 +59,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
           <span className="summary-free"><small title={`${summary.asOfDate} 기준`}>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
           <Icon name="chevron" />
         </button>}
+        {!summary && query.loading && <div className="month-summary month-summary-loading" role="status">불러오는 중…</div>}
       </section>
       <BottomNav screen="home" go={go} />
     </main>

@@ -62,7 +62,7 @@
 .topbar-side.right { justify-content: flex-end; padding-right: 8px; }
 .topbar-title { font-size: 16px; font-weight: 700; text-align: center; letter-spacing: -.2px; }
 .topbar.centered-title { position: relative; }
-.topbar.centered-title .topbar-title { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.topbar.centered-title .topbar-title { position: absolute; top: 50%; left: 56px; right: 56px; transform: translateY(-50%); white-space: normal; overflow-wrap: anywhere; }
 .topbar.centered-title .topbar-side { position: relative; z-index: 1; }
 .topbar.centered-title .topbar-side:first-child { grid-column: 1; }
 .topbar.centered-title .topbar-side.right { grid-column: 3; }
@@ -126,6 +126,7 @@
 .month-summary small { color: var(--secondary); font-size: 10px; }
 .month-summary strong { font: 700 14px 'Inter', sans-serif; }
 .month-summary .summary-free strong { color: var(--primary-dark); }
+.month-summary-loading { grid-template-columns: 1fr; place-items: center; color: var(--secondary); font-size: 12px; cursor: default; }
 
 .daily-content { padding: 0 12px; }
 .daily-content .topbar { margin: 0 -12px; }
@@ -303,7 +304,7 @@
 .memo-record-open { min-width: 0; min-height: 54px; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 8px; align-items: center; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
 .memo-record-open strong { font: 600 12px Inter, sans-serif; }
 
-.screen-content.home-content { overflow-y: auto; }
+.screen-content.home-content { overflow-y: auto; scrollbar-gutter: stable; }
 .home-readiness { padding: 8px 16px; }
 .home-readiness .notice { margin: 0 0 10px; }
 .home-readiness .primary-button { width: 100%; }

@@ -14,6 +14,8 @@ it('keeps a quiet loading announcement and retains visible error recovery', () =
  expect(retry).toHaveBeenCalledTimes(1)
  view.rerender(<QueryStatus loading={false} error="" retry={retry} quietLoading />)
  expect(screen.queryByRole('status')).not.toBeInTheDocument()
+ expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+ expect(screen.queryByRole('button',{name:'다시 불러오기'})).not.toBeInTheDocument()
 })
 it('keeps the initial full-page loading presentation available', () => {
  render(<QueryStatus loading error="" retry={()=>{}} />)
