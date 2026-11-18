@@ -301,8 +301,12 @@
 .screen-content.home-content { overflow-y: auto; }
 
 /* Category creation stays beside the selected category, without a separate page. */
-.category-add { margin: 0 0 16px; min-width: 0; padding: 12px; border: 1px solid var(--divider); border-radius: var(--radius-md); }
-.category-add legend { font-size: 12px; font-weight: 600; }
+.category-picker { display: grid; gap: 16px; min-width: 0; }
+.category-add { margin: 0; min-width: 0; padding: 16px; border: 1px solid var(--divider); border-radius: var(--radius-md); }
+.category-add legend { padding-inline: 6px; font-size: 12px; font-weight: 600; }
+.category-add .field { margin-bottom: 16px; }
+.category-add .form-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.category-add .form-actions button { flex: 1 1 96px; min-width: 0; min-height: 44px; }
 .category-picker .field-error, .record-form > .field-error { color: var(--field-error); font-size: 12px; line-height: 1.5; }
 .record-form > *, .category-picker { flex-shrink: 0; }
 
