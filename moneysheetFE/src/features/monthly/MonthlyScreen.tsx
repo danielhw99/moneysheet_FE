@@ -24,7 +24,7 @@ export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) =>
           <strong className="month-picker">{month.slice(0, 4)}년 {Number(month.slice(5))}월</strong>
           <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
         </div>
-        <QueryStatus {...query} />
+        <QueryStatus {...query} quietLoading />
         <div className="monthly-list">
           {monthlySections.map((item) => (
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>

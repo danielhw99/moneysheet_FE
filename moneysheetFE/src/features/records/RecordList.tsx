@@ -52,7 +52,7 @@ export default function RecordList({ kind, go, date, changeDate }: {
   }
   return <main className={`detail-shell records-detail ${editing ? 'is-editing' : ''}`}>
     <Header title={editing ? `${cfg.title} ${editing === 'new' ? '추가' : '편집'}` : cfg.title} onBack={() => { if (!pending) editing ? setEditing(null) : go(monthly ? 'monthly' : 'daily') }} />
-    <QueryStatus {...query} />
+    <QueryStatus {...query} quietLoading={!!query.data} />
     {actionError && <p className="query-status" role="alert">{actionError}</p>}
     {editing && data ? <RecordForm kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={data.budget} refreshing={query.loading || !!query.error}
       onSave={async input => {

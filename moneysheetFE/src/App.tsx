@@ -10,7 +10,7 @@ import { localDateValue } from './utils/date'
 import { DataProvider, useDataAccess } from './data/DataProvider'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import type { AuthApi } from './features/auth/authApi'
-import Home from './features/home/HomeScreen'
+import Home, { HomeMonthHeader } from './features/home/HomeScreen'
 import Daily from './features/daily/DailyScreen'
 import Monthly from './features/monthly/MonthlyScreen'
 import RecordList from './features/records/RecordList'
@@ -39,16 +39,25 @@ function Screens() {
     const next = localDateValue(date).slice(0, 7)
     if (next <= currentMonth()) changeDate(next + '-01')
   }
+  const setupNotice = <><p className="notice">이 월에는 완료된 예산이 없어요. 이번 달 예산을 먼저 설정해 주세요.</p><button className="primary-button" onClick={() => { changeDate(localDateValue(new Date())); go('basic') }}>이번 달 예산 설정</button></>
   const basic = <BasicBudget key={month} go={go} month={month} locked={budgetLocks[month] ?? true} setLocked={locked => setBudgetLocks(previous => ({ ...previous, [month]: locked }))} />
   const business = !['my','account','settings'].includes(screen)
   let view: React.ReactNode, ownNavigation = false
   if (screen === 'my') { view = <My go={go} />; ownNavigation = true }
   else if (screen === 'account' || screen === 'settings') view = <SimpleSettings type={screen} go={go} />
   else if (business && readiness.lastErrorCode === 'BUDGET_NOT_READY' && month === currentMonth()) view = basic
-  else if (business && (!readiness.data || (readiness.error && screen !== 'basic'))) view = <main className="detail-shell workspace-status">
-    <h1>자금 현황</h1><div className="sub-month"><button disabled={pending} onClick={() => changeMonth(-1)} aria-label="이전 월">◀</button><span>{month}</span><button disabled={pending || month >= currentMonth()} onClick={() => changeMonth(1)} aria-label="다음 월">▶</button></div>
-    {readiness.errorCode === 'BUDGET_NOT_READY' ? <><p className="notice">이 월에는 완료된 예산이 없어요. 이번 달 예산을 먼저 설정해 주세요.</p><button className="primary-button" onClick={() => { changeDate(localDateValue(new Date())); go('basic') }}>이번 달 예산 설정</button></> : <QueryStatus {...readiness} />}
-  </main>
+  else if (business && (!readiness.data || (readiness.error && screen !== 'basic'))) {
+    if (screen === 'home') {
+      view = <main className="app-shell"><section className="screen-content home-content">
+        <HomeMonthHeader month={month} changeMonth={changeMonth} />
+        {readiness.errorCode === 'BUDGET_NOT_READY' ? <div className="home-readiness">{setupNotice}</div> : <QueryStatus {...readiness} />}
+      </section><BottomNav screen="home" go={go} /></main>
+      ownNavigation = true
+    } else view = <main className="detail-shell workspace-status">
+      <h1>자금 현황</h1><div className="sub-month"><button disabled={pending} onClick={() => changeMonth(-1)} aria-label="이전 월">◀</button><span>{month}</span><button disabled={pending || month >= currentMonth()} onClick={() => changeMonth(1)} aria-label="다음 월">▶</button></div>
+      {readiness.errorCode === 'BUDGET_NOT_READY' ? setupNotice : <QueryStatus {...readiness} />}
+    </main>
+  }
   else if (screen === 'basic') view = basic
   else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />; ownNavigation = true }
   else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} changeDate={changeDate} />; ownNavigation = true }
@@ -66,7 +75,7 @@ function Screens() {
 function AuthGate() {
   const auth = useAuth()
   const [screen, setScreen] = useState<'login' | 'signup'>('login')
-  if (auth.initializing) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="status">로그인 상태를 확인하고 있어요…</p></main></div></div>
+  if (auth.initializing) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="status">로딩 중…</p></main></div></div>
   if (auth.bootstrapError) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="alert">{auth.bootstrapError}</p><button className="primary-button" onClick={auth.retry}>다시 확인</button></main></div></div>
   if (!auth.profile) return <div className="prototype"><div className="phone-frame"><Login key={screen} signup={screen === 'signup'} go={next => { if (next === 'login' || next === 'signup') setScreen(next) }} /></div></div>
   return <DataProvider key={auth.sessionKey} refreshToken={auth.validationRevision}><OnboardingProvider userId={auth.profile.id}><Screens /></OnboardingProvider></DataProvider>

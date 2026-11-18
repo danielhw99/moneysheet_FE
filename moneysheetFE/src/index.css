@@ -61,6 +61,11 @@
 .topbar-side { display: flex; justify-content: center; }
 .topbar-side.right { justify-content: flex-end; padding-right: 8px; }
 .topbar-title { font-size: 16px; font-weight: 700; text-align: center; letter-spacing: -.2px; }
+.topbar.centered-title { position: relative; }
+.topbar.centered-title .topbar-title { position: absolute; top: 50%; left: 56px; right: 56px; transform: translateY(-50%); white-space: normal; overflow-wrap: anywhere; }
+.topbar.centered-title .topbar-side { position: relative; z-index: 1; }
+.topbar.centered-title .topbar-side:first-child { grid-column: 1; }
+.topbar.centered-title .topbar-side.right { grid-column: 3; }
 
 .auth-screen { overflow-y: auto; height: 100%; padding: 84px 28px 32px; background: linear-gradient(180deg, #f4faf7 0%, #fff 35%); }
 .brand-mark { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: white; background: var(--primary); margin-bottom: 14px; }
@@ -93,7 +98,7 @@
 .nav-item.active { color: var(--primary); font-weight: 700; }
 
 .month-head { height: 64px; display: flex; align-items: center; justify-content: center; gap: 28px; }
-.month-picker { height: 44px; padding: 0 10px; border: 0; background: none; font-size: 18px; font-weight: 700; cursor: pointer; }
+.month-picker { height: 44px; padding: 0 10px; border: 0; background: none; display: grid; place-items: center; font-size: 18px; font-weight: 700; cursor: pointer; }
 .down-caret { color: var(--secondary); margin-left: 4px; }
 .legend { display: flex; justify-content: flex-end; gap: 10px; padding: 0 15px 10px; font-size: 10px; color: var(--secondary); }
 .legend span { display: flex; align-items: center; gap: 4px; }
@@ -121,6 +126,7 @@
 .month-summary small { color: var(--secondary); font-size: 10px; }
 .month-summary strong { font: 700 14px 'Inter', sans-serif; }
 .month-summary .summary-free strong { color: var(--primary-dark); }
+.month-summary-loading { grid-template-columns: 1fr; place-items: center; color: var(--secondary); font-size: 12px; cursor: default; }
 
 .daily-content { padding: 0 12px; }
 .daily-content .topbar { margin: 0 -12px; }
@@ -298,11 +304,20 @@
 .memo-record-open { min-width: 0; min-height: 54px; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 8px; align-items: center; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
 .memo-record-open strong { font: 600 12px Inter, sans-serif; }
 
-.screen-content.home-content { overflow-y: auto; }
+.screen-content.home-content { overflow-y: auto; scrollbar-gutter: stable; }
+.home-readiness { padding: 8px 16px; }
+.home-readiness .notice { margin: 0 0 10px; }
+.home-readiness .primary-button { width: 100%; }
 
 /* Category creation stays beside the selected category, without a separate page. */
-.category-add { margin: 0 0 16px; min-width: 0; padding: 12px; border: 1px solid var(--divider); border-radius: var(--radius-md); }
-.category-add legend { font-size: 12px; font-weight: 600; }
+.category-picker { display: grid; gap: 16px; min-width: 0; }
+.category-picker-status { display: flex; align-items: center; min-height: 72px; }
+.category-picker-status > .query-status { margin: 0 16px; }
+.category-add { margin: 0; min-width: 0; padding: 16px; border: 1px solid var(--divider); border-radius: var(--radius-md); }
+.category-add legend { padding-inline: 6px; font-size: 12px; font-weight: 600; }
+.category-add .field { margin-bottom: 16px; }
+.category-add .form-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.category-add .form-actions button { flex: 1 1 96px; min-width: 0; min-height: 44px; }
 .category-picker .field-error, .record-form > .field-error { color: var(--field-error); font-size: 12px; line-height: 1.5; }
 .record-form > *, .category-picker { flex-shrink: 0; }
 
@@ -310,6 +325,7 @@
 
 /* Async status and disabled form controls preserve the existing form spacing. */
 .query-status { margin: 8px 16px; color: var(--secondary); font-size: 12px; line-height: 1.5; flex-shrink: 0; }
+.query-status.query-status-loading { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .form-fields { min-width: 0; border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
 
 .form-fields > * { flex-shrink: 0; }

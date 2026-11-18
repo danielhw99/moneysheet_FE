@@ -41,7 +41,7 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
   return (
     <main className="detail-shell">
       <Header title={item ? '고정지출 예산 편집' : '고정지출 예산 추가'} onBack={() => { if (!pending) onCancel() }} />
-      <QueryStatus loading={refreshing} error={loadError} retry={retry} />
+      <QueryStatus loading={refreshing} error={loadError} retry={retry} quietLoading />
       <form className="record-form fixed-budget-form" onSubmit={submit} noValidate>
         <fieldset className="form-fields" disabled={pending || refreshing || !!loadError}>
         <label className="field"><span>항목명</span><input required value={name} onChange={event => setName(event.target.value)} /></label>

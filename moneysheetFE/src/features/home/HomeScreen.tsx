@@ -7,6 +7,16 @@ import Icon from '../../components/Icon'
 import BottomNav from '../../components/BottomNav'
 import { currentMonth, localDateValue } from '../../utils/date'
 
+export function HomeMonthHeader({ month, changeMonth }: { month: string; changeMonth: (offset: number) => void }) {
+  const year = Number(month.slice(0, 4))
+  const monthNumber = Number(month.slice(5))
+  return <div className="month-head">
+    <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
+    <strong className="month-picker">{year}년 {monthNumber}월</strong>
+    <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
+  </div>
+}
+
 export default function Home({ go, month, changeMonth, selectedDate, selectDate }: {
   go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
   selectedDate: string; selectDate: (date: string) => void;
@@ -24,12 +34,8 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
   return (
     <main className="app-shell">
       <section className="screen-content home-content">
-        <div className="month-head">
-          <button className="icon-button" aria-label="이전 달" onClick={() => changeMonth(-1)}><Icon name="back" /></button>
-          <strong className="month-picker">{year}년 {monthIndex + 1}월</strong>
-          <button className="icon-button flip" aria-label="다음 달" disabled={month >= currentMonth()} onClick={() => changeMonth(1)}><Icon name="back" /></button>
-        </div>
-        <QueryStatus {...query} />
+        <HomeMonthHeader month={month} changeMonth={changeMonth} />
+        {query.error ? <QueryStatus {...query} /> : summary && query.loading ? <QueryStatus {...query} quietLoading /> : null}
         <div className="legend">
           <span><i className="dot blue" />내역</span><span><i className="dot red" />고정지출</span>
           <span><i className="dot green" />여유비</span><span><i className="dot black" />메모</span>
@@ -53,6 +59,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
           <span className="summary-free"><small title={`${summary.asOfDate} 기준`}>남은 여유비</small><strong>{`${won(summary.freeBalance)}원`}</strong></span>
           <Icon name="chevron" />
         </button>}
+        {!summary && query.loading && <div className="month-summary month-summary-loading" role="status">불러오는 중…</div>}
       </section>
       <BottomNav screen="home" go={go} />
     </main>

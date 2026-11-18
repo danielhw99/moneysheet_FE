@@ -10,9 +10,32 @@ const date='2026-11-02'
 const row=(id:string,title:string,day=date):MoneyRecord=>({id,date:day,time:'12:30',title,amount:100,direction:'expense',categoryId:null,completedOn:null})
 const page=(rows:MoneyRecord[],nextCursor:string|null=null):RecordsSummary=>({rows,nextCursor,expenseTotal:9000,incomeTotal:5000,total:-4000,pendingMemoTotal:-123})
 function api() { return {...createMockDataAccess(),getCategories:vi.fn().mockResolvedValue([]),getRecords:vi.fn<MoneySheetDataAccess['getRecords']>()} }
-function View({service,selected=date,kind='transactions'}:{service:MoneySheetDataAccess;selected?:string;kind?:ListKind}) {
- return <DataProvider implementation={service}><RecordList kind={kind} go={vi.fn()} date={selected} changeDate={vi.fn()}/></DataProvider>
+function View({service,selected=date,kind='transactions',refreshToken=0}:{service:MoneySheetDataAccess;selected?:string;kind?:ListKind;refreshToken?:number}) {
+ return <DataProvider implementation={service} refreshToken={refreshToken}><RecordList kind={kind} go={vi.fn()} date={selected} changeDate={vi.fn()}/></DataProvider>
 }
+it('shows a visible loading status until the initial records query completes',async()=>{
+ let resolve!:(summary:RecordsSummary)=>void
+ const service=api();service.getRecords.mockImplementation(()=>new Promise(done=>{resolve=done}))
+ render(<View service={service}/>)
+ expect(await screen.findByRole('status')).toHaveTextContent('불러오는 중')
+ expect(screen.getByRole('status')).not.toHaveClass('query-status-loading')
+ await act(async()=>resolve(page([])))
+ expect(await screen.findByText('해당 기간의 기록이 없습니다.')).toBeInTheDocument()
+ expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+it('keeps records visible and the loading status quiet during refresh',async()=>{
+ let resolve!:(summary:RecordsSummary)=>void
+ const service=api();service.getRecords.mockResolvedValueOnce(page([row('1','Current')])).mockImplementationOnce(()=>new Promise(done=>{resolve=done}))
+ const view=render(<View service={service}/>)
+ expect(await screen.findByText('Current')).toBeInTheDocument()
+ view.rerender(<View service={service} refreshToken={1}/>)
+ await waitFor(()=>expect(service.getRecords).toHaveBeenCalledTimes(2))
+ expect(screen.getByRole('status')).toHaveClass('query-status-loading')
+ expect(screen.getByText('Current')).toBeInTheDocument()
+ await act(async()=>resolve(page([row('1','Refreshed')])))
+ expect(await screen.findByText('Refreshed')).toBeInTheDocument()
+ expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
 it('loads another cursor page without duplicate IDs or page-derived totals',async()=>{
  const service=api();service.getRecords.mockResolvedValueOnce(page([row('1','First')],'cursor-1')).mockResolvedValueOnce(page([row('1','First updated'),row('2','Second')]))
  render(<View service={service}/>);await screen.findByText('First');await userEvent.click(screen.getByRole('button',{name:'더 보기'}))

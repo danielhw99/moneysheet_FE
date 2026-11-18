@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import App from './App'
 import { httpClient } from './api/httpClient'
-import { financeResponse, profile, today, budget } from './test/financeFixtures'
+import { financeResponse, profile, today, budget, home as homeSummary } from './test/financeFixtures'
 import type { AuthApi } from './features/auth/authApi'
 import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
@@ -77,6 +77,58 @@ it('resets selected month and cached workspace when the authenticated user chang
  await waitFor(()=>expect(service.me).toHaveBeenCalledTimes(2))
  await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  await waitFor(()=>expect(String(vi.mocked(fetch).mock.calls.filter(([p])=>String(p).includes('/summaries/home')).at(-1)?.[0])).toContain('month='+today.slice(0,7)))
+})
+
+it('keeps the home frame and month header while budget readiness is loading',async()=>{
+ let resolveBudget!: (response:Response)=>void
+ const pendingBudget=new Promise<Response>(resolve=>{resolveBudget=resolve})
+ let resolveHome!: (response:Response)=>void
+ const pendingHome=new Promise<Response>(resolve=>{resolveHome=resolve})
+ vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>{
+  const path=new URL(String(url),'http://localhost').pathname
+  if(path.endsWith('/budget')) return pendingBudget
+  if(path.endsWith('/summaries/home')) return pendingHome
+  return financeResponse(url)
+ }))
+ render(<App authApi={auth()}/>)
+ const monthTitle=`${today.slice(0,4)}년 ${Number(today.slice(5,7))}월`
+ expect(await screen.findByText(monthTitle)).toBeInTheDocument()
+ expect(screen.getByRole('button',{name:'이전 달'})).toBeInTheDocument()
+ expect(screen.getByRole('button',{name:'다음 달'})).toBeInTheDocument()
+ expect(screen.getByRole('status')).toHaveTextContent('불러오는 중')
+ expect(document.querySelector('main.app-shell')).toBeInTheDocument()
+ expect(screen.queryByText('자금 현황')).not.toBeInTheDocument()
+ expect(vi.mocked(fetch).mock.calls.some(([url])=>new URL(String(url),'http://localhost').pathname.endsWith('/summaries/home'))).toBe(false)
+ await act(async()=>{resolveBudget(new Response(JSON.stringify(budget()),{status:200}))})
+ expect(await screen.findByRole('button',{name:new RegExp('^'+today+'$')})).toBeInTheDocument()
+ expect(screen.getByText(monthTitle)).toBeInTheDocument()
+ expect(screen.getByRole('status')).toHaveTextContent('불러오는 중')
+ expect(screen.queryByRole('button',{name:/총지출/})).not.toBeInTheDocument()
+ const summary=homeSummary()
+ await act(async()=>{resolveHome(new Response(JSON.stringify(summary),{status:200}))})
+ const monthSummary=await screen.findByRole('button',{name:/총지출/})
+ expect(monthSummary).toHaveTextContent(`${summary.expense.toLocaleString('ko-KR')}원`)
+ expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+it('uses the home frame for a past month without a completed budget and preserves setup navigation',async()=>{
+ const previousMonth=localDateValue(new Date(Number(today.slice(0,4)),Number(today.slice(5,7))-2,1)).slice(0,7)
+ vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>{
+  const request=new URL(String(url),'http://localhost')
+  if(request.pathname.endsWith('/budget') && request.pathname.includes(`/months/${previousMonth}/`))
+   return new Response(JSON.stringify({code:'BUDGET_NOT_READY',message:'예산 설정 필요'}),{status:409})
+  return financeResponse(url)
+ }))
+ render(<App authApi={auth()}/>)
+ await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
+ const monthTitle=`${previousMonth.slice(0,4)}년 ${Number(previousMonth.slice(5))}월`
+ expect(await screen.findByText('이 월에는 완료된 예산이 없어요. 이번 달 예산을 먼저 설정해 주세요.')).toBeInTheDocument()
+ expect(screen.getByText(monthTitle)).toBeInTheDocument()
+ expect(document.querySelector('main.app-shell')).toBeInTheDocument()
+ expect(screen.queryByText('자금 현황')).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'이번 달 예산 설정'}))
+ expect(await screen.findByRole('button',{name:'저장'})).toBeInTheDocument()
 })
 
 it('preserves unsaved food after a fixed-item save succeeds but budget reloads fail',async()=>{
