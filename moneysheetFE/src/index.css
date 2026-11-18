@@ -304,6 +304,9 @@
 .memo-record-open strong { font: 600 12px Inter, sans-serif; }
 
 .screen-content.home-content { overflow-y: auto; }
+.home-readiness { padding: 8px 16px; }
+.home-readiness .notice { margin: 0 0 10px; }
+.home-readiness .primary-button { width: 100%; }
 
 /* Category creation stays beside the selected category, without a separate page. */
 .category-picker { display: grid; gap: 16px; min-width: 0; }
