@@ -52,7 +52,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     setError('')
     try {
       const items = rows.map(({ item, amount }) => {
-        if (!item.name.trim() || [...item.name.trim()].length > 100 || !item.categoryId) throw new Error('각 항목의 이름(100자 이내)과 카테고리를 입력해 주세요.')
+        if (!item.name.trim() || [...item.name.trim()].length > 100) throw new Error('각 항목의 이름을 100자 이내로 입력해 주세요.')
         return { ...item, name: item.name.trim(), amount: budgetAmount(amount) }
       })
       setSaving(true)
@@ -78,7 +78,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
               {rows.length === 0 && <p className="budget-empty">등록한 고정비가 없어요.<br />위의 고정비 추가 버튼으로 바로 입력할 수 있어요.</p>}
               {rows.map(({ key, item, amount }, index) => <section className="budget-setup-item" key={key}>
                 <label className="field"><span>항목명 {index + 1}</span><input autoFocus={!item.name && index === rows.length - 1} value={item.name} placeholder="예: 월세" onChange={event => change(key, { name: event.target.value })} /></label>
-                <CategoryPicker value={item.categoryId} onChange={categoryId => change(key, { categoryId })} scope="fixedBudget" optional={false} />
+                <CategoryPicker value={item.categoryId} onChange={categoryId => change(key, { categoryId })} scope="fixedBudget" />
                 <label className="field"><span>예산 금액 {index + 1}</span><MoneyInput value={amount} onValueChange={amount => setRows(previous => previous.map(row => row.key === key ? { ...row, amount } : row))} /></label>
                 <button className="delete-button" type="button" onClick={() => setRows(previous => previous.filter(row => row.key !== key))}>항목 삭제 {index + 1}</button>
               </section>)}
