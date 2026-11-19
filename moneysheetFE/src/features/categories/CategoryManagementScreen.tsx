@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Category, Direction } from '../../data/models'
 import type { Screen } from '../../types/navigation'
 import { ApiError } from '../../api/httpClient'
@@ -29,6 +29,13 @@ export default function CategoryManagementScreen({ scope, go }: Props) {
  const [error, setError] = useState('')
  const filter = { scope, ...(scope === 'mainTransaction' ? { direction } : {}) }
  const query = useDataQuery(`category-management:${scope}:${scope === 'mainTransaction' ? direction : ''}`, api => api.getCategories(filter))
+ useEffect(() => {
+  if (editing && !query.loading && !query.error && query.data && !query.data.some(item => item.id === editing)) {
+   setEditing(null)
+   setName('')
+   setError('')
+  }
+ }, [editing, query.data, query.loading, query.error])
  const blocked = pending || query.loading || !!query.error
  const rows = [...(query.data ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'ko') || a.id.localeCompare(b.id))
  const reset = () => { setEditing(null); setName(''); setAdding(false); setNewName(''); setError('') }
