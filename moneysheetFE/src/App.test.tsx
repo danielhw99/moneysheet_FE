@@ -18,6 +18,28 @@ beforeEach(() => vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => 
   return new Response(JSON.stringify({ code: 'BUDGET_NOT_READY', message: '예산 설정 필요' }), { status: 409 })
 })))
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+it('opens separate category management screens before any budget is ready', async () => {
+ vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => {
+  const path=String(url)
+  if(path.includes('/categories'))return new Response(JSON.stringify({items:[]}))
+  if(path.endsWith('/auth/csrf'))return new Response(JSON.stringify({token:'test',headerName:'X-CSRF-TOKEN'}))
+  if(path.endsWith('/budget-preparation'))return new Response(JSON.stringify({month:currentMonth(),status:'draft',copiedFromMonth:null,items:[],food:{weekday:null,saturday:null,sunday:null}}))
+  return new Response(JSON.stringify({code:'BUDGET_NOT_READY',message:'예산 설정 필요'}),{status:409})
+ }))
+ render(<App authApi={api()} />)
+ await screen.findByRole('button',{name:'예산 저장'})
+ await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
+ await userEvent.click(screen.getByRole('button',{name:'카테고리 관리'}))
+ await userEvent.click(screen.getByRole('button',{name:/고정비 카테고리/}))
+ await screen.findByText('등록한 카테고리가 없습니다.')
+ expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'뒤로가기'}))
+ await userEvent.click(screen.getByRole('button',{name:/내역 카테고리/}))
+ expect(await screen.findByRole('tab',{name:'지출'})).toHaveAttribute('aria-selected','true')
+ await userEvent.click(screen.getByRole('tab',{name:'입금'}))
+ expect(screen.getByRole('tab',{name:'입금'})).toHaveAttribute('aria-selected','true')
+})
+
 it('keeps app settings accessible before the first budget is configured', async () => {
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}

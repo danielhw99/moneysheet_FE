@@ -16,6 +16,7 @@ import Monthly from './features/monthly/MonthlyScreen'
 import RecordList from './features/records/RecordList'
 import BottomNav from './components/BottomNav'
 import AppSettings from './components/AppSettings'
+import CategoryManagement, { CategorySettingsScreen } from './features/categories/CategoryManagementScreen'
 import QueryStatus from './components/QueryStatus'
 import { useDataQuery } from './data/useDataQuery'
 import { currentMonth } from './utils/date'
@@ -41,10 +42,12 @@ function Screens() {
   }
   const setupNotice = <><p className="notice">이 월에는 완료된 예산이 없어요. 이번 달 예산을 먼저 설정해 주세요.</p><button className="primary-button" onClick={() => { changeDate(localDateValue(new Date())); go('basic') }}>이번 달 예산 설정</button></>
   const basic = <BasicBudget key={month} go={go} month={month} locked={budgetLocks[month] ?? true} setLocked={locked => setBudgetLocks(previous => ({ ...previous, [month]: locked }))} />
-  const business = !['my','account','settings'].includes(screen)
+  const business = !['my','account','settings','categories','fixed-categories','transaction-categories'].includes(screen)
   let view: React.ReactNode, ownNavigation = false
   if (screen === 'my') { view = <My go={go} />; ownNavigation = true }
   else if (screen === 'account' || screen === 'settings') view = <SimpleSettings type={screen} go={go} />
+  else if (screen === 'categories') view = <CategorySettingsScreen go={go} />
+  else if (screen === 'fixed-categories' || screen === 'transaction-categories') view = <CategoryManagement key={screen} scope={screen === 'fixed-categories' ? 'fixedBudget' : 'mainTransaction'} go={go} />
   else if (business && readiness.lastErrorCode === 'BUDGET_NOT_READY' && month === currentMonth()) view = basic
   else if (business && (!readiness.data || (readiness.error && screen !== 'basic'))) {
     if (screen === 'home') {
@@ -65,7 +68,7 @@ function Screens() {
   else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} />
   const navScreen = screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
   return <div className="prototype"><div className="phone-frame signed-in-frame">
-    {screen !== 'my' && <AppSettings key={screen} disabled={pending} openGuide={() => guide?.openGuide()} />}
+    {screen !== 'my' && <AppSettings key={screen} disabled={pending} openGuide={() => guide?.openGuide()} openCategories={() => go('categories')} />}
     {auth.notice && <p className="session-note" role="status">{auth.notice}</p>}
     <div className={`workspace-content ${ownNavigation ? '' : 'with-workspace-nav'}`}>{view}{!ownNavigation && <BottomNav screen={navScreen} go={go} />}</div>
     <GuideDialog />

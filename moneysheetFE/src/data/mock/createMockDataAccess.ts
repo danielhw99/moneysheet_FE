@@ -32,7 +32,9 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   const balanceChecks = new Map<string, { date: string; actualBalance: number | null; locked: boolean }>()
   const getBudget = (month: string): MonthlyBudget => {
     requireMonth(month)
-    return budgets[month] ??= { month, fixed: initialBudget().fixed, food: clone(initialFoodBudget) }
+    return budgets[month] ??= { month, fixed: initialBudget().fixed.map(item => ({ ...item,
+      categoryId: categories.some(category => category.id === item.categoryId) ? item.categoryId : null,
+    })), food: clone(initialFoodBudget) }
   }
   const editableBudget = (month: string) => {
     requireMonth(month)
@@ -125,11 +127,11 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     },
     async createCategory(input) {
       const name = input.name.trim()
-      if (!name) fail('카테고리 이름을 입력해 주세요.')
+      if (!name || [...name].length > 100 || [...name.toLowerCase()].length > 100) fail('카테고리 이름은 1~100자로 입력해 주세요.')
       if (input.scope !== 'fixedBudget' && input.scope !== 'mainTransaction') fail('카테고리 사용 영역을 확인해 주세요.')
       if (input.scope === 'mainTransaction' && input.direction !== 'income' && input.direction !== 'expense') fail('카테고리 입출금 구분을 선택해 주세요.')
       const direction = input.scope === 'mainTransaction' ? input.direction : undefined
-      const existing = categories.find(item => item.scope === input.scope && item.direction === direction && item.name.toLocaleLowerCase() === name.toLocaleLowerCase())
+      const existing = categories.find(item => item.scope === input.scope && item.direction === direction && item.name.toLowerCase() === name.toLowerCase())
       if (existing) return clone(existing)
       const category: Category = { id: createId(), name, scope: input.scope, direction }
       categories.push(category)
