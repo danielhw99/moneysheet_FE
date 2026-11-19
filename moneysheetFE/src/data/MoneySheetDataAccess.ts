@@ -40,7 +40,7 @@ export interface MoneySheetDataAccess {
   setupBudget(month: string, input: import('./budgetApi').BudgetSetupInput): Promise<BudgetSummary>
   getBudget(month: string): Promise<BudgetSummary>
   updateFoodBudget(month: string, input: FoodBudget): Promise<BudgetSummary>
-  createBudgetItem(month: string, input: BudgetItemInput): Promise<Readonly<BudgetItem>>
+  createBudgetItem(month: string, input: BudgetItemInput, options?: import('./writeAttempt').CreateOptions): Promise<Readonly<BudgetItem>>
   updateBudgetItem(month: string, id: string, input: BudgetItemInput): Promise<Readonly<BudgetItem>>
   deleteBudgetItem(month: string, id: string): Promise<void>
   getCategories(query?: CategoryQuery): Promise<readonly Readonly<Category>[]>
@@ -49,7 +49,7 @@ export interface MoneySheetDataAccess {
   deleteCategory(id: string): Promise<void>
   getRecords(query: RecordQuery): Promise<RecordsSummary>
   getRecord(kind: ListKind, month: string, id: string): Promise<Readonly<MoneyRecord>>
-  createRecord(request: RecordWrite): Promise<Readonly<MoneyRecord>>
+  createRecord(request: RecordWrite, options?: import('./writeAttempt').CreateOptions): Promise<Readonly<MoneyRecord>>
   updateRecord(id: string, request: RecordWrite): Promise<Readonly<MoneyRecord>>
   deleteRecord(kind: ListKind, month: string, id: string): Promise<void>
   completeMemo(month: string, id: string, completedOn: string): Promise<Readonly<MoneyRecord>>

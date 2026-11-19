@@ -15,7 +15,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
   const listeners = new Set<() => void>()
   const invalidateCsrf = () => { token = undefined; pendingCsrf = undefined; generation++ }
 
-  async function send<T>(path: string, method: string, body?: unknown, csrf?: Csrf, notifyUnauthorized = true): Promise<T> {
+  async function send<T>(path: string, method: string, body?: unknown, csrf?: Csrf, notifyUnauthorized = true, requestKey?: string): Promise<T> {
     const requestGeneration = generation
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -23,6 +23,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
       const headers = new Headers({ Accept: 'application/json' })
       if (body !== undefined) headers.set('Content-Type', 'application/json')
       if (csrf) headers.set(csrf.headerName, csrf.token)
+      if (requestKey !== undefined) headers.set('Idempotency-Key', requestKey)
       const response = await fetcher('/api/v1' + path, {
         method, headers, credentials: 'same-origin', signal: controller.signal,
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -68,11 +69,11 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
     return work
   }
 
-  async function write<T>(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: unknown): Promise<T> {
+  async function write<T>(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: unknown, options?: { idempotencyKey: string }): Promise<T> {
     const current = generation
     const value = await csrf()
     if (generation !== current) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요. 다시 시도해 주세요.')
-    try { return await send<T>(path, method, body, value) } catch (error) {
+    try { return await send<T>(path, method, body, value, true, options?.idempotencyKey) } catch (error) {
       if (error instanceof ApiError && error.code === 'CSRF_INVALID' && current === generation) {
         invalidateCsrf()
         try { await csrf() } catch { /* Retry remains an explicit user action. */ }
@@ -83,7 +84,7 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
   return {
     get: <T,>(path: string, options: { notifyUnauthorized?: boolean } = {}) =>
       send<T>(path, 'GET', undefined, undefined, options.notifyUnauthorized ?? true),
-    post: <T,>(path: string, body?: unknown) => write<T>('POST', path, body),
+    post: <T,>(path: string, body?: unknown, options?: { idempotencyKey: string }) => write<T>('POST', path, body, options),
     patch: <T,>(path: string, body?: unknown) => write<T>('PATCH', path, body),
     put: <T,>(path: string, body?: unknown) => write<T>('PUT', path, body),
     delete: <T = void,>(path: string) => write<T>('DELETE', path),

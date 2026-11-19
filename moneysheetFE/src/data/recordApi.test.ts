@@ -4,6 +4,12 @@ import { createRecordApi } from './recordApi'
 const month='2026-11'
 const record={id:'9007199254740993',date:'2026-11-02',time:'12:30',title:'Meal',amount:9000,direction:'expense' as const,categoryId:null}
 const draft={...record,completedOn:null}
+it('forwards the creation key outside the transaction JSON body',async()=>{
+ const {api,requests}=setup(record)
+ await api.createRecord({kind:'transactions',managementMonth:month,input:draft},{idempotencyKey:'a0f71aa0-8f45-4972-a31f-9629c557e353'})
+ expect(requests[0].headers.get('Idempotency-Key')).toBe('a0f71aa0-8f45-4972-a31f-9629c557e353')
+ expect(requests[0].body).not.toHaveProperty('idempotencyKey')
+})
 function setup(value: unknown, status=200) {
  const requests: { path:string; method:string; body:unknown; headers:Headers }[]=[]
  const fetcher=vi.fn(async(url: RequestInfo|URL,options?:RequestInit)=>{

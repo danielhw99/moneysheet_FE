@@ -1,4 +1,5 @@
 import { httpClient, type HttpClient } from '../api/httpClient'
+import type { CreateOptions } from './writeAttempt'
 import type { ListKind, MoneyRecord, RecordDraft } from './models'
 import type { RecordQuery, RecordWrite, RecordsSummary } from './MoneySheetDataAccess'
 import { validateRecord } from './validation'
@@ -58,7 +59,7 @@ export function createRecordApi(client: HttpClient = httpClient) {
       if(row.id!==key) return protocol()
       return row
     },
-    async createRecord(request: RecordWrite) { const path=base(request.kind,request.managementMonth);const value=body(request.kind,request.input,request.managementMonth);return saved(await client.post(path,value),request) },
+    async createRecord(request: RecordWrite, options?: CreateOptions) { const path=base(request.kind,request.managementMonth);const value=body(request.kind,request.input,request.managementMonth);return saved(await client.post(path,value,options),request) },
     async updateRecord(key: string,request: RecordWrite) { const path=`${base(request.kind,request.managementMonth)}/${inputId(key)}`;const value=body(request.kind,request.input,request.managementMonth);return saved(await client.put(path,value),request,key) },
     async deleteRecord(kind: ListKind,m: string,key: string) { await client.delete(`${base(kind,m)}/${inputId(key)}`) },
     async completeMemo(m: string,key: string,completedOn: string) {

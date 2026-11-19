@@ -2,6 +2,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createHttpClient, ApiError } from './httpClient'
 const json = (body: unknown, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } })
 afterEach(() => vi.useRealTimers())
+
+it('preserves an explicit creation key across manual retries without automatically resending', async () => {
+ let posts=0
+ const fetcher=vi.fn(async (url:RequestInfo|URL,_options?:RequestInit)=>{
+  if(String(url).endsWith('/auth/csrf')) return json({token:'csrf',headerName:'X-CSRF-TOKEN'})
+  if(++posts===1) throw new TypeError('response lost')
+  return json({id:'1'})
+ })
+ const client=createHttpClient({fetcher}),options={idempotencyKey:'a0f71aa0-8f45-4972-a31f-9629c557e353'}
+ await expect(client.post('/months/2026-11/transactions',{amount:1},options)).rejects.toMatchObject({code:'NETWORK'})
+ expect(posts).toBe(1)
+ await client.post('/months/2026-11/transactions',{amount:1},options)
+ const requests=fetcher.mock.calls.filter(([url])=>!String(url).endsWith('/auth/csrf'))
+ expect(requests).toHaveLength(2)
+ for(const [,init] of requests) expect(new Headers(init?.headers).get('Idempotency-Key')).toBe(options.idempotencyKey)
+})
 describe('HTTP/CSRF contract', () => {
   it('sends same-origin cookies and coalesces concurrent CSRF reads', async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(json({ token: 'csrf-one', headerName: 'X-CSRF-TOKEN' }))
