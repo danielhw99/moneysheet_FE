@@ -28,6 +28,13 @@ describe('UR07 category HTTP boundary', () => {
 })
 
 describe('budget HTTP boundary', () => {
+  it('forwards an item creation key as a header while keeping the original DTO', async () => {
+    const {api,fetcher}=setup({id:'51',name:'Rent',categoryId:null,amount:100})
+    await api.createBudgetItem('2026-11',{name:'Rent',categoryId:null,amount:100},{idempotencyKey:'a0f71aa0-8f45-4972-a31f-9629c557e353'})
+    const [,init]=fetcher.mock.calls.at(-1)!
+    expect(new Headers(init?.headers).get('Idempotency-Key')).toBe('a0f71aa0-8f45-4972-a31f-9629c557e353')
+    expect(JSON.parse(String(init?.body))).toEqual({name:'Rent',categoryId:null,amount:100})
+  })
   it('sends fixed category direction as explicit null and reuses server ID', async () => {
     const { api, fetcher } = setup({ id: '8', name: 'Rent', scope: 'fixedBudget', direction: null })
     expect((await api.createCategory({ name: 'Rent', scope: 'fixedBudget' })).id).toBe('8')

@@ -13,6 +13,31 @@ function api() { return {...createMockDataAccess(),getCategories:vi.fn().mockRes
 function View({service,selected=date,kind='transactions',refreshToken=0}:{service:MoneySheetDataAccess;selected?:string;kind?:ListKind;refreshToken?:number}) {
  return <DataProvider implementation={service} refreshToken={refreshToken}><RecordList kind={kind} go={vi.fn()} date={selected} changeDate={vi.fn()}/></DataProvider>
 }
+it.each([
+ ['transactions','expense'],['transactions','income'],['memos','expense'],['memos','income'],['fixed-pay','expense'],['income','income'],['extra','expense'],
+] as const)('keeps retry keys but separates changed input and new forms for %s/%s',async(kind,direction)=>{
+ const service=api();service.getRecords.mockResolvedValue({...page([]),pendingMemoTotal:0})
+ service.getBudget=vi.fn().mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:null,amount:100000,paid:0,remaining:100000,complete:false}],food:{weekday:1,saturday:1,sunday:1},fixedTotal:100000,foodSummary:{total:30,installments:[11,10,9]}})
+ const create=vi.spyOn(service,'createRecord').mockResolvedValue(row('8','Lunch')).mockRejectedValueOnce(new Error('response lost')).mockRejectedValueOnce(new Error('response lost'))
+ render(<View service={service} kind={kind}/>);
+ const add={transactions:'거래 추가',memos:'메모 추가','fixed-pay':'지급 기록 추가',income:'수입 추가',extra:'지출 추가'}[kind]
+ const label=kind==='fixed-pay'?'이번 지급액':kind==='memos'?direction==='income'?'임시 입금 금액':'임시 출금 금액':kind==='transactions'?direction==='income'?'입금 금액':'지출 금액':'금액'
+ async function open(amount:string) {
+  const button=await screen.findByRole('button',{name:add});await waitFor(()=>expect(button).toBeEnabled());await userEvent.click(button)
+  if(direction==='income'&&(kind==='transactions'||kind==='memos'))await userEvent.click(screen.getByRole('button',{name:kind==='memos'?'임시 입금':'입금'}))
+  if(kind==='fixed-pay')await userEvent.selectOptions(screen.getByLabelText('고정지출 예산 항목'),'51')
+  else await userEvent.type(screen.getByLabelText('내용'),'Lunch')
+  await userEvent.type(screen.getByLabelText(label),amount)
+ }
+ await open('9000');await userEvent.click(screen.getByRole('button',{name:'저장'}));await screen.findByRole('alert')
+ await userEvent.clear(screen.getByLabelText(label));await userEvent.type(screen.getByLabelText(label),'9,000');await userEvent.click(screen.getByRole('button',{name:'저장'}));await waitFor(()=>expect(create).toHaveBeenCalledTimes(2))
+ const first=create.mock.calls[0][1]?.idempotencyKey
+ expect(first).toEqual(expect.any(String));expect(create.mock.calls[1][1]?.idempotencyKey).toBe(first)
+ await userEvent.clear(screen.getByLabelText(label));await userEvent.type(screen.getByLabelText(label),'9001');await userEvent.click(screen.getByRole('button',{name:'저장'}));await screen.findByRole('button',{name:add})
+ expect(create.mock.calls[2][1]?.idempotencyKey).not.toBe(first)
+ await open('9001');await userEvent.click(screen.getByRole('button',{name:'저장'}));await waitFor(()=>expect(create).toHaveBeenCalledTimes(4))
+ expect(create.mock.calls[3][1]?.idempotencyKey).not.toBe(create.mock.calls[2][1]?.idempotencyKey)
+})
 it('shows a visible loading status until the initial records query completes',async()=>{
  let resolve!:(summary:RecordsSummary)=>void
  const service=api();service.getRecords.mockImplementation(()=>new Promise(done=>{resolve=done}))

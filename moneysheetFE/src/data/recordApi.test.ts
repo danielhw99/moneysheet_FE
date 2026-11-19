@@ -4,6 +4,20 @@ import { createRecordApi } from './recordApi'
 const month='2026-11'
 const record={id:'9007199254740993',date:'2026-11-02',time:'12:30',title:'Meal',amount:9000,direction:'expense' as const,categoryId:null}
 const draft={...record,completedOn:null}
+it('forwards the creation key outside the transaction JSON body',async()=>{
+ const {api,requests}=setup(record)
+ await api.createRecord({kind:'transactions',managementMonth:month,input:draft},{idempotencyKey:'a0f71aa0-8f45-4972-a31f-9629c557e353'})
+ expect(requests[0].headers.get('Idempotency-Key')).toBe('a0f71aa0-8f45-4972-a31f-9629c557e353')
+ expect(requests[0].body).not.toHaveProperty('idempotencyKey')
+})
+it('accepts a same-month current record on keyed replay while keeping legacy and update date checks strict',async()=>{
+ const moved={...record,date:'2026-11-03'}
+ const keyed=setup(moved)
+ await expect(keyed.api.createRecord({kind:'transactions',managementMonth:month,input:draft},{idempotencyKey:'a0f71aa0-8f45-4972-a31f-9629c557e353'})).resolves.toMatchObject({date:moved.date})
+ await expect(setup(moved).api.createRecord({kind:'transactions',managementMonth:month,input:draft})).rejects.toMatchObject({code:'PROTOCOL'})
+ await expect(setup(moved).api.updateRecord(record.id,{kind:'transactions',managementMonth:month,input:draft})).rejects.toMatchObject({code:'PROTOCOL'})
+ await expect(setup({...record,date:'2026-10-03'}).api.createRecord({kind:'transactions',managementMonth:month,input:draft},{idempotencyKey:'a0f71aa0-8f45-4972-a31f-9629c557e353'})).rejects.toMatchObject({code:'PROTOCOL'})
+})
 function setup(value: unknown, status=200) {
  const requests: { path:string; method:string; body:unknown; headers:Headers }[]=[]
  const fetcher=vi.fn(async(url: RequestInfo|URL,options?:RequestInit)=>{

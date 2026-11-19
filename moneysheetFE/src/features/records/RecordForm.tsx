@@ -8,10 +8,11 @@ import { daysInMonth, localTimeValue } from '../../utils/date'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
 import CategoryPicker from '../../components/CategoryPicker'
 import { won } from '../../utils/money'
+import { createWriteAttempt, type CreateOptions } from '../../data/writeAttempt'
 
 export default function RecordForm({ kind, item, initialDate, budget, refreshing, onSave, onDelete, onCancel }: {
   kind: ListKind; item?: Readonly<MoneyRecord>; initialDate: string; budget: BudgetSummary | null; refreshing: boolean;
-  onSave: (draft: RecordDraft) => Promise<void>; onDelete: () => Promise<void>; onCancel: () => void;
+  onSave: (draft: RecordDraft, options?: CreateOptions) => Promise<void>; onDelete: () => Promise<void>; onCancel: () => void;
 }) {
   const { pending } = useDataAccess()
   const [date, setDate] = useState(item?.date ?? initialDate)
@@ -22,6 +23,7 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
   const [title, setTitle] = useState(item?.title ?? '')
   const [budgetItemId, setBudgetItemId] = useState(item?.budgetItemId ?? '')
   const [error, setError] = useState('')
+  const [attempt] = useState(createWriteAttempt)
   const isMemo = kind === 'memos'
   const isFixed = kind === 'fixed-pay'
   const amountLabel = isFixed ? '이번 지급액' : isMemo ? direction === 'income' ? '임시 입금 금액' : '임시 출금 금액' : kind === 'transactions' ? direction === 'income' ? '입금 금액' : '지출 금액' : '금액'
@@ -53,7 +55,11 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
         return
       }
     }
-    try { await onSave(draft) } catch (error) { setError(errorMessage(error)) }
+    try {
+      if (item) await onSave(draft)
+      else await onSave(draft, { idempotencyKey: attempt.keyFor({ kind, managementMonth, draft }) })
+      attempt.reset()
+    } catch (error) { setError(errorMessage(error)) }
   }
   const remove = async () => {
     if (pending || refreshing) return

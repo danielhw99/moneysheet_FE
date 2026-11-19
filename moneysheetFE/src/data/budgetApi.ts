@@ -1,4 +1,5 @@
 import { ApiError, httpClient, type HttpClient } from '../api/httpClient'
+import type { CreateOptions } from './writeAttempt'
 import type { BudgetItem, BudgetItemInput, Category, CategoryInput, FoodBudget } from './models'
 import type { BudgetSummary, CategoryQuery } from './MoneySheetDataAccess'
 
@@ -44,7 +45,7 @@ export function createBudgetApi(client: HttpClient = httpClient) {
     async setupBudget(m: string, value: BudgetSetupInput) { return summary(await client.put(`${base(m)}/budget-setup`, value), m) },
     async getBudget(m: string) { return summary(await client.get(`${base(m)}/budget`), m) },
     async updateFoodBudget(m: string, value: FoodBudget) { return summary(await client.put(`${base(m)}/food-budget`, value), m) },
-    async createBudgetItem(m: string, value: BudgetItemInput) { return item(await client.post(`${base(m)}/budget-items`, input(value))) },
+    async createBudgetItem(m: string, value: BudgetItemInput, options?: CreateOptions) { return item(await client.post(`${base(m)}/budget-items`, input(value), options)) },
     async updateBudgetItem(m: string, key: string, value: BudgetItemInput) { return item(await client.put(`${base(m)}/budget-items/${id(key)}`, input(value))) },
     async deleteBudgetItem(m: string, key: string) { await client.delete(`${base(m)}/budget-items/${id(key)}`) },
     async getCategories(query: CategoryQuery = {}) {

@@ -55,8 +55,8 @@ export default function RecordList({ kind, go, date, changeDate }: {
     <QueryStatus {...query} quietLoading={!!query.data} />
     {actionError && <p className="query-status" role="alert">{actionError}</p>}
     {editing && data ? <RecordForm kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={data.budget} refreshing={query.loading || !!query.error}
-      onSave={async input => {
-        await mutate(api => editing === 'new' ? api.createRecord({ kind, managementMonth: month, input }) : api.updateRecord(editing.id, { kind, managementMonth: month, input }))
+      onSave={async (input, options) => {
+        await mutate(api => editing === 'new' ? api.createRecord({ kind, managementMonth: month, input }, options) : api.updateRecord(editing.id, { kind, managementMonth: month, input }))
         setEditing(null)
       }}
       onDelete={async () => { if (editing !== 'new') await mutate(api => api.deleteRecord(kind, month, editing.id)); setEditing(null) }} onCancel={() => setEditing(null)} /> : <>
