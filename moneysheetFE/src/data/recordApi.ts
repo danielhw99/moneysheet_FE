@@ -32,9 +32,10 @@ function body(kind: ListKind, input: RecordDraft, m: string) {
   return {...common,kind:kind==='income'?'income':'extraExpense'}
 }
 export function createRecordApi(client: HttpClient = httpClient) {
-  const saved = (value: unknown, request: RecordWrite, key?:string) => {
+  const saved = (value: unknown, request: RecordWrite, key?:string, currentReplay=false) => {
     const row=readRecord(request.kind,value,request.managementMonth)
-    if(row.date!==request.input.date || (key && row.id!==key)) return protocol()
+    // A keyed create may replay a record edited since the original commit. readRecord still enforces its month.
+    if((!currentReplay && row.date!==request.input.date) || (key && row.id!==key)) return protocol()
     return row
   }
   return {
@@ -59,7 +60,7 @@ export function createRecordApi(client: HttpClient = httpClient) {
       if(row.id!==key) return protocol()
       return row
     },
-    async createRecord(request: RecordWrite, options?: CreateOptions) { const path=base(request.kind,request.managementMonth);const value=body(request.kind,request.input,request.managementMonth);return saved(await client.post(path,value,options),request) },
+    async createRecord(request: RecordWrite, options?: CreateOptions) { const path=base(request.kind,request.managementMonth);const value=body(request.kind,request.input,request.managementMonth);return saved(await client.post(path,value,options),request,undefined,options?.idempotencyKey!==undefined) },
     async updateRecord(key: string,request: RecordWrite) { const path=`${base(request.kind,request.managementMonth)}/${inputId(key)}`;const value=body(request.kind,request.input,request.managementMonth);return saved(await client.put(path,value),request,key) },
     async deleteRecord(kind: ListKind,m: string,key: string) { await client.delete(`${base(kind,m)}/${inputId(key)}`) },
     async completeMemo(m: string,key: string,completedOn: string) {
