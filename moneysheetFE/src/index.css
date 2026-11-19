@@ -443,3 +443,16 @@
 .account-confirm { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-top: 16px; }
 .account-confirm input { flex: 0 0 auto; margin-top: 3px; }
 .account-delete { color: #b42318; }
+.category-management-screen { display: flex; flex-direction: column; }
+.category-management-screen > .topbar { flex-shrink: 0; }
+.category-management-content { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
+.category-direction-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.category-direction-tabs > button { flex: 1; padding: 10px; border: 1px solid var(--divider); border-radius: 8px; background: white; cursor: pointer; }
+.category-direction-tabs > button[aria-selected="true"] { font-weight: 700; outline: 2px solid var(--primary, #228b5b); outline-offset: -2px; }
+.category-management-list { list-style: none; padding: 0; margin: 16px 0; }
+.category-management-list > li { padding: 12px 0; border-bottom: 1px solid var(--divider); }
+.category-management-row { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.category-management-row > span { min-width: 0; overflow-wrap: anywhere; }
+.category-management-row > div { display: flex; flex-shrink: 0; gap: 8px; }
+.category-management-content > .primary-button { width: 100%; }
+.category-action-error { margin-top: 12px; }

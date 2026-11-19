@@ -36,6 +36,18 @@ it('cannot open during a pending save', () => {
  fireEvent.click(screen.getByRole('button',{name:'앱 설정'}))
  expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
 })
+it('opens category management and blocks it if saving starts while the menu is open', async () => {
+ const openCategories=vi.fn()
+ const view=render(<AppSettings openGuide={()=>{}} openCategories={openCategories} />)
+ await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
+ view.rerender(<AppSettings openGuide={()=>{}} openCategories={openCategories} disabled />)
+ fireEvent.click(screen.getByRole('button',{name:'카테고리 관리'}))
+ expect(openCategories).not.toHaveBeenCalled()
+ view.rerender(<AppSettings openGuide={()=>{}} openCategories={openCategories} />)
+ await userEvent.click(screen.getByRole('button',{name:'카테고리 관리'}))
+ expect(openCategories).toHaveBeenCalledTimes(1)
+ expect(screen.queryByRole('navigation',{name:'앱 설정 항목'})).not.toBeInTheDocument()
+})
 it('blocks guide activation when saving starts after the menu was opened', async () => {
  const openGuide=vi.fn()
  const view=render(<AppSettings openGuide={openGuide} />)

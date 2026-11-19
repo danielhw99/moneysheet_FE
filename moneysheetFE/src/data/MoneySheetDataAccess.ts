@@ -45,6 +45,8 @@ export interface MoneySheetDataAccess {
   deleteBudgetItem(month: string, id: string): Promise<void>
   getCategories(query?: CategoryQuery): Promise<readonly Readonly<Category>[]>
   createCategory(input: CategoryInput): Promise<Readonly<Category>>
+  updateCategory(id: string, input: { name: string }): Promise<Readonly<Category>>
+  deleteCategory(id: string): Promise<void>
   getRecords(query: RecordQuery): Promise<RecordsSummary>
   getRecord(kind: ListKind, month: string, id: string): Promise<Readonly<MoneyRecord>>
   createRecord(request: RecordWrite): Promise<Readonly<MoneyRecord>>
@@ -58,7 +60,7 @@ export interface MoneySheetDataAccess {
   getProfile(): Promise<Readonly<UserProfile>>
 }
 
-export type DataAccessErrorCode = 'VALIDATION' | 'NOT_FOUND' | 'BUDGET_READ_ONLY' | 'REFERENCED'
+export type DataAccessErrorCode = 'VALIDATION' | 'NOT_FOUND' | 'BUDGET_READ_ONLY' | 'REFERENCED' | 'CONFLICT'
 export class DataAccessError extends Error {
   constructor(public readonly code: DataAccessErrorCode, message: string) {
     super(message)

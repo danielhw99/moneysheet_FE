@@ -32,7 +32,9 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   const balanceChecks = new Map<string, { date: string; actualBalance: number | null; locked: boolean }>()
   const getBudget = (month: string): MonthlyBudget => {
     requireMonth(month)
-    return budgets[month] ??= { month, fixed: initialBudget().fixed, food: clone(initialFoodBudget) }
+    return budgets[month] ??= { month, fixed: initialBudget().fixed.map(item => ({ ...item,
+      categoryId: categories.some(category => category.id === item.categoryId) ? item.categoryId : null,
+    })), food: clone(initialFoodBudget) }
   }
   const editableBudget = (month: string) => {
     requireMonth(month)
@@ -45,7 +47,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     return record
   }
   const validateBudgetItem = (budget: MonthlyBudget, input: BudgetItemInput, id: string) => {
-    if (!input.name.trim() || !categories.some(item => item.id === input.categoryId && item.scope === 'fixedBudget')) fail('항목명과 고정비 카테고리를 입력해 주세요.')
+    if (!input.name.trim() || input.categoryId !== null && !categories.some(item => item.id === input.categoryId && item.scope === 'fixedBudget')) fail('항목명과 고정비 카테고리를 확인해 주세요.')
     if (!Number.isSafeInteger(input.amount) || input.amount < 0) fail('예산은 0 이상의 원 단위 정수로 입력해 주세요.')
     const paid = records['fixed-pay'].filter(item => item.budgetItemId === id && item.date.slice(0, 7) === budget.month).reduce((sum, item) => sum + item.amount, 0)
     if (input.amount < paid) fail('이미 지급한 금액보다 작게 예산을 설정할 수 없어요.')
@@ -125,15 +127,31 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     },
     async createCategory(input) {
       const name = input.name.trim()
-      if (!name) fail('카테고리 이름을 입력해 주세요.')
+      if (!name || [...name].length > 100 || [...name.toLowerCase()].length > 100) fail('카테고리 이름은 1~100자로 입력해 주세요.')
       if (input.scope !== 'fixedBudget' && input.scope !== 'mainTransaction') fail('카테고리 사용 영역을 확인해 주세요.')
       if (input.scope === 'mainTransaction' && input.direction !== 'income' && input.direction !== 'expense') fail('카테고리 입출금 구분을 선택해 주세요.')
       const direction = input.scope === 'mainTransaction' ? input.direction : undefined
-      const existing = categories.find(item => item.scope === input.scope && item.direction === direction && item.name.toLocaleLowerCase() === name.toLocaleLowerCase())
+      const existing = categories.find(item => item.scope === input.scope && item.direction === direction && item.name.toLowerCase() === name.toLowerCase())
       if (existing) return clone(existing)
       const category: Category = { id: createId(), name, scope: input.scope, direction }
       categories.push(category)
       return clone(category)
+    },
+    async updateCategory(id, input) {
+      const current = categories.find(item => item.id === id)
+      if (!current) throw new DataAccessError('NOT_FOUND', '카테고리를 찾을 수 없어요.')
+      const name = input.name.trim()
+      if (!name || [...name].length > 100 || [...name.toLowerCase()].length > 100) fail('카테고리 이름은 1~100자로 입력해 주세요.')
+      if (categories.some(item => item.id !== id && item.scope === current.scope && item.direction === current.direction && item.name.toLowerCase() === name.toLowerCase())) throw new DataAccessError('CONFLICT', '이미 사용 중인 이름입니다.')
+      current.name = name
+      return clone(current)
+    },
+    async deleteCategory(id) {
+      const index = categories.findIndex(item => item.id === id)
+      if (index < 0) throw new DataAccessError('NOT_FOUND', '카테고리를 찾을 수 없어요.')
+      categories.splice(index, 1)
+      for (const budget of Object.values(budgets)) for (const item of budget.fixed) if (item.categoryId === id) item.categoryId = null
+      for (const item of records.transactions) if (item.categoryId === id) item.categoryId = null
     },
     async getRecords(query) {
       if (query.date) { if (!validDate(query.date)) fail('날짜를 확인해 주세요.') }

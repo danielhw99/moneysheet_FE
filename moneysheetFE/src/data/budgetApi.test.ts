@@ -5,6 +5,28 @@ function setup(response: unknown) {
   const fetcher = vi.fn(async (url: RequestInfo | URL, _options?: RequestInit) => new Response(JSON.stringify(String(url).endsWith('/auth/csrf') ? { token: 'csrf', headerName: 'X-CSRF-TOKEN' } : response)))
   return { api: createBudgetApi(createHttpClient({ fetcher })), fetcher }
 }
+describe('UR07 category HTTP boundary', () => {
+  it('accepts an uncategorized fixed item without losing the null', async () => {
+    const { api } = setup({ month: '2026-11', status: 'ready', items: [{ id: '51', name: 'Rent', categoryId: null, amount: 100, paid: 0, remaining: 100, complete: false }], food: { weekday: 1, saturday: 1, sunday: 1 }, fixedTotal: 100, foodSummary: { total: 30, installments: [11, 10, 9] } })
+    expect((await api.getBudget('2026-11')).items[0].categoryId).toBeNull()
+  })
+  it('PATCH sends only a name and preserves server category identity', async () => {
+    const { api, fetcher } = setup({ id: '8', name: 'New', scope: 'fixedBudget', direction: null })
+    expect((await api.updateCategory('8', { name: 'New' })).id).toBe('8')
+    const [url, options] = fetcher.mock.calls.at(-1)!
+    expect(String(url)).toBe('/api/v1/categories/8')
+    expect(options?.method).toBe('PATCH')
+    expect(JSON.parse(String(options?.body))).toEqual({ name: 'New' })
+    expect(new Headers(options?.headers).get('X-CSRF-TOKEN')).toBe('csrf')
+  })
+  it('DELETE accepts 204 without parsing a JSON body', async () => {
+    const fetcher = vi.fn(async (url: RequestInfo | URL) => String(url).endsWith('/auth/csrf')
+      ? new Response(JSON.stringify({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }))
+      : new Response(null, { status: 204 }))
+    await expect(createBudgetApi(createHttpClient({ fetcher })).deleteCategory('8')).resolves.toBeUndefined()
+  })
+})
+
 describe('budget HTTP boundary', () => {
   it('sends fixed category direction as explicit null and reuses server ID', async () => {
     const { api, fetcher } = setup({ id: '8', name: 'Rent', scope: 'fixedBudget', direction: null })

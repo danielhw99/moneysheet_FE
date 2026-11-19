@@ -21,8 +21,8 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (pending || refreshing || loadError) return
-    if (!name.trim() || !categoryId || !amount.trim()) {
-      setError('항목명, 카테고리, 예산 금액을 모두 입력해 주세요.')
+    if (!name.trim() || !amount.trim()) {
+      setError('항목명과 예산 금액을 입력해 주세요.')
       return
     }
     let numericAmount: number
@@ -45,7 +45,7 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
       <form className="record-form fixed-budget-form" onSubmit={submit} noValidate>
         <fieldset className="form-fields" disabled={pending || refreshing || !!loadError}>
         <label className="field"><span>항목명</span><input required value={name} onChange={event => setName(event.target.value)} /></label>
-        <CategoryPicker value={categoryId} onChange={setCategoryId} scope="fixedBudget" optional={false} />
+        <CategoryPicker value={categoryId} onChange={setCategoryId} scope="fixedBudget" />
         <label className="field"><span>예산 금액</span><div className="money-input"><MoneyInput required aria-label="예산 금액" value={amount} onValueChange={setAmount} /><b>원</b></div></label>
         {error && <p className="form-help" role="alert">{error}</p>}
         <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel}>취소</button><button className="primary-button" type="submit">저장</button></div>

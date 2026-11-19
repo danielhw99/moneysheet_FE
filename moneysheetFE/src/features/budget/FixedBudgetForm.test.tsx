@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { DataProvider } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
@@ -6,6 +6,16 @@ import FixedBudgetForm from './FixedBudgetForm'
 import { budgetAmount } from './budgetInput'
 
 describe('ready budget editing', () => {
+  it('saves a fixed item without choosing a category', async () => {
+    const api = createMockDataAccess(); api.getCategories = vi.fn().mockResolvedValue([])
+    const onSave = vi.fn().mockResolvedValue(undefined)
+    render(<DataProvider implementation={api}><FixedBudgetForm refreshing={false} loadError="" retry={vi.fn()} onSave={onSave} onDelete={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+    await waitFor(() => expect(screen.getByRole('combobox')).not.toBeDisabled())
+    fireEvent.change(screen.getByLabelText('항목명'), { target: { value: 'Rent' } })
+    fireEvent.change(screen.getByLabelText('예산 금액'), { target: { value: '100' } })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ name: 'Rent', amount: 100, categoryId: null }))
+  })
   it('rejects zero, unsafe amounts, decimals and malformed commas', () => {
     for (const value of ['0', '10000000000', '1.5', '1,,000', '10,00', 'text']) expect(() => budgetAmount(value)).toThrow()
     expect(budgetAmount('9,999,999,999')).toBe(9999999999)

@@ -13,7 +13,7 @@ const total = (v: unknown): number => { if (typeof v !== 'number' || !Number.isS
 const name = (v: unknown): string => { if (typeof v !== 'string' || !v.trim() || [...v].length > 100) throw protocol(); return v }
 const month = (v: string) => { if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(v)) throw new ApiError(400, 'VALIDATION', '조회할 월을 확인해 주세요.'); return v }
 function food(v: unknown): FoodBudget { const d = object(v); return { weekday: money(d.weekday), saturday: money(d.saturday), sunday: money(d.sunday) } }
-function item(v: unknown): BudgetItem { const d = object(v); return { id: id(d.id), name: name(d.name), categoryId: id(d.categoryId), amount: money(d.amount) } }
+function item(v: unknown): BudgetItem { const d = object(v); return { id: id(d.id), name: name(d.name), categoryId: d.categoryId === null ? null : id(d.categoryId), amount: money(d.amount) } }
 function summary(v: unknown, expectedMonth: string): BudgetSummary {
   const d = object(v); const f = object(d.foodSummary)
   if (d.month !== expectedMonth || d.status !== 'ready' || !Array.isArray(d.items) || !Array.isArray(f.installments) || f.installments.length !== 3) throw protocol()
@@ -56,5 +56,7 @@ export function createBudgetApi(client: HttpClient = httpClient) {
       return d.items.map(category)
     },
     async createCategory(value: CategoryInput) { return category(await client.post('/categories', { ...value, direction: value.direction ?? null })) },
+    async updateCategory(key: string, value: { name: string }) { return category(await client.patch(`/categories/${id(key)}`, { name: value.name })) },
+    async deleteCategory(key: string) { await client.delete(`/categories/${id(key)}`) },
   }
 }

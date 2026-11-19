@@ -13,3 +13,6 @@ export type Screen =
   | 'extra'
   | 'account'
   | 'settings'
+  | 'categories'
+  | 'fixed-categories'
+  | 'transaction-categories'
