@@ -6,6 +6,20 @@ import FixedBudgetForm from './FixedBudgetForm'
 import { budgetAmount } from './budgetInput'
 
 describe('ready budget editing', () => {
+  it('preserves a failed creation key and rotates it when the submitted input changes', async () => {
+    const api=createMockDataAccess();api.getCategories=vi.fn().mockResolvedValue([])
+    const onSave=vi.fn().mockRejectedValue(new Error('response lost'))
+    render(<DataProvider implementation={api}><FixedBudgetForm refreshing={false} loadError="" retry={vi.fn()} onSave={onSave} onDelete={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
+    fireEvent.change(screen.getByLabelText('항목명'),{target:{value:'Rent'}})
+    fireEvent.change(screen.getByLabelText('예산 금액'),{target:{value:'9000'}})
+    fireEvent.click(screen.getByRole('button',{name:'저장'}));await screen.findByRole('alert')
+    fireEvent.change(screen.getByLabelText('예산 금액'),{target:{value:'9,000'}})
+    fireEvent.click(screen.getByRole('button',{name:'저장'}));await waitFor(()=>expect(onSave).toHaveBeenCalledTimes(2))
+    expect(onSave.mock.calls[1][1].idempotencyKey).toBe(onSave.mock.calls[0][1].idempotencyKey)
+    fireEvent.change(screen.getByLabelText('예산 금액'),{target:{value:'9001'}})
+    fireEvent.click(screen.getByRole('button',{name:'저장'}));await waitFor(()=>expect(onSave).toHaveBeenCalledTimes(3))
+    expect(onSave.mock.calls[2][1].idempotencyKey).not.toBe(onSave.mock.calls[1][1].idempotencyKey)
+  })
   it('saves a fixed item without choosing a category', async () => {
     const api = createMockDataAccess(); api.getCategories = vi.fn().mockResolvedValue([])
     const onSave = vi.fn().mockResolvedValue(undefined)
@@ -14,7 +28,7 @@ describe('ready budget editing', () => {
     fireEvent.change(screen.getByLabelText('항목명'), { target: { value: 'Rent' } })
     fireEvent.change(screen.getByLabelText('예산 금액'), { target: { value: '100' } })
     fireEvent.click(screen.getByRole('button', { name: '저장' }))
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ name: 'Rent', amount: 100, categoryId: null }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ name: 'Rent', amount: 100, categoryId: null }, { idempotencyKey: expect.any(String) }))
   })
   it('rejects zero, unsafe amounts, decimals and malformed commas', () => {
     for (const value of ['0', '10000000000', '1.5', '1,,000', '10,00', 'text']) expect(() => budgetAmount(value)).toThrow()

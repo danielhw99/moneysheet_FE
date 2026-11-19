@@ -8,9 +8,10 @@ import CategoryPicker from '../../components/CategoryPicker'
 import Header from '../../components/Header'
 import QueryStatus from '../../components/QueryStatus'
 import { won } from '../../utils/money'
+import { createWriteAttempt, type CreateOptions } from '../../data/writeAttempt'
 
 export default function FixedBudgetForm({ item, refreshing, loadError, retry, onSave, onDelete, onCancel }: {
-  item?: BudgetItemSummary; refreshing: boolean; loadError: string; retry: () => void; onSave: (input: BudgetItemInput) => Promise<void>;
+  item?: BudgetItemSummary; refreshing: boolean; loadError: string; retry: () => void; onSave: (input: BudgetItemInput, options?: CreateOptions) => Promise<void>;
   onDelete: () => Promise<void>; onCancel: () => void;
 }) {
   const { pending } = useDataAccess()
@@ -18,6 +19,7 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
   const [categoryId, setCategoryId] = useState<string | null>(item?.categoryId ?? null)
   const [amount, setAmount] = useState(item ? won(item.amount) : '')
   const [error, setError] = useState('')
+  const [attempt] = useState(createWriteAttempt)
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (pending || refreshing || loadError) return
@@ -32,7 +34,12 @@ export default function FixedBudgetForm({ item, refreshing, loadError, retry, on
       setError(`이미 지급한 ${won(item.paid)}원보다 작게 예산을 설정할 수 없어요.`)
       return
     }
-    try { await onSave({ name: name.trim(), categoryId, amount: numericAmount }) } catch (error) { setError(errorMessage(error)) }
+    const input={ name: name.trim(), categoryId, amount: numericAmount }
+    try {
+      if (item) await onSave(input)
+      else await onSave(input, { idempotencyKey: attempt.keyFor(input) })
+      attempt.reset()
+    } catch (error) { setError(errorMessage(error)) }
   }
   const remove = async () => {
     if (pending || refreshing || loadError) return

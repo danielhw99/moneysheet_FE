@@ -59,9 +59,9 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
       if (locked || month !== currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
       if (editing !== 'new') await mutate(api => api.deleteBudgetItem(month, editing.id))
       setEditing(null)
-    }} onSave={async input => {
+    }} onSave={async (input, options) => {
       if (locked || month !== currentMonth()) throw new Error('예산 잠금·지난달 여부를 확인해 주세요.')
-      await mutate(api => editing === 'new' ? api.createBudgetItem(month, input) : api.updateBudgetItem(month, editing.id, input))
+      await mutate(api => editing === 'new' ? api.createBudgetItem(month, input, options) : api.updateBudgetItem(month, editing.id, input))
       setEditing(null)
     }} />
   return (
