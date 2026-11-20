@@ -67,7 +67,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
           </MiniList>
           <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" onAdd={() => open('memos', 'new')}>
             {activeMemos.length === 0 && <p className="record-empty">미완료 메모가 없습니다.</p>}
-            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} disabled={pending || query.loading || !!query.error} onClick={() => void toggleMemo(item.id)} /><button className="memo-main" onClick={() => open('memos', { id: item.id })}><span className="truncate">{item.title}</span><b>{signedWon(recordValue(item))}</b></button></div>)}
+            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} disabled={pending || query.loading || !!query.error} onClick={() => void toggleMemo(item.id)} /><button className="memo-main" onClick={() => open('memos', { id: item.id })}><span className="truncate">{item.title}</span><b className={item.direction==='income'?'amount-income':'amount-expense'}>{signedWon(recordValue(item))}</b></button></div>)}
           </MiniList>
         </div>
         <section className="fixed-panel">
@@ -86,11 +86,10 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
 
 function BalanceCheck({ date }: { date: string }) {
  const query = useDataQuery(`balance-check:${date}`, api => api.getBalanceCheck(date))
- if (!query.data) return <QueryStatus {...query} />
- return <><QueryStatus loading={false} error={query.error} retry={query.retry} /><BalanceCheckForm key={date} date={date} initial={query.data} blocked={query.loading || !!query.error} /></>
+ return <><QueryStatus loading={false} error={query.error} retry={query.retry} /><BalanceCheckForm key={date} date={date} initial={query.data ?? {date,actualBalance:null,locked:true}} loading={query.loading} blocked={query.loading || !!query.error || !query.data} /></>
 }
 
-function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean }) {
+function BalanceCheckForm({ date, initial, blocked, loading }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean; loading:boolean }) {
  const { mutate, pending } = useDataAccess()
  const [amount, setAmount] = useState(initial.actualBalance === null ? '' : String(initial.actualBalance))
  const [locked, setLocked] = useState(initial.locked)
@@ -98,7 +97,7 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
  const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
-  if (dirty || blocked || pending || saving) return
+  if (dirty || blocked || saving) return
   setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
   setLocked(initial.locked)
  }, [initial, dirty, blocked, pending, saving])
@@ -119,7 +118,7 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
  }
  return <>
   <div className="account-balance">
-   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} placeholder="미입력" /><b>원</b></label>
+   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} aria-busy={loading} placeholder={loading ? '불러오는 중…' : '미입력'} /><b>원</b></label>
    <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || saving || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
   </div>
   <p className="helper">{pending ? '저장 중…' : locked ? amount === '' ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '실제 잔액이 저장되어 잠겨 있어요.' : '입력 후 잠금을 누르면 저장돼요. 계산 잔액에는 반영되지 않아요.'}</p>

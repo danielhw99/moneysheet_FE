@@ -59,7 +59,7 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
   }
   return <main className={`detail-shell records-detail ${showingEditor ? 'is-editing' : ''}`}>
     <Header title={showingEditor ? `${cfg.title} ${initialEntry === 'new' || editing === 'new' ? '추가' : '편집'}` : cfg.title} onBack={() => { if (!pending) showingEditor ? finish() : go(monthly ? 'monthly' : 'daily') }} />
-    <QueryStatus {...query} quietLoading={!!query.data} />
+    {showingEditor && <QueryStatus {...query} quietLoading={!!query.data} />}
     {actionError && <p className="query-status" role="alert">{actionError}</p>}
     {editing && data ? <RecordForm key={continuation?.version ?? 0} kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={data.budget} refreshing={query.loading || !!query.error} continuation={continuation?.seed}
       onSave={async (input, options, keepWriting) => {
@@ -79,8 +79,9 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
         <button type="button" disabled={pending} className={memoTab === 'pending' ? 'active' : ''} aria-pressed={memoTab === 'pending'} onClick={() => setMemoTab('pending')}>미완료</button>
         <button type="button" disabled={pending} className={memoTab === 'completed' ? 'active' : ''} aria-pressed={memoTab === 'completed'} onClick={() => setMemoTab('completed')}>완료 이력</button>
       </div>}
-      <div className="records-scroll"><div className="record-list" aria-busy={query.loading}>
-        {data && rows.length === 0 && <p className="record-empty">{kind === 'memos' ? memoTab === 'completed' ? '이 날짜에 완료한 메모가 없습니다.' : '미완료 메모가 없습니다.' : '해당 기간의 기록이 없습니다.'}</p>}
+      <div className="records-scroll" role="region" aria-label="기록 목록"><div className="record-list" aria-busy={query.loading}>
+        <QueryStatus {...query} />
+        {data && !query.loading && !query.error && rows.length === 0 && <p className="record-empty">{kind === 'memos' ? memoTab === 'completed' ? '이 날짜에 완료한 메모가 없습니다.' : '미완료 메모가 없습니다.' : '해당 기간의 기록이 없습니다.'}</p>}
         {rows.map(item => {
           const category = data?.categories.find(category => category.id === item.categoryId)
           const budgetItem = data?.budget?.items.find(value => value.id === item.budgetItemId)
@@ -92,7 +93,7 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
               : <span className="record-date">{monthly ? Number(item.date.slice(8)) + '일' : item.time}</span>}
             <button type="button" className="memo-record-open" disabled={pending || query.loading || !!query.error} onClick={() => setEditing(item)}>
               <span className="record-title"><b>{kind === 'fixed-pay' ? budgetItem?.name ?? item.title : item.title}</b><small>{detail}</small></span>
-              <strong className={kind === 'memos' ? undefined : kind === 'income' || kind === 'transactions' && item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{kind === 'transactions' || kind === 'memos' ? signedWon(recordValue(item)) : won(item.amount) + '원'}</strong><Icon name="chevron" size={16} />
+              <strong className={kind === 'income' || (kind === 'transactions' || kind === 'memos') && item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{kind === 'transactions' || kind === 'memos' ? signedWon(recordValue(item)) : won(item.amount) + '원'}</strong><Icon name="chevron" size={16} />
             </button>
           </div>
         })}

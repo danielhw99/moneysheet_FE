@@ -485,3 +485,13 @@
 .setup-food .food-settings-fields { flex-shrink: 0; }
 .food-settings-fields h2 { font-size: 16px; margin: 0 0 12px; }
 .food-settings-options .field { margin-top: 12px; }
+
+/* Common screen layout: query states stay in their owning content. */
+.balance-card > .helper { min-height: 3em; }
+.account-balance input[aria-busy="true"]::placeholder { font-size: 11px; }
+.records-detail .record-list { margin-top: 0; }
+.records-detail > .segment { margin: 8px 16px; }
+.record-list > .query-status { margin: 8px 0; overflow-wrap: anywhere; }
+.budget-lock-toggle { width: auto; min-width: 104px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; font-size: 12px; }
+.sub-month .budget-lock-toggle span { padding: 0; background: transparent; color: inherit; font: inherit; }
+.nickname-form { display: flex; flex-direction: column; gap: 16px; }
