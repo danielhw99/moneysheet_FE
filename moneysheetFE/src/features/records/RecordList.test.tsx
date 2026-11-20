@@ -48,14 +48,15 @@ it('shows a visible loading status until the initial records query completes',as
  expect(await screen.findByText('해당 기간의 기록이 없습니다.')).toBeInTheDocument()
  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
-it('keeps records visible and the loading status quiet during refresh',async()=>{
+it('keeps records visible and the loading status inside the list during refresh',async()=>{
  let resolve!:(summary:RecordsSummary)=>void
  const service=api();service.getRecords.mockResolvedValueOnce(page([row('1','Current')])).mockImplementationOnce(()=>new Promise(done=>{resolve=done}))
  const view=render(<View service={service}/>)
  expect(await screen.findByText('Current')).toBeInTheDocument()
  view.rerender(<View service={service} refreshToken={1}/>)
  await waitFor(()=>expect(service.getRecords).toHaveBeenCalledTimes(2))
- expect(screen.getByRole('status')).toHaveClass('query-status-loading')
+ expect(screen.getByRole('status')).not.toHaveClass('query-status-loading')
+ expect(screen.getByRole('region',{name:'기록 목록'})).toContainElement(screen.getByRole('status'))
  expect(screen.getByText('Current')).toBeInTheDocument()
  await act(async()=>resolve(page([row('1','Refreshed')])))
  expect(await screen.findByText('Refreshed')).toBeInTheDocument()

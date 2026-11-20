@@ -11,7 +11,7 @@ async function setup() {
  const initial={...await api.getBudget(month),food:{enabled:false,paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}} satisfies BudgetSummary
  api.getBudget=vi.fn().mockResolvedValue(initial)
  api.updateFoodBudget=vi.fn().mockImplementation(async(_month,input)=>({...initial,food:input}))
- render(<DataProvider implementation={api}><FoodSettingsScreen month={month} go={vi.fn()}/></DataProvider>)
+ await act(async()=>{render(<DataProvider implementation={api}><FoodSettingsScreen month={month} go={vi.fn()}/></DataProvider>)})
  await screen.findByRole('switch')
  return {api,month,initial}
 }

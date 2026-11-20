@@ -66,10 +66,10 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     }} />
   return (
     <main className="detail-shell budget-detail">
-      <Header title="기본지출" onBack={() => go('monthly')} right={<button className={`lock-button ${locked ? 'locked' : ''}`} disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>} />
+      <Header title="기본지출" onBack={() => go('monthly')} />
       <QueryStatus {...query} quietLoading />
-      <div className="sub-month">{month.replace('-', '.')} <span>{pastMonth ? '지난달 · 조회 전용' : locked ? '예산 잠금' : '편집 중'}</span></div>
-      <p className="notice">{pastMonth ? '지난달 예산은 수정할 수 없어요.' : locked ? hasUnsavedFood && !query.loading ? '미저장 식비 변경이 있어요. 잠금을 해제하고 저장해 주세요.' : '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : `수정한 값은 ${Number(month.slice(5))}월 전체에 적용됩니다.`}</p>
+      <div className="sub-month">{month.replace('-', '.')} {pastMonth || futureMonth ? <span>{pastMonth?'지난달 · 조회 전용':'미래 월 · 조회 전용'}</span> : <button className={`lock-button budget-lock-toggle ${locked ? 'locked' : ''}`} disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} aria-pressed={locked} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /><span>{locked?'예산 잠금':'편집 중'}</span></button>}</div>
+      <p className="notice">{pastMonth ? '지난달 예산은 수정할 수 없어요.' : futureMonth ? '미래 월 예산은 조회만 할 수 있어요.' : locked ? hasUnsavedFood && !query.loading ? '미저장 식비 변경이 있어요. 잠금을 해제하고 저장해 주세요.' : '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : `수정한 값은 ${Number(month.slice(5))}월 전체에 적용됩니다.`}</p>
       {saveError && <p className="query-status" role="alert">{saveError}</p>}
       <div className={`budget-columns ${budget.food.enabled ? '' : 'without-food'}`}>
         <section className="budget-column">

@@ -41,42 +41,42 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
     <strong>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>
     <button type="button" className="flip" disabled={pending || !changeDate || adjacentDate(1).slice(0, 7) > currentMonth()} aria-label="다음 날짜" onClick={() => moveDate(1)}><Icon name="back" size={17} /></button>
   </div></>
-  if (!summary) return <main className="app-shell"><section className="screen-content">{dateHeader}<QueryStatus {...query} /></section><BottomNav screen="daily" go={go} /></main>
-  const { mainBalance, freeBalance, transactions: dayTransactions, activeMemos, payments: dayPayments } = summary
+  const summaryBlocked = query.loading || !!query.error || !summary
+  const dayTransactions = summary?.transactions ?? [], activeMemos = summary?.activeMemos ?? [], dayPayments = summary?.payments ?? []
   return (
     <main className="app-shell">
       <section className="screen-content daily-content">
         {dateHeader}
-        <QueryStatus loading={false} error={query.error} retry={query.retry} />
+        <QueryStatus {...query} quietLoading />
         <QueryStatus loading={false} error={foodSettings.error} retry={foodSettings.retry} />
         {actionError && <p className="query-status" role="alert">{actionError}</p>}
         <section className="balance-card">
-          <div className="main-balance"><span>Main 계산 잔액</span><strong>{won(mainBalance)}원</strong></div>
-          <BalanceCheck key={date} date={date} />
+          <div className="main-balance"><span>Main 계산 잔액</span><strong>{summaryBlocked ? '—' : `${won(summary.mainBalance)}원`}</strong></div>
+          <BalanceCheck key={date} date={date} summaryBlocked={summaryBlocked} summaryLoading={query.loading} />
         </section>
         <section className="budget-pair">
-          <div><span>오늘 여유비</span><strong>{won(freeBalance)}원</strong></div>
+          <div><span>오늘 여유비</span><strong>{summaryBlocked ? '—' : `${won(summary.freeBalance)}원`}</strong></div>
           {foodSettings.loading
             ? <div><span role="status">식비 설정 확인 중…</span></div>
             : foodSettings.error ? <div><span>식비 설정 확인 실패</span></div>
-            : foodSettings.data?.food.enabled && <div><span>오늘 식비 예산</span><strong>{won(summary.foodBudget)}원</strong></div>}
+            : foodSettings.data?.food.enabled && <div><span>오늘 식비 예산</span><strong>{summaryBlocked ? '—' : `${won(summary.foodBudget)}원`}</strong></div>}
         </section>
         <div className="split-panels">
-          <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => open('transactions', 'new')}>
-            {dayTransactions.length === 0 && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{dayTransactions.map(item => <button className="compact-row" key={item.id} onClick={() => open('transactions', { id: item.id })}><span className="truncate">{item.title}</span><b className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{signedWon(recordValue(item))}</b></button>)}
+          <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" addDisabled={summaryBlocked || pending} onAdd={() => open('transactions', 'new')}>
+            {!summaryBlocked && dayTransactions.length === 0 && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{dayTransactions.map(item => <button disabled={summaryBlocked || pending} className="compact-row" key={item.id} onClick={() => open('transactions', { id: item.id })}><span className="truncate">{item.title}</span><b className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{signedWon(recordValue(item))}</b></button>)}
           </MiniList>
-          <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" onAdd={() => open('memos', 'new')}>
-            {activeMemos.length === 0 && <p className="record-empty">미완료 메모가 없습니다.</p>}
-            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} disabled={pending || query.loading || !!query.error} onClick={() => void toggleMemo(item.id)} /><button className="memo-main" onClick={() => open('memos', { id: item.id })}><span className="truncate">{item.title}</span><b>{signedWon(recordValue(item))}</b></button></div>)}
+          <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" addDisabled={summaryBlocked || pending} onAdd={() => open('memos', 'new')}>
+            {!summaryBlocked && activeMemos.length === 0 && <p className="record-empty">미완료 메모가 없습니다.</p>}
+            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} disabled={pending || query.loading || !!query.error} onClick={() => void toggleMemo(item.id)} /><button className="memo-main" onClick={() => open('memos', { id: item.id })}><span className="truncate">{item.title}</span><b className={item.direction==='income'?'amount-income':'amount-expense'}>{signedWon(recordValue(item))}</b></button></div>)}
           </MiniList>
         </div>
         <section className="fixed-panel">
           <button className="panel-heading" onClick={() => go('fixed-pay')}><strong>고정지출</strong><Icon name="chevron" size={17} /></button>
           <div className="fixed-scroll">
-            {dayPayments.length === 0 && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
+            {!summaryBlocked && dayPayments.length === 0 && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
             {dayPayments.map(payment => <button className="fixed-row" key={payment.record.id} onClick={() => open('fixed-pay', { id: payment.record.id })}><span><b>{payment.itemName}</b><small className={payment.complete ? 'complete' : ''}>{payment.complete ? '지급 완료' : `잔여 ${won(payment.remaining)}원`}</small></span><strong className="amount-expense">{won(payment.record.amount)}원</strong></button>)}
           </div>
-          <button className="panel-add" onClick={() => open('fixed-pay', 'new')}><Icon name="plus" size={16} />지급 기록</button>
+          <button className="panel-add" disabled={summaryBlocked || pending} onClick={() => open('fixed-pay', 'new')}><Icon name="plus" size={16} />지급 기록</button>
         </section>
       </section>
       <BottomNav screen="daily" go={go} />
@@ -84,13 +84,12 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
   )
 }
 
-function BalanceCheck({ date }: { date: string }) {
+function BalanceCheck({ date, summaryBlocked, summaryLoading }: { date: string; summaryBlocked: boolean; summaryLoading: boolean }) {
  const query = useDataQuery(`balance-check:${date}`, api => api.getBalanceCheck(date))
- if (!query.data) return <QueryStatus {...query} />
- return <><QueryStatus loading={false} error={query.error} retry={query.retry} /><BalanceCheckForm key={date} date={date} initial={query.data} blocked={query.loading || !!query.error} /></>
+ return <><QueryStatus loading={false} error={query.error} retry={query.retry} /><BalanceCheckForm key={date} date={date} initial={query.data ?? {date,actualBalance:null,locked:true}} loading={query.loading || summaryLoading} blocked={summaryBlocked || query.loading || !!query.error || !query.data} /></>
 }
 
-function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean }) {
+function BalanceCheckForm({ date, initial, blocked, loading }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean; loading:boolean }) {
  const { mutate, pending } = useDataAccess()
  const [amount, setAmount] = useState(initial.actualBalance === null ? '' : String(initial.actualBalance))
  const [locked, setLocked] = useState(initial.locked)
@@ -98,7 +97,7 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
  const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
-  if (dirty || blocked || pending || saving) return
+  if (dirty || blocked || saving) return
   setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
   setLocked(initial.locked)
  }, [initial, dirty, blocked, pending, saving])
@@ -119,7 +118,7 @@ function BalanceCheckForm({ date, initial, blocked }: { date: string; initial: i
  }
  return <>
   <div className="account-balance">
-   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} placeholder="미입력" /><b>원</b></label>
+   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} aria-busy={loading} placeholder={loading ? '불러오는 중…' : '미입력'} /><b>원</b></label>
    <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || saving || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
   </div>
   <p className="helper">{pending ? '저장 중…' : locked ? amount === '' ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '실제 잔액이 저장되어 잠겨 있어요.' : '입력 후 잠금을 누르면 저장돼요. 계산 잔액에는 반영되지 않아요.'}</p>

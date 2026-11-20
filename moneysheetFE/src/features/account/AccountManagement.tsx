@@ -24,7 +24,7 @@ export default function AccountManagement() {
     finally { saving.current = false }
   }
   return <div className="settings-form">
-    <form onSubmit={save} noValidate aria-busy={auth.busy}>
+    <form className="nickname-form" onSubmit={save} noValidate aria-busy={auth.busy}>
       <label className="field"><span>이메일</span><input value={auth.profile?.email ?? ''} readOnly autoComplete="email" /></label>
       <label className="field"><span>닉네임</span><input value={nickname} onChange={event => { setNickname(event.target.value); setFailure(''); setSuccess('') }} autoComplete="nickname" disabled={auth.busy} aria-invalid={!valid} /></label>
       {!valid && <p className="field-error">닉네임은 1~50자로 입력해 주세요.</p>}
