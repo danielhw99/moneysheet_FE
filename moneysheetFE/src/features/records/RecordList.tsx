@@ -9,7 +9,7 @@ import Header from '../../components/Header'
 import QueryStatus from '../../components/QueryStatus'
 import { localDateValue } from '../../utils/date'
 import { won, signedWon } from '../../utils/money'
-import RecordForm from './RecordForm'
+import RecordForm, { type RecordContinuation } from './RecordForm'
 import { useRecordPages } from './useRecordPages'
 import type { RecordQuery } from '../../data/MoneySheetDataAccess'
 
@@ -24,26 +24,28 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
 }) {
   const { pending, mutate } = useDataAccess()
   const [listEditing, setEditing] = useState<Readonly<MoneyRecord> | 'new' | null>(null)
+  const [continuation, setContinuation] = useState<{ seed: RecordContinuation; version: number } | null>(null)
+  const entry = initialEntry && continuation ? 'new' : initialEntry
   const [memoTab, setMemoTab] = useState<'pending' | 'completed'>('pending')
   const [actionError, setActionError] = useState('')
-  useEffect(() => { setActionError(''); setEditing(null) }, [kind, date])
+  useEffect(() => { setActionError(''); setEditing(null); setContinuation(null) }, [kind, date])
   const cfg = listConfig[kind]
   const monthly = kind === 'income' || kind === 'extra'
   const month = date.slice(0, 7)
   const recordQuery:RecordQuery=kind==='memos'?{kind,date,memoStatus:memoTab}:monthly?{kind,month}:{kind,date}
-  const query = useDataQuery(`records:${kind}:${date}:${memoTab}:${initialEntry === 'new' ? 'new' : initialEntry?.id ?? 'list'}`, async api => {
+  const query = useDataQuery(`records:${kind}:${date}:${memoTab}:${entry === 'new' ? 'new' : entry?.id ?? 'list'}`, async api => {
     const [list,budget,categories,entryRecord]=await Promise.all([
-      initialEntry ? Promise.resolve(null) : api.getRecords(recordQuery),
+      entry ? Promise.resolve(null) : api.getRecords(recordQuery),
       kind==='fixed-pay'?api.getBudget(month):Promise.resolve(null),
       kind==='transactions'?api.getCategories({scope:'mainTransaction'}):Promise.resolve([]),
-      initialEntry && initialEntry !== 'new' ? api.getRecord(kind, month, initialEntry.id) : Promise.resolve(null),
+      entry && entry !== 'new' ? api.getRecord(kind, month, entry.id) : Promise.resolve(null),
     ])
     return {list,budget,categories,entryRecord}
   })
   const data=query.data
-  const editing = initialEntry === 'new' ? 'new' : initialEntry ? data?.entryRecord ?? null : listEditing
+  const editing = continuation !== null || entry === 'new' ? 'new' : entry ? data?.entryRecord ?? null : listEditing
   const showingEditor = !!initialEntry || !!editing
-  const finish = () => { if (initialEntry) { if (onCloseEntry) onCloseEntry(); else go('daily') } else setEditing(null) }
+  const finish = () => { if (initialEntry) { if (onCloseEntry) onCloseEntry(); else go('daily') } else { setEditing(null); setContinuation(null) } }
   const pages=useRecordPages(recordQuery,data?.list ?? undefined,pending || query.loading || !!query.error)
   const rows=pages.rows
   const moveDate = (offset: number) => {
@@ -59,10 +61,13 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
     <Header title={showingEditor ? `${cfg.title} ${initialEntry === 'new' || editing === 'new' ? '추가' : '편집'}` : cfg.title} onBack={() => { if (!pending) showingEditor ? finish() : go(monthly ? 'monthly' : 'daily') }} />
     <QueryStatus {...query} quietLoading={!!query.data} />
     {actionError && <p className="query-status" role="alert">{actionError}</p>}
-    {editing && data ? <RecordForm kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={data.budget} refreshing={query.loading || !!query.error}
-      onSave={async (input, options) => {
+    {editing && data ? <RecordForm key={continuation?.version ?? 0} kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={data.budget} refreshing={query.loading || !!query.error} continuation={continuation?.seed}
+      onSave={async (input, options, keepWriting) => {
         await mutate(api => editing === 'new' ? api.createRecord({ kind, managementMonth: month, input }, options) : api.updateRecord(editing.id, { kind, managementMonth: month, input }))
-        finish()
+        if (keepWriting && kind === 'transactions') {
+          setContinuation(previous => ({ seed: { date: input.date, direction: input.direction, categoryId: input.categoryId }, version: (previous?.version ?? 0) + 1 }))
+          setEditing('new')
+        } else finish()
       }}
       onDelete={async () => { if (editing !== 'new') await mutate(api => api.deleteRecord(kind, month, editing.id)); finish() }} onCancel={finish} /> : initialEntry ? null : <>
       <div className="date-strip">
