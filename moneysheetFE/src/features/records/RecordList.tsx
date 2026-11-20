@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Screen } from '../../types/navigation'
+import type { Screen, RecordEntry } from '../../types/navigation'
 import type { ListKind, MoneyRecord } from '../../data/models'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
 import { useDataQuery } from '../../data/useDataQuery'
@@ -18,11 +18,12 @@ const listConfig: Record<ListKind, { title: string; add: string }> = {
   'fixed-pay': { title: '고정지출 지급', add: '지급 기록 추가' }, income: { title: '수입', add: '수입 추가' }, extra: { title: '그 외 지출', add: '지출 추가' },
 }
 
-export default function RecordList({ kind, go, date, changeDate }: {
+export default function RecordList({ kind, go, date, changeDate, initialEntry, onCloseEntry }: {
+  initialEntry?: RecordEntry; onCloseEntry?: () => void;
   kind: ListKind; go: (s: Screen) => void; date: string; changeDate: (date: string) => void;
 }) {
   const { pending, mutate } = useDataAccess()
-  const [editing, setEditing] = useState<Readonly<MoneyRecord> | 'new' | null>(null)
+  const [listEditing, setEditing] = useState<Readonly<MoneyRecord> | 'new' | null>(null)
   const [memoTab, setMemoTab] = useState<'pending' | 'completed'>('pending')
   const [actionError, setActionError] = useState('')
   useEffect(() => { setActionError(''); setEditing(null) }, [kind, date])
@@ -30,16 +31,20 @@ export default function RecordList({ kind, go, date, changeDate }: {
   const monthly = kind === 'income' || kind === 'extra'
   const month = date.slice(0, 7)
   const recordQuery:RecordQuery=kind==='memos'?{kind,date,memoStatus:memoTab}:monthly?{kind,month}:{kind,date}
-  const query = useDataQuery(`records:${kind}:${date}:${memoTab}`, async api => {
-    const [list,budget,categories]=await Promise.all([
-      api.getRecords(recordQuery),
+  const query = useDataQuery(`records:${kind}:${date}:${memoTab}:${initialEntry === 'new' ? 'new' : initialEntry?.id ?? 'list'}`, async api => {
+    const [list,budget,categories,entryRecord]=await Promise.all([
+      initialEntry ? Promise.resolve(null) : api.getRecords(recordQuery),
       kind==='fixed-pay'?api.getBudget(month):Promise.resolve(null),
       kind==='transactions'?api.getCategories({scope:'mainTransaction'}):Promise.resolve([]),
+      initialEntry && initialEntry !== 'new' ? api.getRecord(kind, month, initialEntry.id) : Promise.resolve(null),
     ])
-    return {list,budget,categories}
+    return {list,budget,categories,entryRecord}
   })
   const data=query.data
-  const pages=useRecordPages(recordQuery,data?.list,pending || query.loading || !!query.error)
+  const editing = initialEntry === 'new' ? 'new' : initialEntry ? data?.entryRecord ?? null : listEditing
+  const showingEditor = !!initialEntry || !!editing
+  const finish = () => { if (initialEntry) { if (onCloseEntry) onCloseEntry(); else go('daily') } else setEditing(null) }
+  const pages=useRecordPages(recordQuery,data?.list ?? undefined,pending || query.loading || !!query.error)
   const rows=pages.rows
   const moveDate = (offset: number) => {
     const [year, month, day] = date.split('-').map(Number)
@@ -50,16 +55,16 @@ export default function RecordList({ kind, go, date, changeDate }: {
     try { await mutate(api => item.completedOn === date ? api.cancelMemoCompletion(month, item.id) : api.completeMemo(month, item.id, date)) }
     catch (error) { setActionError(errorMessage(error)) }
   }
-  return <main className={`detail-shell records-detail ${editing ? 'is-editing' : ''}`}>
-    <Header title={editing ? `${cfg.title} ${editing === 'new' ? '추가' : '편집'}` : cfg.title} onBack={() => { if (!pending) editing ? setEditing(null) : go(monthly ? 'monthly' : 'daily') }} />
+  return <main className={`detail-shell records-detail ${showingEditor ? 'is-editing' : ''}`}>
+    <Header title={showingEditor ? `${cfg.title} ${initialEntry === 'new' || editing === 'new' ? '추가' : '편집'}` : cfg.title} onBack={() => { if (!pending) showingEditor ? finish() : go(monthly ? 'monthly' : 'daily') }} />
     <QueryStatus {...query} quietLoading={!!query.data} />
     {actionError && <p className="query-status" role="alert">{actionError}</p>}
     {editing && data ? <RecordForm kind={kind} item={editing === 'new' ? undefined : editing} initialDate={date} budget={data.budget} refreshing={query.loading || !!query.error}
       onSave={async (input, options) => {
         await mutate(api => editing === 'new' ? api.createRecord({ kind, managementMonth: month, input }, options) : api.updateRecord(editing.id, { kind, managementMonth: month, input }))
-        setEditing(null)
+        finish()
       }}
-      onDelete={async () => { if (editing !== 'new') await mutate(api => api.deleteRecord(kind, month, editing.id)); setEditing(null) }} onCancel={() => setEditing(null)} /> : <>
+      onDelete={async () => { if (editing !== 'new') await mutate(api => api.deleteRecord(kind, month, editing.id)); finish() }} onCancel={finish} /> : initialEntry ? null : <>
       <div className="date-strip">
         <button type="button" disabled={pending} aria-label={monthly ? '이전 달' : '이전 날짜'} onClick={() => moveDate(-1)}><Icon name="back" size={17} /></button>
         <strong>{new Date(date + 'T12:00:00').toLocaleDateString('ko-KR', monthly ? { year: 'numeric', month: 'long' } : { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</strong>
@@ -90,7 +95,7 @@ export default function RecordList({ kind, go, date, changeDate }: {
       {pages.error && <div className="query-status" role="alert">{pages.error}<button type="button" disabled={pages.loading || pending} onClick={() => void pages.loadMore()}>더 보기 다시 시도</button><button type="button" disabled={pending} onClick={query.retry}>목록 처음부터</button></div>}
       {pages.nextCursor && <button type="button" className="secondary-button load-more" disabled={pending || query.loading || pages.loading || !!query.error} onClick={() => void pages.loadMore()}>{pages.loading?'불러오는 중…':'더 보기'}</button>}
       </div>
-      {data && (kind === 'transactions' ? <dl className="transaction-totals" aria-label="지출 및 입금 합계">
+      {data?.list && (kind === 'transactions' ? <dl className="transaction-totals" aria-label="지출 및 입금 합계">
         <div><dt>지출 합계</dt><dd className="amount-expense">{won(data.list.expenseTotal)}원</dd></div>
         <div><dt>입금 합계</dt><dd className="amount-income">{won(data.list.incomeTotal)}원</dd></div>
       </dl> : <div className="list-total"><span>{kind === 'memos' ? '미완료 보정' : kind === 'fixed-pay' ? '지급 합계' : '월 합계'}</span><strong className={kind === 'memos' ? undefined : kind === 'income' ? 'amount-income' : 'amount-expense'}>{kind === 'memos' ? signedWon(data.list.pendingMemoTotal) : won(kind === 'extra' ? data.list.expenseTotal : data.list.total) + '원'}</strong></div>)}

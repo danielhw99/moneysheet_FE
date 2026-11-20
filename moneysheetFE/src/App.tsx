@@ -1,7 +1,7 @@
 import { OnboardingProvider, useOnboarding } from './features/onboarding/OnboardingProvider'
 import GuideDialog from './features/onboarding/GuideDialog'
 import { useState } from 'react'
-import type { Screen } from './types/navigation'
+import type { Screen, DailyRecordKind, RecordEntry } from './types/navigation'
 import Login from './features/auth/AuthScreen'
 import My from './features/account/MyScreen'
 import SimpleSettings from './features/account/SettingsScreen'
@@ -23,6 +23,7 @@ import { currentMonth } from './utils/date'
 
 function Screens() {
   const [screen, setScreen] = useState<Screen>('home')
+  const [recordEntry, setRecordEntry] = useState<RecordEntry | undefined>()
   const [recordDate, setRecordDate] = useState(() => localDateValue(new Date()))
   const [budgetLocks, setBudgetLocks] = useState<Record<string, boolean>>({})
   const { pending } = useDataAccess()
@@ -30,8 +31,14 @@ function Screens() {
   const readiness = useDataQuery(`workspace-budget:${month}`, api => api.getBudget(month))
   const go = (next: Screen, menu = false) => {
     if (pending || next === 'login' || next === 'signup') return
+    setRecordEntry(undefined)
     if (menu && next === 'daily') setRecordDate(localDateValue(new Date()))
     setScreen(next)
+  }
+  const openRecord = (kind: DailyRecordKind, entry: RecordEntry) => {
+    if (pending) return
+    setRecordEntry(entry)
+    setScreen(kind)
   }
   const changeDate = (date: string) => { if (!pending) setRecordDate(date) }
   const changeMonth = (offset: number) => {
@@ -63,9 +70,9 @@ function Screens() {
   }
   else if (screen === 'basic') view = basic
   else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />; ownNavigation = true }
-  else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} changeDate={changeDate} />; ownNavigation = true }
+  else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} changeDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
   else if (screen === 'monthly') { view = <Monthly go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
-  else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} />
+  else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}:${recordEntry === 'new' ? 'new' : recordEntry?.id ?? 'list'}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} initialEntry={recordEntry} onCloseEntry={() => go('daily')} />
   const navScreen = screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
   return <div className="prototype"><div className="phone-frame signed-in-frame">
     {screen !== 'my' && <AppSettings key={screen} disabled={pending} openGuide={() => guide?.openGuide()} openCategories={() => go('categories')} />}
