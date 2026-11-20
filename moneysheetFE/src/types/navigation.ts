@@ -13,6 +13,7 @@ export type Screen =
   | 'extra'
   | 'account'
   | 'settings'
+  | 'food-settings'
   | 'categories'
   | 'fixed-categories'
   | 'transaction-categories'

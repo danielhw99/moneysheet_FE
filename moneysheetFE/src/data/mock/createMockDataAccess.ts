@@ -39,6 +39,7 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
   const editableBudget = (month: string) => {
     requireMonth(month)
     if (month < today().slice(0, 7)) throw new DataAccessError('BUDGET_READ_ONLY', '지난달 예산은 수정할 수 없어요.')
+    if(month>today().slice(0,7))throw new DataAccessError('VALIDATION','미래 월 예산은 수정할 수 없어요.')
     return getBudget(month)
   }
   const findRecord = (kind: RecordWrite['kind'], id: string) => {
@@ -93,8 +94,10 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     async getBudget(month) { return clone(budgetSummary(getBudget(month), records)) },
     async updateFoodBudget(month, input) {
       const budget = editableBudget(month)
-      if ([input.weekday, input.saturday, input.sunday].some(value => !Number.isSafeInteger(value) || value < 0)) fail('식비는 0 이상의 원 단위 정수로 입력해 주세요.')
-      const food = { weekday: input.weekday, saturday: input.saturday, sunday: input.sunday }
+      if(typeof input.enabled!=='boolean'||!['threeInstallments','monthStart'].includes(input.paymentMode)) fail('식비 설정을 확인해 주세요.')
+      if(input.enabled && [input.weekday,input.saturday,input.sunday].some(value=>value===null||!Number.isSafeInteger(value)||value<1||value>9999999999)) fail('식비 금액을 입력해 주세요.')
+      if(!input.enabled && ([input.weekday,input.saturday,input.sunday].some(value=>value!==null)||input.paymentMode!==budget.food.paymentMode))fail('OFF에서는 하위 설정을 변경할 수 없어요.')
+      const food = input.enabled ? {...input} : {...budget.food,enabled:false}
       const total = foodThrough(month, daysInMonth(month), food) + budget.fixed.reduce((sum, item) => sum + item.amount, 0)
       if (!Number.isSafeInteger(total)) fail('월 예산 합계를 정확하게 계산할 수 없어요.')
       budget.food = food
