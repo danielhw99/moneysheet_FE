@@ -17,6 +17,7 @@ export default function EmailVerificationFields({ email, emailValid, disabled, r
   const [failure, setFailure] = useState('')
   const [resendAt, setResendAt] = useState(0)
   const [now, setNow] = useState(Date.now)
+  const needsClock = resendAt > now || (proof !== null && now < Date.parse(proof.expiresAt))
   const active = useRef(true), working = useRef(false), sequence = useRef(0), currentEmail = useRef(normalized)
   currentEmail.current = normalized
   useEffect(() => {
@@ -28,10 +29,10 @@ export default function EmailVerificationFields({ email, emailValid, disabled, r
     setSent(null); setCode(''); setProof(null); setFailure(''); setResendAt(0); onVerified('')
   }, [normalized, onVerified])
   useEffect(() => {
-    if (!sent) return
+    if (!needsClock) return
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
-  }, [sent])
+  }, [resendAt, needsClock])
   useEffect(() => {
     if (proof && now >= Date.parse(proof.expiresAt)) {
       setProof(null); onVerified(''); setFailure('인증이 만료됐어요. 새 번호를 요청해 주세요.')
