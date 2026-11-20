@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Category, Direction } from '../../data/models'
 import type { Screen } from '../../types/navigation'
 import { ApiError } from '../../api/httpClient'
@@ -6,6 +6,7 @@ import { useDataAccess, errorMessage } from '../../data/DataProvider'
 import { useDataQuery } from '../../data/useDataQuery'
 import Header from '../../components/Header'
 import QueryStatus from '../../components/QueryStatus'
+import FeedbackDialog from '../../components/FeedbackDialog'
 
 type Props = { scope: Category['scope']; go: (screen: Screen) => void }
 
@@ -27,6 +28,8 @@ export default function CategoryManagementScreen({ scope, go }: Props) {
  const [adding, setAdding] = useState(false)
  const [newName, setNewName] = useState('')
  const [error, setError] = useState('')
+ const [deleteTarget,setDeleteTarget]=useState<Readonly<Category>|null>(null)
+ const content=useRef<HTMLElement>(null)
  const filter = { scope, ...(scope === 'mainTransaction' ? { direction } : {}) }
  const query = useDataQuery(`category-management:${scope}:${scope === 'mainTransaction' ? direction : ''}`, api => api.getCategories(filter))
  useEffect(() => {
@@ -58,14 +61,14 @@ export default function CategoryManagementScreen({ scope, go }: Props) {
   } catch (failure) { fail(failure) }
  }
  const remove = async (item: Readonly<Category>) => {
-  if (blocked || !window.confirm('해당 카테고리가 삭제됩니다')) return
+  if (blocked) throw new Error('목록 확인이 끝난 뒤 다시 시도해 주세요.')
   setError('')
   try { await mutate(api => api.deleteCategory(item.id)); reset() }
-  catch (failure) { fail(failure) }
+  catch (failure) { fail(failure); throw failure }
  }
  return <main className="detail-shell category-management-screen">
   <Header title={scope === 'fixedBudget' ? '고정비 카테고리' : '내역 카테고리'} onBack={() => { if (!pending) go('categories') }} />
-  <section className="category-management-content">
+  <section className="category-management-content" ref={content} tabIndex={-1} aria-label="카테고리 관리 영역">
    {scope === 'mainTransaction' && <div className="category-direction-tabs" role="tablist" aria-label="내역 카테고리 구분">
     {(['expense', 'income'] as const).map(value => <button key={value} type="button" role="tab" aria-selected={direction === value} disabled={pending}
      onClick={() => { setDirection(value); reset() }}>{value === 'expense' ? '지출' : '입금'}</button>)}
@@ -87,10 +90,12 @@ export default function CategoryManagementScreen({ scope, go }: Props) {
       <div className="form-actions"><button type="button" className="secondary-button" onClick={reset}>취소</button><button type="submit" className="primary-button">저장</button></div>
      </fieldset></form> : <div className="category-management-row"><span>{item.name}</span><div>
       <button type="button" className="text-button" disabled={blocked} aria-label={`${item.name} 수정`} onClick={() => { reset(); setEditing(item.id); setName(item.name) }}>수정</button>
-      <button type="button" className="text-button delete-button" disabled={blocked} aria-label={`${item.name} 삭제`} onClick={() => void remove(item)}>삭제</button>
+      <button type="button" className="text-button delete-button" disabled={blocked} aria-label={`${item.name} 삭제`} onClick={() => setDeleteTarget(item)}>삭제</button>
      </div></div>}
     </li>)}
    </ul>
   </section>
+  <FeedbackDialog open={deleteTarget!==null} mode="confirm" title="카테고리 삭제" description={deleteTarget?`‘${deleteTarget.name}’\n해당 카테고리가 삭제됩니다.`:''}
+   confirmLabel="삭제" danger confirmDisabled={blocked} onConfirm={()=>deleteTarget?remove(deleteTarget):undefined} onClose={()=>setDeleteTarget(null)} fallbackFocusRef={content} focusAfterConfirm="fallback"/>
  </main>
 }
