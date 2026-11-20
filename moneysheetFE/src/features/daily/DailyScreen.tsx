@@ -1,6 +1,6 @@
 import MoneyInput from '../../components/MoneyInput'
 import { useEffect, useState } from 'react'
-import type { Screen } from '../../types/navigation'
+import type { Screen, DailyRecordKind, RecordEntry } from '../../types/navigation'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
 import { useDataQuery } from '../../data/useDataQuery'
 import { recordValue } from '../../data/values'
@@ -12,11 +12,16 @@ import MiniList from '../../components/MiniList'
 import QueryStatus from '../../components/QueryStatus'
 import { currentMonth, localDateValue } from '../../utils/date'
 
-export default function Daily({ go, date, changeDate }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void }) {
+export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void; openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
   const summary = query.data
+  const open = (kind: DailyRecordKind, entry: RecordEntry) => {
+    if (pending || query.loading || !!query.error) return
+    if (openRecord) openRecord(kind, entry)
+    else go(kind)
+  }
   const toggleMemo = async (id: string) => {
     setActionError('')
     try { await mutate(api => api.completeMemo(date.slice(0, 7), id, date)) } catch (error) { setActionError(errorMessage(error)) }
@@ -52,21 +57,21 @@ export default function Daily({ go, date, changeDate }: { go: (s: Screen) => voi
           <div><span>오늘 식비 예산</span><strong>{won(summary.foodBudget)}원</strong></div>
         </section>
         <div className="split-panels">
-          <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => go('transactions')}>
-            {dayTransactions.length === 0 && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{dayTransactions.map(item => <button className="compact-row" key={item.id} onClick={() => go('transactions')}><span className="truncate">{item.title}</span><b className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{signedWon(recordValue(item))}</b></button>)}
+          <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => open('transactions', 'new')}>
+            {dayTransactions.length === 0 && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{dayTransactions.map(item => <button className="compact-row" key={item.id} onClick={() => open('transactions', { id: item.id })}><span className="truncate">{item.title}</span><b className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{signedWon(recordValue(item))}</b></button>)}
           </MiniList>
-          <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" onAdd={() => go('memos')}>
+          <MiniList title="메모" onOpen={() => go('memos')} addLabel="메모 추가" onAdd={() => open('memos', 'new')}>
             {activeMemos.length === 0 && <p className="record-empty">미완료 메모가 없습니다.</p>}
-            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} disabled={pending || query.loading || !!query.error} onClick={() => void toggleMemo(item.id)} /><button className="memo-main" onClick={() => go('memos')}><span className="truncate">{item.title}</span><b>{signedWon(recordValue(item))}</b></button></div>)}
+            {activeMemos.map(item => <div className="memo-row" key={item.id}><button className="checkbox" role="checkbox" aria-checked={false} aria-label={`${item.title} 완료`} disabled={pending || query.loading || !!query.error} onClick={() => void toggleMemo(item.id)} /><button className="memo-main" onClick={() => open('memos', { id: item.id })}><span className="truncate">{item.title}</span><b>{signedWon(recordValue(item))}</b></button></div>)}
           </MiniList>
         </div>
         <section className="fixed-panel">
           <button className="panel-heading" onClick={() => go('fixed-pay')}><strong>고정지출</strong><Icon name="chevron" size={17} /></button>
           <div className="fixed-scroll">
             {dayPayments.length === 0 && <p className="record-empty">해당 날짜의 지급 기록이 없습니다.</p>}
-            {dayPayments.map(payment => <button className="fixed-row" key={payment.record.id} onClick={() => go('fixed-pay')}><span><b>{payment.itemName}</b><small className={payment.complete ? 'complete' : ''}>{payment.complete ? '지급 완료' : `잔여 ${won(payment.remaining)}원`}</small></span><strong className="amount-expense">{won(payment.record.amount)}원</strong></button>)}
+            {dayPayments.map(payment => <button className="fixed-row" key={payment.record.id} onClick={() => open('fixed-pay', { id: payment.record.id })}><span><b>{payment.itemName}</b><small className={payment.complete ? 'complete' : ''}>{payment.complete ? '지급 완료' : `잔여 ${won(payment.remaining)}원`}</small></span><strong className="amount-expense">{won(payment.record.amount)}원</strong></button>)}
           </div>
-          <button className="panel-add" onClick={() => go('fixed-pay')}><Icon name="plus" size={16} />지급 기록</button>
+          <button className="panel-add" onClick={() => open('fixed-pay', 'new')}><Icon name="plus" size={16} />지급 기록</button>
         </section>
       </section>
       <BottomNav screen="daily" go={go} />

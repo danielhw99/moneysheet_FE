@@ -16,3 +16,6 @@ export type Screen =
   | 'categories'
   | 'fixed-categories'
   | 'transaction-categories'
+
+export type DailyRecordKind = 'transactions' | 'memos' | 'fixed-pay'
+export type RecordEntry = 'new' | { id: string }

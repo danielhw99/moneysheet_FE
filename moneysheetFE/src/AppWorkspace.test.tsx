@@ -54,8 +54,8 @@ it('restores the calendar, selected Daily and record input using server summary 
  await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+today+'$')}))
  expect(await screen.findByText('123,456원')).toBeInTheDocument()
  await userEvent.click(screen.getByRole('button',{name:'내역 추가'}))
- await userEvent.click(await screen.findByRole('button',{name:'거래 추가'}))
- expect(screen.getByRole('group',{name:'거래 구분'})).toBeInTheDocument()
+ expect(await screen.findByRole('group',{name:'거래 구분'})).toBeInTheDocument()
+ expect(screen.queryByRole('button',{name:'거래 추가'})).not.toBeInTheDocument()
 })
 it('connects Monthly income/expense screens and retains actual authenticated profile',async()=>{
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
