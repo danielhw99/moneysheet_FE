@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { Category, Direction } from '../data/models'
 import { errorMessage, useDataAccess } from '../data/DataProvider'
 import { useDataQuery } from '../data/useDataQuery'
@@ -10,6 +10,7 @@ export default function CategoryPicker({ value, onChange, scope, direction, opti
 }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`categories:${scope}:${direction ?? ''}`, api => api.getCategories({ scope, direction }))
+  const statusId = useId()
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState('')
@@ -29,17 +30,17 @@ export default function CategoryPicker({ value, onChange, scope, direction, opti
   }
   return <div className="category-picker">
     <label className="field"><span>카테고리{optional ? ' (선택)' : ''}</span>
-      <select value={value ?? ''} disabled={pending || query.loading || !query.data} onChange={event => {
+      <select value={value ?? ''} disabled={pending || query.loading || !query.data} aria-busy={query.loading} aria-describedby={query.error ? statusId : undefined} onChange={event => {
         if (event.target.value === '__add__') { setAdding(true); return }
         onChange(event.target.value || null)
         cancel()
       }}>
-        <option value="">{optional ? '미분류' : '카테고리 선택'}</option>
+        <option value="">{query.loading && !query.data ? '카테고리 불러오는 중…' : optional ? '미분류' : '카테고리 선택'}</option>
         {displayed.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         <option value="__add__">＋ 카테고리 추가</option>
       </select>
     </label>
-    <div className="category-picker-status"><QueryStatus {...query} quietLoading={!!query.data} /></div>
+    {query.error && <div id={statusId} className="category-picker-status"><QueryStatus loading={false} error={query.error} retry={query.retry} /></div>}
     {adding && <fieldset className="category-add" disabled={pending}><legend>카테고리 추가</legend>
       <label className="field"><span>새 카테고리 이름</span><input autoFocus value={name} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void add() } }} /></label>
       {error && <p className="field-error" role="alert">{error}</p>}
