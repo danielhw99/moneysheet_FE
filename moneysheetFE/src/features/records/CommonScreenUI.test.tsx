@@ -11,6 +11,26 @@ import type { ListKind } from '../../data/models'
 import type { DailyBalanceCheck,RecordsSummary } from '../../data/MoneySheetDataAccess'
 
 describe('공통 화면 배치',()=>{
+ it.each(['summary','balance'] as const)('keeps the balance card mounted when %s resolves first',async first=>{
+  const api=createMockDataAccess(),date=currentMonth()+'-01',summary=await api.getDaily(date)
+  let resolveDaily!:(value:typeof summary)=>void,resolveBalance!:(value:DailyBalanceCheck)=>void
+  vi.spyOn(api,'getDaily').mockImplementation(()=>new Promise(done=>{resolveDaily=done}))
+  vi.spyOn(api,'getBalanceCheck').mockImplementation(()=>new Promise(done=>{resolveBalance=done}))
+  render(<DataProvider implementation={api}><Daily date={date} go={vi.fn()}/></DataProvider>)
+  const field=screen.getByRole('textbox',{name:'실제 계좌 잔액'}),card=field.closest('.balance-card'),lock=screen.getByRole('button',{name:'잔액 잠금 해제'})
+  expect(card).not.toBeNull();expect(card?.querySelector('.helper')).not.toBeNull()
+  expect(field).toBeDisabled();expect(lock).toBeDisabled()
+  expect(screen.getByRole('button',{name:'내역 추가'})).toBeDisabled()
+  expect(screen.queryByText('해당 날짜의 내역이 없습니다.')).not.toBeInTheDocument()
+  await waitFor(()=>expect(api.getBalanceCheck).toHaveBeenCalledOnce())
+  const finishDaily=()=>resolveDaily(summary),finishBalance=()=>resolveBalance({date,actualBalance:null,locked:false})
+  await act(async()=>{if(first==='summary')finishDaily();else finishBalance()})
+  expect(screen.getByRole('textbox',{name:'실제 계좌 잔액'})).toBe(field)
+  expect(field).toBeDisabled();expect(lock).toBeDisabled()
+  await act(async()=>{if(first==='summary')finishBalance();else finishDaily()})
+  expect(screen.getByRole('textbox',{name:'실제 계좌 잔액'})).toBe(field)
+  expect(field.closest('.balance-card')).toBe(card);expect(field).toBeEnabled()
+ })
  it('keeps the actual balance input and lock mounted while loading only its placeholder',async()=>{
   const api=createMockDataAccess(),date=currentMonth()+'-01'
   let resolve!:(value:DailyBalanceCheck)=>void
@@ -19,6 +39,7 @@ describe('공통 화면 배치',()=>{
   await screen.findByText('Main 계산 잔액')
   const field=screen.getByRole('textbox',{name:'실제 계좌 잔액'}),lock=screen.getByRole('button',{name:'잔액 잠금 해제'})
   expect(field).toHaveAttribute('placeholder','불러오는 중…');expect(field).toHaveAttribute('aria-busy','true');expect(field).toBeDisabled();expect(lock).toBeDisabled()
+  await waitFor(()=>expect(api.getBalanceCheck).toHaveBeenCalledOnce())
   await act(async()=>resolve({date,actualBalance:null,locked:false}))
   expect(screen.getByRole('textbox',{name:'실제 계좌 잔액'})).toBe(field)
   expect(field).toHaveAttribute('placeholder','미입력');expect(field).toBeEnabled()

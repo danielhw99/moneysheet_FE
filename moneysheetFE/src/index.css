@@ -135,7 +135,7 @@
 .balance-card { margin-top: 10px; padding: 13px 14px 10px; border-radius: var(--radius-md); background: var(--surface); }
 .main-balance { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--divider); padding-bottom: 10px; }
 .main-balance span { font-weight: 600; }
-.main-balance strong { font: 700 25px 'Inter', sans-serif; letter-spacing: -1px; }
+.main-balance strong { font: 700 25px/34px 'Inter', sans-serif; letter-spacing: -1px; }
 .account-balance { height: 42px; display: flex; align-items: center; gap: 4px; }
 .account-balance label { display: grid; grid-template-columns: 1fr 80px 14px; align-items: center; flex: 1; color: var(--secondary); font-size: 12px; }
 .account-balance input { border: 0; border-bottom: 1px solid var(--primary); background: transparent; text-align: right; color: var(--text); outline: none; min-width: 0; padding: 4px; font: 600 14px 'Inter', sans-serif; }

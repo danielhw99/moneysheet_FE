@@ -45,7 +45,7 @@ describe('Daily actual balance', () => {
   const view=render(ui(0))
   const field=await screen.findByLabelText('실제 계좌 잔액')
   await waitFor(()=>expect(field).toHaveAttribute('aria-busy','false'))
-  expect(field).toHaveValue('100')
+  await waitFor(()=>expect(field).toHaveValue('100'))
   await api.saveBalanceCheck('2026-11-17',{actualBalance:200,locked:true})
   view.rerender(ui(1))
   await waitFor(()=>{ expect(load).toHaveBeenCalledTimes(2); expect(field).toHaveValue('200'); expect(field).toBeDisabled() })
@@ -73,7 +73,7 @@ describe('Daily actual balance', () => {
   const ui=(date:string,refreshToken:number)=><DataProvider implementation={api} refreshToken={refreshToken}><Daily date={date} go={()=>{}} /></DataProvider>
   const view=render(ui('2026-11-17',0))
   const field=await screen.findByLabelText('실제 계좌 잔액')
-  await waitFor(()=>expect(field).toHaveAttribute('aria-busy','false'))
+  await waitFor(()=>{expect(field).toHaveValue('100');expect(field).toBeEnabled()})
   const late=deferred<DailyBalanceCheck>()
   load.mockImplementationOnce(()=>late.promise)
   view.rerender(ui('2026-11-17',1))
@@ -95,7 +95,7 @@ describe('Daily actual balance', () => {
   const ui=(date:string)=><DataProvider implementation={api}><Daily date={date} go={()=>{}} changeDate={changeDate} /></DataProvider>
   const view=render(ui('2026-11-17'))
   const field=await screen.findByLabelText('실제 계좌 잔액')
-  await waitFor(()=>expect(field).toHaveAttribute('aria-busy','false'))
+  await waitFor(()=>{expect(field).toHaveValue('100');expect(field).toBeEnabled()})
   fireEvent.change(field,{target:{value:'333'}})
   fireEvent.click(screen.getByRole('button',{name:'잔액 잠금'}))
   await waitFor(()=>expect(field).toBeDisabled())

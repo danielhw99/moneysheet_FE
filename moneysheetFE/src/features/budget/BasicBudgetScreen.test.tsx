@@ -19,6 +19,13 @@ function fixture() {
   return { api, changeServer: () => { server = { ...server, food: { enabled: true, paymentMode: 'threeInstallments', weekday: 22000, saturday: 22000, sunday: 22000 } } } }
 }
 describe('food draft refresh', () => {
+  it.each([true,false])('shows future-month read-only guidance before lock state %s', async locked => {
+    const {api}=fixture()
+    render(<DataProvider implementation={api}><BasicBudget month="9999-12" locked={locked} setLocked={vi.fn()} go={vi.fn()}/></DataProvider>)
+    expect(await screen.findByText('미래 월 예산은 조회만 할 수 있어요.')).toBeInTheDocument()
+    expect(screen.queryByText(/잠금을 해제하면 이번 달/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/수정한 값은 12월/)).not.toBeInTheDocument()
+  })
   it('clears a saved draft so later server food updates are shown', async () => {
     const { api, changeServer } = fixture()
     const view = render(<DataProvider implementation={api} refreshToken={0}><Editor /></DataProvider>)
