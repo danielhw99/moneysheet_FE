@@ -1,9 +1,13 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { expect, it, vi } from 'vitest'
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { beforeEach, expect, it, vi } from 'vitest'
 import { DataProvider } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
 import { ApiError } from '../../api/httpClient'
 import CategoryManagementScreen from './CategoryManagementScreen'
+beforeEach(()=>{
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
+ HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
+})
 
 it('keeps fixed categories separate and provides expense/income tabs only for transactions', async () => {
  const api=createMockDataAccess()
@@ -68,14 +72,48 @@ it('confirms deletion briefly and preserves fixed budget rows as uncategorized',
  const api=createMockDataAccess({today:()=> '2026-11-19'})
  const category=await api.createCategory({name:'Delete me',scope:'fixedBudget'})
  const item=await api.createBudgetItem('2026-11',{name:'Keep budget',categoryId:category.id,amount:100})
- const confirm=vi.spyOn(window,'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+ const confirm=vi.spyOn(window,'confirm').mockReturnValue(false)
  render(<DataProvider implementation={api}><CategoryManagementScreen scope="fixedBudget" go={()=>{}} /></DataProvider>)
  fireEvent.click(await screen.findByRole('button',{name:'Delete me 삭제'}))
+ fireEvent.click(within(screen.getByRole('dialog',{name:'카테고리 삭제'})).getByRole('button',{name:'취소'}))
  expect(screen.getByText('Delete me')).toBeInTheDocument()
  fireEvent.click(screen.getByRole('button',{name:'Delete me 삭제'}))
+ fireEvent.click(within(screen.getByRole('dialog',{name:'카테고리 삭제'})).getByRole('button',{name:'삭제'}))
  await waitFor(()=>expect(screen.queryByText('Delete me')).not.toBeInTheDocument())
- expect(confirm).toHaveBeenCalledWith('해당 카테고리가 삭제됩니다')
+ expect(confirm).not.toHaveBeenCalled()
  expect((await api.getBudget('2026-11')).items.find(value=>value.id===item.id)?.categoryId).toBeNull()
+})
+
+it.each(['fixedBudget','mainTransaction'] as const)('keeps failed %s deletion in the dialog and retries the same target',async scope=>{
+ const api=createMockDataAccess(),category=await api.createCategory({name:'Retry target',scope,...(scope==='mainTransaction'?{direction:'expense' as const}:{})})
+ const actual=api.deleteCategory.bind(api),remove=vi.spyOn(api,'deleteCategory').mockImplementation(actual).mockRejectedValueOnce(new Error('remove failed'))
+ render(<DataProvider implementation={api}><CategoryManagementScreen scope={scope} go={()=>{}}/></DataProvider>)
+ fireEvent.click(await screen.findByRole('button',{name:'Retry target 삭제'}))
+ const dialog=screen.getByRole('dialog',{name:'카테고리 삭제'})
+ expect(remove).not.toHaveBeenCalled()
+ fireEvent.click(within(dialog).getByRole('button',{name:'삭제'}))
+ expect(await within(dialog).findByRole('alert')).toHaveTextContent('remove failed')
+ expect(screen.getByText('Retry target')).toBeInTheDocument()
+ fireEvent.click(within(dialog).getByRole('button',{name:'삭제'}))
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+ expect(remove.mock.calls.map(([id])=>id)).toEqual([category.id,category.id])
+ await waitFor(()=>expect(screen.queryByText('Retry target')).not.toBeInTheDocument())
+})
+
+it('does not duplicate an in-flight category deletion',async()=>{
+ const api=createMockDataAccess(),category=await api.createCategory({name:'Once',scope:'fixedBudget'})
+ let done!:()=>void;const delay=new Promise<void>(resolve=>{done=resolve}),actual=api.deleteCategory.bind(api)
+ const remove=vi.spyOn(api,'deleteCategory').mockImplementation(async id=>{await delay;return actual(id)})
+ render(<DataProvider implementation={api}><CategoryManagementScreen scope="fixedBudget" go={()=>{}}/></DataProvider>)
+ fireEvent.click(await screen.findByRole('button',{name:'Once 삭제'}))
+ const dialog=screen.getByRole('dialog'),button=within(dialog).getByRole('button',{name:'삭제'})
+ fireEvent.click(button);fireEvent.click(button)
+ expect(remove).toHaveBeenCalledTimes(1);expect(button).toBeDisabled()
+ fireEvent(dialog,new Event('cancel',{cancelable:true}))
+ expect(dialog).toBeInTheDocument()
+ await act(async()=>done())
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+ expect(remove).toHaveBeenCalledWith(category.id)
 })
 
 it('does not reintroduce a deleted category when a mock month loads later', async () => {
