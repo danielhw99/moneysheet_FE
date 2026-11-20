@@ -10,6 +10,8 @@ const profile = { id: '1', email: 'user@example.com', nickname: 'User' }
 function fakeApi(): AuthApi {
   return { me: vi.fn().mockRejectedValue(new ApiError(401, 'UNAUTHENTICATED', 'login')),
     signup: vi.fn().mockResolvedValue(profile), login: vi.fn().mockResolvedValue(profile),
+    requestEmailVerification: vi.fn().mockResolvedValue({ challengeId: '12345678-1234-1234-1234-123456789abc', expiresAt: new Date(Date.now()+600000).toISOString(), resendAfterSeconds: 60 }),
+    confirmEmailVerification: vi.fn().mockResolvedValue({ verificationToken: 'A'.repeat(43), expiresAt: new Date(Date.now()+600000).toISOString() }),
     logout: vi.fn().mockResolvedValue(undefined), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
 }
 function Probe({ signup = false }: { signup?: boolean }) {
@@ -40,8 +42,13 @@ describe('real authentication UI', () => {
     await user.click(screen.getByRole('checkbox'))
     expect(screen.getByRole('button', { name: '가입하기' })).toBeDisabled()
     fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: '😀'.repeat(15) } })
+    expect(screen.getByRole('button', { name: '가입하기' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: '인증번호 받기' }))
+    await user.type(await screen.findByLabelText('인증번호'), '012345')
+    await user.click(screen.getByRole('button', { name: '인증번호 확인' }))
+    await screen.findByText('이메일 인증이 완료됐어요.')
     await user.click(screen.getByRole('button', { name: '가입하기' }))
-    await waitFor(() => expect(api.signup).toHaveBeenCalledWith({ email: profile.email, nickname: 'Nick', password: '😀'.repeat(15), privacyPolicyVersion: 'v1', privacyAgreed: true }))
+    await waitFor(() => expect(api.signup).toHaveBeenCalledWith({ email: profile.email, nickname: 'Nick', password: '😀'.repeat(15), privacyPolicyVersion: 'v1', privacyAgreed: true, verificationToken: 'A'.repeat(43) }))
     expect(api.login).not.toHaveBeenCalled()
     expect(screen.queryByText(profile.email)).not.toBeInTheDocument()
   })

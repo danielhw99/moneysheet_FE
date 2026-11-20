@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ApiError } from '../../api/httpClient'
 import type { UserProfile } from '../../data/models'
-import { createAuthApi, type AuthApi, type LoginInput, type SignupInput } from './authApi'
+import { createAuthApi, type AuthApi, type LoginInput, type SignupInput, type VerificationSent, type VerificationConfirmed, type VerificationConfirmation } from './authApi'
 
 export function authErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return '처리하지 못했어요. 잠시 후 다시 시도해 주세요.'
@@ -22,6 +22,8 @@ type AuthState = {
   changePassword: (input: { currentPassword: string; newPassword: string }) => Promise<void>;
   deleteAccount: (input: { currentPassword: string }) => Promise<void>;
   login: (input: LoginInput) => Promise<void>; signup: (input: SignupInput) => Promise<void>; logout: () => Promise<void>;
+  requestEmailVerification: (email: string) => Promise<VerificationSent>;
+  confirmEmailVerification: (input: VerificationConfirmation) => Promise<VerificationConfirmed>;
 }
 const Context = createContext<AuthState | null>(null)
 const unauthorized = (error: unknown) => error instanceof ApiError && error.status === 401
@@ -104,6 +106,18 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
     validationRevision, initializing, bootstrapError, notice, busy, retry: () => { void check(true) },
     login: input => run(() => api.login(input), value => accept(value, true)),
     signup: input => run(() => api.signup(input), () => setNotice('회원가입이 완료됐어요. 로그인해 주세요.')),
+    requestEmailVerification: async email => {
+      let result!: VerificationSent
+      await run(() => api.requestEmailVerification(email), value => { result = value })
+      if (!result) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요.')
+      return result
+    },
+    confirmEmailVerification: async input => {
+      let result!: VerificationConfirmed
+      await run(() => api.confirmEmailVerification(input), value => { result = value })
+      if (!result) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요.')
+      return result
+    },
     updateProfile: input => run(() => api.updateProfile(input), value => accept(value)),
     changePassword: input => run(() => api.changePassword(input), () => { api.resetCsrf(); clear('비밀번호가 변경됐어요. 다시 로그인해 주세요.') }),
     deleteAccount: input => run(() => api.deleteAccount(input), () => {

@@ -72,6 +72,8 @@
 .brand { color: var(--text); font: 700 27px/1 'Inter', sans-serif; letter-spacing: -1px; }
 .auth-copy { margin: 10px 0 34px; color: var(--secondary); }
 .form-stack, .record-form, .settings-form { display: flex; flex-direction: column; gap: 16px; }
+.email-verification { display: flex; flex-direction: column; gap: 10px; }
+.email-verification .secondary-button:disabled { opacity: .6; cursor: default; }
 .field { display: flex; flex-direction: column; gap: 7px; color: var(--secondary); font-size: 12px; font-weight: 600; }
 .field input, .field select {
   height: 48px; border: 1px solid var(--divider); border-radius: var(--radius-md);
