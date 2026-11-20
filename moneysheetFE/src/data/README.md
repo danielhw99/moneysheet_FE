@@ -1,5 +1,11 @@
 # 현재 데이터 접근 경계 — FE #19
 
+## C-01 식비 설정 (#51)
+- FoodBudget은 enabled·paymentMode·저장 금액3종을 갖습니다. 미선택 NULL은 DRAFT 응답에서만 허용하며 READY는 ON/OFF가 정해져야 합니다.
+- HTTP는 서버 저장값의 NULL을0으로 바꾸지 않습니다. OFF 응답도 보존된 금액을 반환하며 적용 식비 집계는0입니다.
+- mock의 식비 변경·일별/월별 요약도 OFF·일괄/3회 지급을 구분합니다. 기존 mock의 최초 예산 prepare/setup은 여전히 미제공이며 화면 테스트에서는 계약에 맞는 응답을 주입합니다.
+- 계산 원본은 BE이며 FE 설정 폼은 저장 전 입력을 분리합니다. 기존 아래3회 전용 설명은 이전 구현 기록입니다.
+
 - 실제 인증과 카테고리·월 예산은 공통 `api/httpClient.ts`를 사용합니다. 세션 쿠키·CSRF·401 통지와 세션 세대가 공유됩니다.
 - `budgetApi.ts`: 승인된 BE DTO의 런타임 검증 및 카테고리/월 예산 API. ID 문자열과 null, 종류, 양의 금액을 보존합니다.
 - `http/createHttpDataAccess.ts`: 실제 구현 선택. 미구현 기록·Daily/Monthly/Home API는 명시적인 준비 중 오류를 반환하며 mock/0원으로 대체하지 않습니다.
