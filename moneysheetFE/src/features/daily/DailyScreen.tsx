@@ -16,6 +16,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
+  const foodSettings=useDataQuery(`daily-food:${date.slice(0,7)}`,api=>api.getBudget(date.slice(0,7)))
   const summary = query.data
   const open = (kind: DailyRecordKind, entry: RecordEntry) => {
     if (pending || query.loading || !!query.error) return
@@ -54,7 +55,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
         </section>
         <section className="budget-pair">
           <div><span>오늘 여유비</span><strong>{won(freeBalance)}원</strong></div>
-          <div><span>오늘 식비 예산</span><strong>{won(summary.foodBudget)}원</strong></div>
+          {foodSettings.data?.food.enabled && <div><span>오늘 식비 예산</span><strong>{won(summary.foodBudget)}원</strong></div>}
         </section>
         <div className="split-panels">
           <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" onAdd={() => open('transactions', 'new')}>

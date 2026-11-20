@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { dailySummary, budgetSummary, homeSummary } from './queries'
 import type { MonthlyBudget, RecordStore } from '../models'
 
-const budget: MonthlyBudget = { month: '2026-11', fixed: [{ id: 'free-allowance', name: '고정여유비', categoryId: 'pocket', amount: 50000 }], food: { weekday: 11000, saturday: 11000, sunday: 11000 } }
+const budget: MonthlyBudget = { month: '2026-11', fixed: [{ id: 'free-allowance', name: '고정여유비', categoryId: 'pocket', amount: 50000 }], food: { enabled: true, paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } }
 const empty = (): RecordStore => ({ transactions: [], memos: [], 'fixed-pay': [], income: [], extra: [] })
 describe('ordinary fixed budgets and monthly free balance', () => {
   it('starts day one with only food and gives savings to the same day', () => {

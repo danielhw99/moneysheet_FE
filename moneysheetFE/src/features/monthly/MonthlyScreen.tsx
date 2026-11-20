@@ -14,6 +14,7 @@ const monthlySections = [
 
 export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void }) {
   const query = useDataQuery(`monthly:${month}`, api => api.getMonthly(month))
+  const budgetQuery = useDataQuery(`monthly-food:${month}`, api => api.getBudget(month))
   const data = query.data
   const { basicTotal = 0, totalExpense = 0, net = 0, income = 0, extra = 0 } = data ?? {}
   return (
@@ -29,7 +30,7 @@ export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) =>
           {monthlySections.map((item) => (
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>
               <span className={`section-icon ${item.title === '수입' ? 'income' : item.title === '그 외 지출' ? 'extra' : ''}`}><Icon name={item.title === '기본지출' ? 'wallet' : item.title === '수입' ? 'plus' : 'monthly'} size={19} /></span>
-              <span className="monthly-copy"><b>{item.title}</b><small>{item.desc}</small></span>
+              <span className="monthly-copy"><b>{item.title}</b><small>{item.target==='basic' && budgetQuery.data?.food.enabled===false ? '고정지출 예산' : item.desc}</small></span>
               <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{query.loading ? '집계 중' : query.error ? '집계 실패' : data ? `${won(item.target === 'basic' ? basicTotal : item.target === 'income' ? income : extra)}원` : '—'}</strong><Icon name="chevron" size={17} />
             </button>
           ))}

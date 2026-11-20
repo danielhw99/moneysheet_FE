@@ -4,7 +4,7 @@ import type { BudgetItem, BudgetItemInput, Category, CategoryInput, FoodBudget }
 import type { BudgetSummary, CategoryQuery } from './MoneySheetDataAccess'
 
 export type DraftItem = { id: string | null; name: string; categoryId: string | null; amount: number | null }
-export type BudgetPreparation = { month: string; status: 'draft' | 'ready'; copiedFromMonth: string | null; items: DraftItem[]; food: { [K in keyof FoodBudget]: number | null } }
+export type BudgetPreparation = { month: string; status: 'draft' | 'ready'; copiedFromMonth: string | null; items: DraftItem[]; food: FoodBudget }
 export type BudgetSetupInput = { items: DraftItem[]; food: FoodBudget }
 const protocol = () => new ApiError(0, 'PROTOCOL', '서버 예산 응답을 확인하지 못했어요.')
 const object = (v: unknown): Record<string, unknown> => { if (!v || typeof v !== 'object' || Array.isArray(v)) throw protocol(); return v as Record<string, unknown> }
@@ -13,7 +13,14 @@ const money = (v: unknown): number => { if (typeof v !== 'number' || !Number.isS
 const total = (v: unknown): number => { if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw protocol(); return v }
 const name = (v: unknown): string => { if (typeof v !== 'string' || !v.trim() || [...v].length > 100) throw protocol(); return v }
 const month = (v: string) => { if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(v)) throw new ApiError(400, 'VALIDATION', '조회할 월을 확인해 주세요.'); return v }
-function food(v: unknown): FoodBudget { const d = object(v); return { weekday: money(d.weekday), saturday: money(d.saturday), sunday: money(d.sunday) } }
+function food(v: unknown, draft = false): FoodBudget {
+ const d=object(v)
+ if ((typeof d.enabled!=='boolean' && !(draft&&d.enabled===null)) || (d.paymentMode!=='threeInstallments'&&d.paymentMode!=='monthStart')) throw protocol()
+ const values=[d.weekday,d.saturday,d.sunday]
+ if(!values.every(value=>value===null) && !values.every(value=>typeof value==='number'&&value>=1)) throw protocol()
+ if(d.enabled===true && values.some(value=>value===null)) throw protocol()
+ return {enabled:d.enabled as boolean|null,paymentMode:d.paymentMode,weekday:d.weekday===null?null:money(d.weekday),saturday:d.saturday===null?null:money(d.saturday),sunday:d.sunday===null?null:money(d.sunday)}
+}
 function item(v: unknown): BudgetItem { const d = object(v); return { id: id(d.id), name: name(d.name), categoryId: d.categoryId === null ? null : id(d.categoryId), amount: money(d.amount) } }
 function summary(v: unknown, expectedMonth: string): BudgetSummary {
   const d = object(v); const f = object(d.foodSummary)
@@ -37,10 +44,10 @@ export function createBudgetApi(client: HttpClient = httpClient) {
     async prepareBudget(m: string): Promise<BudgetPreparation> {
       const d = object(await client.post(`${base(m)}/budget-preparation`))
       if (d.month !== m || (d.status !== 'draft' && d.status !== 'ready') || !Array.isArray(d.items) || (d.copiedFromMonth !== null && (typeof d.copiedFromMonth !== 'string' || month(d.copiedFromMonth) !== d.copiedFromMonth))) throw protocol()
-      const f = object(d.food)
+
       return { month: m, status: d.status, copiedFromMonth: d.copiedFromMonth as string | null,
         items: d.items.map(value => { const row = object(value); return { id: row.id === null ? null : id(row.id), name: name(row.name), categoryId: row.categoryId === null ? null : id(row.categoryId), amount: row.amount === null ? null : money(row.amount) } }),
-        food: { weekday: f.weekday === null ? null : money(f.weekday), saturday: f.saturday === null ? null : money(f.saturday), sunday: f.sunday === null ? null : money(f.sunday) } }
+        food: food(d.food,d.status==='draft') }
     },
     async setupBudget(m: string, value: BudgetSetupInput) { return summary(await client.put(`${base(m)}/budget-setup`, value), m) },
     async getBudget(m: string) { return summary(await client.get(`${base(m)}/budget`), m) },

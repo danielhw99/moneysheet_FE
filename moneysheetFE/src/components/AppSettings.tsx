@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
 
-export default function AppSettings({ openGuide, openCategories, disabled = false }: { openGuide: () => void; openCategories?: () => void; disabled?: boolean }) {
+export default function AppSettings({ openGuide, openCategories, openFood, disabled = false }: { openGuide: () => void; openCategories?: () => void; openFood?: () => void; disabled?: boolean }) {
  const [open, setOpen] = useState(false)
  const container = useRef<HTMLDivElement>(null)
  const trigger = useRef<HTMLButtonElement>(null)
@@ -23,6 +23,7 @@ export default function AppSettings({ openGuide, openCategories, disabled = fals
   <button ref={trigger} type="button" className="app-settings-trigger" aria-label="앱 설정" title="앱 설정" aria-expanded={open} aria-controls="app-settings-options" disabled={disabled} onClick={() => setOpen(value => !value)}><Icon name="settings" /></button>
   {open && <nav id="app-settings-options" className="app-settings-dropdown" aria-label="앱 설정 항목">
    <button type="button" disabled={disabled || !openCategories} onClick={() => { if (disabled || !openCategories) return; setOpen(false); trigger.current?.focus(); openCategories() }}>카테고리 관리</button>
+   {openFood && <button type="button" disabled={disabled} onClick={()=>{if(disabled)return;setOpen(false);trigger.current?.focus();openFood()}}>식비 설정</button>}
    <button type="button" disabled={disabled} onClick={() => { if (disabled) return; setOpen(false); trigger.current?.focus(); openGuide() }}>사용 가이드</button>
   </nav>}
  </div>

@@ -11,7 +11,8 @@ export type RecordStore = Record<ListKind, MoneyRecord[]>
 
 // Source entities exclude editable UI locks and calculated payment totals.
 export type BudgetItem = { id: string; name: string; categoryId: string | null; amount: number }
-export type FoodBudget = { weekday: number; saturday: number; sunday: number }
+export type FoodPaymentMode = 'threeInstallments' | 'monthStart'
+export type FoodBudget = { enabled: boolean | null; paymentMode: FoodPaymentMode; weekday: number | null; saturday: number | null; sunday: number | null }
 export type MonthlyBudget = { month: string; fixed: BudgetItem[]; food: FoodBudget }
 export type BudgetItemInput = Omit<BudgetItem, 'id'>
 export type CategoryInput = Pick<Category, 'name' | 'scope' | 'direction'>

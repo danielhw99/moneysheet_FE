@@ -7,7 +7,7 @@ function setup(response: unknown) {
 }
 describe('UR07 category HTTP boundary', () => {
   it('accepts an uncategorized fixed item without losing the null', async () => {
-    const { api } = setup({ month: '2026-11', status: 'ready', items: [{ id: '51', name: 'Rent', categoryId: null, amount: 100, paid: 0, remaining: 100, complete: false }], food: { weekday: 1, saturday: 1, sunday: 1 }, fixedTotal: 100, foodSummary: { total: 30, installments: [11, 10, 9] } })
+    const { api } = setup({ month: '2026-11', status: 'ready', items: [{ id: '51', name: 'Rent', categoryId: null, amount: 100, paid: 0, remaining: 100, complete: false }], food: { enabled: true, paymentMode: 'threeInstallments', weekday: 1, saturday: 1, sunday: 1 }, fixedTotal: 100, foodSummary: { total: 30, installments: [11, 10, 9] } })
     expect((await api.getBudget('2026-11')).items[0].categoryId).toBeNull()
   })
   it('PATCH sends only a name and preserves server category identity', async () => {
@@ -45,7 +45,7 @@ describe('budget HTTP boundary', () => {
     await expect(api.getBudget('2026-11')).rejects.toMatchObject({ code: 'PROTOCOL' })
   })
   it('preserves draft values and never auto-finalizes', async () => {
-    const { api, fetcher } = setup({ month: '2026-11', status: 'draft', copiedFromMonth: null, items: [{ id: null, name: '고정여유비', categoryId: null, amount: null }], food: { weekday: null, saturday: null, sunday: null } })
+    const { api, fetcher } = setup({ month: '2026-11', status: 'draft', copiedFromMonth: null, items: [{ id: null, name: '고정여유비', categoryId: null, amount: null }], food: { enabled: null, paymentMode: 'threeInstallments', weekday:null, saturday: null, sunday: null } })
     expect((await api.prepareBudget('2026-11')).items[0].amount).toBeNull()
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
@@ -67,7 +67,7 @@ describe('budget HTTP boundary', () => {
     })
     const api = createBudgetApi(createHttpClient({ fetcher }))
     const items = [{ id: '51', name: 'Rent', categoryId: '9', amount: 50 }, { id: null, name: 'Pocket', categoryId: '9', amount: 10 }]
-    await expect(api.setupBudget('2026-11', { items, food: { weekday: 1, saturday: 1, sunday: 1 } })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
+    await expect(api.setupBudget('2026-11', { items, food: { enabled: true, paymentMode: 'threeInstallments', weekday: 1, saturday: 1, sunday: 1 } })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })
     expect(requests).toHaveLength(1)
     expect(requests[0]).toMatchObject({ path: '/api/v1/months/2026-11/budget-setup', method: 'PUT', body: { items } })
     await expect(api.updateBudgetItem('2026-11', '51', { name: 'Rent', categoryId: '9', amount: 1 })).rejects.toMatchObject({ code: 'BUDGET_BELOW_PAID' })

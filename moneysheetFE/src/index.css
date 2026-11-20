@@ -468,3 +468,20 @@
 .category-management-row > div { display: flex; flex-shrink: 0; gap: 8px; }
 .category-management-content > .primary-button { width: 100%; }
 .category-action-error { margin-top: 12px; }
+
+.food-settings-fields { min-width: 0; }
+.food-settings-options { border: 0; padding: 0; margin: 16px 0; min-width: 0; }
+.food-settings-options:disabled { opacity: .45; }
+.food-settings-options:disabled input, .food-settings-options:disabled select { cursor: not-allowed; }
+.food-use-toggle { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:16px 0; font-weight:600; }
+.food-use-toggle input { appearance:none; width:44px; height:26px; border-radius:20px; background:#a8aea9; position:relative; flex-shrink:0; cursor:pointer; }
+.food-use-toggle input::after { content:''; position:absolute; width:20px; height:20px; top:3px; left:3px; border-radius:50%; background:white; }
+.food-use-toggle input:checked { background:var(--primary, #218454); }
+.food-use-toggle input:checked::after { left:21px; }
+.food-use-toggle input:focus-visible { outline:2px solid var(--text); outline-offset:3px; }
+.food-settings-form { overflow-y:auto; }
+.budget-columns.without-food { grid-template-columns: minmax(0,1fr); }
+.setup-food { overflow-y: auto; }
+.setup-food .food-settings-fields { flex-shrink: 0; }
+.food-settings-fields h2 { font-size: 16px; margin: 0 0 12px; }
+.food-settings-options .field { margin-top: 12px; }
