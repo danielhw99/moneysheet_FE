@@ -6,6 +6,12 @@ function setup(response: unknown) {
   return { api: createBudgetApi(createHttpClient({ fetcher })), fetcher }
 }
 describe('UR07 category HTTP boundary', () => {
+  it('accepts OFF with no stored amounts and rejects a READY response without usage state',async()=>{
+    const value={month:'2026-11',status:'ready',items:[],food:{enabled:false,paymentMode:'monthStart',weekday:null,saturday:null,sunday:null},fixedTotal:0,foodSummary:{total:0,installments:[0,0,0]}}
+    expect((await setup(value).api.getBudget('2026-11')).food.weekday).toBeNull()
+    await expect(setup({...value,food:{...value.food,enabled:null}}).api.getBudget('2026-11')).rejects.toMatchObject({code:'PROTOCOL'})
+    await expect(setup({...value,food:{...value.food,paymentMode:'MONTH_START'}}).api.getBudget('2026-11')).rejects.toMatchObject({code:'PROTOCOL'})
+  })
   it('accepts an uncategorized fixed item without losing the null', async () => {
     const { api } = setup({ month: '2026-11', status: 'ready', items: [{ id: '51', name: 'Rent', categoryId: null, amount: 100, paid: 0, remaining: 100, complete: false }], food: { enabled: true, paymentMode: 'threeInstallments', weekday: 1, saturday: 1, sunday: 1 }, fixedTotal: 100, foodSummary: { total: 30, installments: [11, 10, 9] } })
     expect((await api.getBudget('2026-11')).items[0].categoryId).toBeNull()
