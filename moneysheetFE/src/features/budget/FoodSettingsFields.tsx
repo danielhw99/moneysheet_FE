@@ -14,7 +14,7 @@ export default function FoodSettingsFields({enabled,setEnabled,mode,setMode,amou
   {enabled===null && <button type="button" className="secondary-button" disabled={disabled} onClick={()=>setEnabled(false)}>식비 사용하지 않기</button>}
   <fieldset className="food-settings-options" disabled={disabled||enabled!==true}>
    <label className="field"><span>지급 방식</span><select aria-label="지급 방식" value={mode} onChange={e=>setMode(e.target.value as FoodPaymentMode)}><option value="threeInstallments">1·12·22일에 3회 분할</option><option value="monthStart">월 1일에 전액 반영</option></select></label>
-   {([['주중 식비','weekday'],['토요일 식비','saturday'],['일요일 식비','sunday']] as const).map(([label,key])=><label className="field" key={key}><span>{label}</span><MoneyInput aria-label={label} value={amounts[key]} onValueChange={value=>setAmounts({...amounts,[key]:value})}/></label>)}
+   {([['주중 식비','weekday'],['토요일 식비','saturday'],['일요일 식비','sunday']] as const).map(([label,key])=><label className="field" key={key}><span>{label}{enabled===true && <small> (필수)</small>}</span><MoneyInput aria-label={label} required={enabled===true} aria-required={enabled===true} value={amounts[key]} onValueChange={value=>setAmounts({...amounts,[key]:value})}/></label>)}
   </fieldset>
  </section>
 }

@@ -45,7 +45,7 @@ function FoodSettingsForm({month,food,blocked:queryBlocked}:{month:string;food:R
   }catch(e){setError(errorMessage(e))}finally{setSaving(false)}
  }
  return <form className="record-form food-settings-form" onSubmit={save} noValidate>
-  <FoodSettingsFields enabled={enabled} setEnabled={value=>{setDirty(true);setEnabled(value);if(!value)setMode(baseline.paymentMode);setSaved(false)}} mode={mode} setMode={value=>{setDirty(true);setMode(value);setSaved(false)}} amounts={amounts} setAmounts={value=>{setDirty(true);setAmounts(value);setSaved(false)}} disabled={blocked}/>
+  <FoodSettingsFields enabled={enabled} setEnabled={value=>{setError('');setDirty(true);setEnabled(value);if(!value)setMode(baseline.paymentMode);setSaved(false)}} mode={mode} setMode={value=>{setError('');setDirty(true);setMode(value);setSaved(false)}} amounts={amounts} setAmounts={value=>{setError('');setDirty(true);setAmounts(value);setSaved(false)}} disabled={blocked}/>
   <p className="notice">저장하면 이번 달 전체에 적용됩니다. 지난 날짜를 포함한 여유비·Main·월 현황이 다시 계산되며 지난달에는 영향을 주지 않습니다. 저장 없이 나가면 변경은 적용되지 않습니다.</p>
   {month!==currentMonth()&&<p className="form-help">지난달 식비 설정은 변경할 수 없어요.</p>}
   {error&&<p role="alert" className="field-error">{error}</p>}{saved&&<p role="status">식비 설정을 저장했어요.</p>}

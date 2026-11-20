@@ -43,4 +43,20 @@ describe('식비 설정 저장',()=>{
   await act(async()=>resolve(initial))
   expect(await screen.findByRole('status')).toHaveTextContent('저장했어요')
  })
+ it.each(['amount','mode','off'])('clears obsolete validation on %s edits and validates the next submit',async(kind)=>{
+  const {api,month}=await setup()
+  fireEvent.click(screen.getByRole('switch'))
+  fireEvent.click(screen.getByRole('button',{name:'저장'}))
+  expect(await screen.findByRole('alert')).toBeInTheDocument()
+  if(kind==='amount')fireEvent.change(screen.getByLabelText('주중 식비'),{target:{value:'11000'}})
+  if(kind==='mode')fireEvent.change(screen.getByLabelText('지급 방식'),{target:{value:'monthStart'}})
+  if(kind==='off')fireEvent.click(screen.getByRole('switch'))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button',{name:'저장'}))
+  if(kind==='off'){
+   await waitFor(()=>expect(api.updateFoodBudget).toHaveBeenCalledWith(month,{enabled:false,paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}))
+  }else{
+   expect(await screen.findByRole('alert')).toBeInTheDocument();expect(api.updateFoodBudget).not.toHaveBeenCalled()
+  }
+ })
 })

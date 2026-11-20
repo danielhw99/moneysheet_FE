@@ -13,16 +13,28 @@ import BudgetSetupScreen from './BudgetSetupScreen'
 describe('budget preparation', () => {
   it('automatically prepares and keeps food input when setup fails', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: true, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: null, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     api.setupBudget = vi.fn().mockRejectedValue(new Error('저장 실패'))
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
     expect(screen.queryByRole('button', { name: '예산 초안 불러오기' })).not.toBeInTheDocument()
     await screen.findByRole('button', { name: '예산 저장' })
+    fireEvent.click(screen.getByRole('switch', { name: '식비 사용' }))
     for (const label of ['주중 식비', '토요일 식비', '일요일 식비']) fireEvent.change(screen.getByLabelText(label), { target: { value: '11000' } })
     fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('저장 실패')
     expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
     expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(), { items: [], food: { enabled: true, paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } })
+  })
+  it('saves an explicit OFF choice without food amounts', async () => {
+    const api=createMockDataAccess(),done=vi.fn()
+    api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',copiedFromMonth:null,items:[],food:{enabled:null,paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
+    api.setupBudget=vi.fn().mockResolvedValue({})
+    render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()}/></DataProvider>)
+    fireEvent.click(await screen.findByRole('button',{name:'식비 사용하지 않기'}))
+    expect(screen.getByLabelText('주중 식비')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button',{name:'예산 저장'}))
+    await waitFor(()=>expect(done).toHaveBeenCalledWith(true))
+    expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(),{items:[],food:{enabled:false,paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
   })
   it('shows the initial category lookup and keeps loaded choices during refresh', async () => {
     const api = createMockDataAccess()
@@ -65,7 +77,7 @@ describe('budget preparation', () => {
   })
   it('prepares once under StrictMode and only retries after an explicit retry', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockRejectedValueOnce(new Error('연결 실패')).mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: true, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockRejectedValueOnce(new Error('연결 실패')).mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: null, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     render(<StrictMode><DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider></StrictMode>)
     expect(await screen.findByRole('alert')).toHaveTextContent('연결 실패')
     expect(api.prepareBudget).toHaveBeenCalledTimes(1)
@@ -94,12 +106,13 @@ describe('budget preparation', () => {
   it('skipping the tutorial never finalizes the budget or loses food input', async () => {
     localStorage.clear()
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: true, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: null, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     api.setupBudget = vi.fn().mockRejectedValue(new Error('실패'))
     const done = vi.fn()
     function State() { return <output data-testid="tutorial-state">{useOnboarding()?.stage}</output> }
     render(<OnboardingProvider userId="setup-test"><State /><DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider></OnboardingProvider>)
     await screen.findByRole('complementary', { name: '첫 예산 설정 안내' })
+    fireEvent.click(screen.getByRole('switch', { name: '식비 사용' }))
     for (const label of ['주중 식비', '토요일 식비', '일요일 식비']) fireEvent.change(screen.getByLabelText(label), { target: { value: '11000' } })
     fireEvent.click(screen.getByRole('button', { name: '안내 건너뛰기' }))
     expect(screen.getByTestId('tutorial-state')).toHaveTextContent('skipped')
@@ -113,12 +126,13 @@ describe('budget preparation', () => {
 
   it('rejects missing or zero food without calling setup', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: true, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { enabled: null, paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     api.setupBudget = vi.fn()
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
     await screen.findByRole('button', { name: '예산 저장' })
     fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('switch', { name: '식비 사용' }))
     for (const label of ['주중 식비', '토요일 식비', '일요일 식비']) fireEvent.change(screen.getByLabelText(label), { target: { value: '0' } })
     fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
     expect(api.setupBudget).not.toHaveBeenCalled()
