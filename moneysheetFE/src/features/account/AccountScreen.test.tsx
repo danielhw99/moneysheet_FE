@@ -8,7 +8,7 @@ import { ApiError } from '../../api/httpClient'
 HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
 HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
 const profile={id:'7',email:'a@example.com',nickname:'Nick'}
-function api():AuthApi{return {me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{}),updateProfile:vi.fn().mockResolvedValue({...profile,nickname:'New'}),changePassword:vi.fn().mockResolvedValue(undefined),deleteAccount:vi.fn().mockResolvedValue(undefined)}}
+function api():AuthApi{return {requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{}),updateProfile:vi.fn().mockResolvedValue({...profile,nickname:'New'}),changePassword:vi.fn().mockResolvedValue(undefined),deleteAccount:vi.fn().mockResolvedValue(undefined)}}
 function Probe(){const a=useAuth();if(a.initializing)return null;if(!a.profile)return <p>로그인 필요 {a.notice}</p>;return <><p>현재 사용자: {a.profile.nickname}</p><Settings type="account" go={()=>{}}/></>}
 const start=(a:AuthApi)=>render(<AuthProvider api={a}><Probe/></AuthProvider>)
 it('updates nickname without logging out or letting an old profile overwrite it',async()=>{

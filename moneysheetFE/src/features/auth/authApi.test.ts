@@ -3,6 +3,16 @@ import { createHttpClient } from '../../api/httpClient'
 import { createAuthApi } from './authApi'
 const profile = { id: '9223372036854775807', email: 'u@example.com', nickname: 'User' }
 const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } })
+it('sends verification requests with CSRF and rejects malformed proof responses', async () => {
+  const sent = { challengeId: '12345678-1234-1234-1234-123456789abc', expiresAt: '2026-11-20T00:10:00Z', resendAfterSeconds: 60 }
+  const fetcher = vi.fn().mockResolvedValueOnce(json({ token: 'one', headerName: 'X-CSRF-TOKEN' }))
+    .mockResolvedValueOnce(json(sent)).mockResolvedValueOnce(json({ verificationToken: 'short', expiresAt: sent.expiresAt }))
+  const api = createAuthApi(createHttpClient({ fetcher }))
+  expect(await api.requestEmailVerification('u@example.com')).toEqual(sent)
+  await expect(api.confirmEmailVerification({ email: 'u@example.com', challengeId: sent.challengeId, code: '001234' })).rejects.toMatchObject({ code: 'PROTOCOL' })
+  expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ email: 'u@example.com' })
+  expect(new Headers(fetcher.mock.calls[2][1].headers).get('X-CSRF-TOKEN')).toBe('one')
+})
 it('preserves string IDs, returns only profile fields and rotates CSRF after login', async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(json({ token: 'one', headerName: 'X-CSRF-TOKEN' }))
     .mockResolvedValueOnce(json({ ...profile, passwordHash: 'never expose' }))
