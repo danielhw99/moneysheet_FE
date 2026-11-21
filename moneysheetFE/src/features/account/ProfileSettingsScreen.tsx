@@ -62,6 +62,6 @@ export default function ProfileSettingsScreen({go}:{go:(screen:Screen)=>void}) {
     <button className="primary-button" disabled={!validName || auth.busy || nickname.trim()===profile?.nickname}>닉네임 저장</button>
    </form>
   </div>
-  <FeedbackDialog open={deleting} mode="confirm" title="프로필 사진 삭제" description="사진을 삭제하고 기본 프로필로 되돌릴까요?" confirmLabel="삭제" danger confirmDisabled={auth.busy} onClose={()=>setDeleting(false)} onConfirm={async()=>{await auth.deleteAvatar();discard();setPhotoError('');setPhotoNotice('사진을 삭제했어요.')}}/>
+  <FeedbackDialog open={deleting} mode="confirm" title="프로필 사진 삭제" description="사진을 삭제하고 기본 프로필로 되돌릴까요?" confirmLabel="삭제" danger confirmDisabled={auth.busy} fallbackFocusRef={input} focusAfterConfirm="fallback" onClose={()=>setDeleting(false)} onConfirm={async()=>{await auth.deleteAvatar();discard();setPhotoError('');setPhotoNotice('사진을 삭제했어요.')}}/>
  </main>
 }

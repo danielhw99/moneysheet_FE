@@ -44,10 +44,22 @@ it('rejects unsupported and oversized files without uploading and cleans a previ
 it('asks before deleting and restores initials after successful deletion',async()=>{
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
- const {api}=setup();fireEvent.click(await screen.findByRole('button',{name:'사진 삭제'}))
+ const {api}=setup();const deleteButton=await screen.findByRole('button',{name:'사진 삭제'})
+ deleteButton.focus()
+ fireEvent.click(deleteButton)
  expect(api.deleteAvatar).not.toHaveBeenCalled()
  fireEvent.click(screen.getByRole('button',{name:'삭제'}))
  await waitFor(()=>expect(api.deleteAvatar).toHaveBeenCalledTimes(1))
  await waitFor(()=>expect(screen.queryByRole('img',{name:'프로필 사진'})).not.toBeInTheDocument())
  expect(screen.getByLabelText('기본 프로필')).toHaveTextContent('N')
+ expect(screen.getByLabelText('사진 선택')).toHaveFocus()
+})
+it('restores focus to delete button when deletion is cancelled',async()=>{
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
+ HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
+ setup();const deleteButton=await screen.findByRole('button',{name:'사진 삭제'})
+ deleteButton.focus()
+ fireEvent.click(deleteButton)
+ fireEvent.click(screen.getByRole('button',{name:'취소'}))
+ expect(deleteButton).toHaveFocus()
 })
