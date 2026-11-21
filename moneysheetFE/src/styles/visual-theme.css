@@ -8,7 +8,7 @@
   --surface-strong: #edf2ef;
   --text: #222825;
   --secondary: #626e67;
-  --muted: #748078;
+  --muted: #68746c;
   --divider: #e5ebe7;
   --radius-sm: 9px;
   --radius-md: 14px;
@@ -85,4 +85,20 @@
   .profile-centered .avatar { width: 88px; height: 88px; font-size: 28px; }
   .monthly-card { padding: 10px; }
   .my-content > .menu-list { padding-inline: 16px; }
+}
+
+/* Motion never animates dimensions or financial values. */
+.loading-status { display: flex; align-items: center; gap: 8px; min-height: 18px; }
+.loading-spinner { display: inline-block; width: 14px; height: 14px; flex: 0 0 14px; border: 2px solid #d9e9de; border-top-color: var(--primary-dark); border-radius: 50%; animation: ms-spin 850ms linear infinite; }
+.loading-status.query-status-loading { min-height: 0; }
+.auth-screen:has(.auth-loading) { display: grid; place-items: center; padding: 24px; }
+.auth-loading { color: var(--secondary); font-size: 13px; }
+.prototype :is(button, input, select) { transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, color 140ms ease; }
+.prototype :is(.primary-button, .secondary-button, .profile-settings-button):not(:disabled):active { filter: brightness(.96); }
+.workspace-content > main { animation: ms-appear 160ms ease-out; }
+.app-settings-dropdown, .home-quick-options, .time-picker-panel, .feedback-dialog[open], .guide-dialog[open], .month-picker-dialog[open] { animation: ms-appear 140ms ease-out; }
+@keyframes ms-spin { to { transform: rotate(360deg); } }
+@keyframes ms-appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .prototype *, .prototype *::before, .prototype *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

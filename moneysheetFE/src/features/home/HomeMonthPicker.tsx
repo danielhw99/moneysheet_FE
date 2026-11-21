@@ -1,16 +1,20 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { currentMonth } from '../../utils/date'
 
 export default function HomeMonthPicker({ month, disabled, changeMonth, close, trigger }: { month: string; disabled: boolean; changeMonth: (offset: number) => void; close: () => void; trigger: RefObject<HTMLButtonElement | null> }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [year, setYear] = useState(Number(month.slice(0, 4)))
   const [monthNumber, setMonthNumber] = useState(Number(month.slice(5)))
+  const [top, setTop] = useState(76)
   const latest = currentMonth(), latestYear = Number(latest.slice(0, 4)), latestMonth = Number(latest.slice(5))
   const valid = Number.isInteger(year) && year >= 1 && year <= latestYear && monthNumber >= 1 && monthNumber <= 12 && (year < latestYear || monthNumber <= latestMonth)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = dialog.current
+    const position = () => setTop(Math.max(16, Math.min((trigger.current?.getBoundingClientRect().bottom ?? 64) + 12, window.innerHeight - 200)))
+    position()
     element?.showModal()
-    return () => { if (element?.open) element.close(); trigger.current?.focus({ preventScroll: true }) }
+    window.addEventListener('resize', position)
+    return () => { window.removeEventListener('resize', position); if (element?.open) element.close(); trigger.current?.focus({ preventScroll: true }) }
   }, [trigger])
   const move = () => {
     if (disabled || !valid) return
@@ -18,7 +22,7 @@ export default function HomeMonthPicker({ month, disabled, changeMonth, close, t
     close()
     if (offset !== 0) changeMonth(offset)
   }
-  return <dialog ref={dialog} className="month-picker-dialog" aria-labelledby="month-picker-title"
+  return <dialog ref={dialog} className="month-picker-dialog" style={{top, maxHeight: `calc(100dvh - ${top + 16}px)`}} aria-labelledby="month-picker-title"
     onCancel={event => { event.preventDefault(); close() }}
     onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); close() } }}
     onClick={event => {

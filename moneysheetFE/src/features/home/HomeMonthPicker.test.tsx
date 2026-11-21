@@ -8,6 +8,13 @@ beforeEach(()=>{
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
 })
 describe('홈 연월 선택',()=>{
+ it('anchors the picker below the title when the app frame is vertically offset',()=>{
+  render(<HomeMonthHeader month={currentMonth()} changeMonth={vi.fn()}/>)
+  const trigger=screen.getByRole('button',{name:'연월 선택'})
+  vi.spyOn(trigger,'getBoundingClientRect').mockReturnValue({bottom:140} as DOMRect)
+  fireEvent.click(trigger)
+  expect(screen.getByRole('dialog')).toHaveStyle('top: 152px')
+ })
  it('applies the selected year and month only after confirmation',()=>{
   const changeMonth=vi.fn(),month=currentMonth()
   render(<HomeMonthHeader month={month} changeMonth={changeMonth}/>)

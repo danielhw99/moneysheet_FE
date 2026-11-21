@@ -20,4 +20,12 @@ it('keeps a quiet loading announcement and retains visible error recovery', () =
 it('keeps the initial full-page loading presentation available', () => {
  render(<QueryStatus loading error="" retry={()=>{}} />)
  expect(screen.getByRole('status')).not.toHaveClass('query-status-loading')
+ expect(screen.getByRole('status').querySelector('.loading-spinner')).toHaveAttribute('aria-hidden','true')
+})
+it('avoids a visual spinner for quiet loading and never replaces error recovery with a spinner',()=>{
+ const view=render(<QueryStatus loading error="" retry={()=>{}} quietLoading/>)
+ expect(screen.getByRole('status').querySelector('.loading-spinner')).toBeNull()
+ view.rerender(<QueryStatus loading error="조회 실패" retry={()=>{}}/>)
+ expect(screen.getByRole('alert')).toHaveTextContent('조회 실패')
+ expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
