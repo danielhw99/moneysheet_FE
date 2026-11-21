@@ -61,7 +61,7 @@ function Screens() {
   else if (business && (!readiness.data || (readiness.error && screen !== 'basic'))) {
     if (screen === 'home') {
       view = <main className="app-shell"><section className="screen-content home-content">
-        <HomeMonthHeader month={month} changeMonth={changeMonth} />
+        <HomeMonthHeader month={month} changeMonth={changeMonth} disabled={pending} />
         {readiness.errorCode === 'BUDGET_NOT_READY' ? <div className="home-readiness">{setupNotice}</div> : <QueryStatus {...readiness} />}
       </section><BottomNav screen="home" go={go} /></main>
       ownNavigation = true

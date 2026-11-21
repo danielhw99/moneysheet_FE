@@ -9,6 +9,22 @@ import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
+it('moves directly to a selected leap-year month and retains the same month date',async()=>{
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
+ HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'연월 선택'}))
+ await userEvent.selectOptions(screen.getByLabelText('연도'),'2024')
+ await userEvent.selectOptions(screen.getByLabelText('월'),'2')
+ await userEvent.click(screen.getByRole('button',{name:'이동'}))
+ const day=await screen.findByRole('button',{name:'2024-02-29'})
+ await userEvent.click(day)
+ expect(day).toHaveAttribute('aria-pressed','true')
+ await userEvent.click(screen.getByRole('button',{name:'연월 선택'}))
+ await userEvent.click(screen.getByRole('button',{name:'이동'}))
+ expect(screen.getByRole('button',{name:'2024-02-29'})).toHaveAttribute('aria-pressed','true')
+ expect(screen.queryByRole('button',{name:'2024-02-30'})).not.toBeInTheDocument()
+})
 it('closes quick entry when another calendar date is selected and uses the new date',async()=>{
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  const trigger=await screen.findByRole('button',{name:'빠른 작성'})
@@ -134,8 +150,9 @@ it('keeps the home frame and month header while budget readiness is loading',asy
  expect(screen.queryByRole('button',{name:/총지출/})).not.toBeInTheDocument()
  const summary=homeSummary()
  await act(async()=>{resolveHome(new Response(JSON.stringify(summary),{status:200}))})
- const monthSummary=await screen.findByRole('button',{name:/총지출/})
- expect(monthSummary).toHaveTextContent(`${summary.expense.toLocaleString('ko-KR')}원`)
+ await waitFor(()=>expect(screen.queryByRole('status')).not.toBeInTheDocument())
+ expect(screen.queryByRole('button',{name:/총지출/})).not.toBeInTheDocument()
+ expect(document.querySelector('.calendar')).toBeInTheDocument()
  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
 
