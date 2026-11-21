@@ -9,7 +9,7 @@ const first = { id: '1', email: 'first@example.com', nickname: 'First' }
 const second = { id: '2', email: 'second@example.com', nickname: 'Second' }
 function api(): AuthApi {
   return { requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(first), login: vi.fn().mockResolvedValue(first), signup: vi.fn(),
-    logout: vi.fn().mockResolvedValue(undefined), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
+    logout: vi.fn().mockResolvedValue(undefined), uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
 }
 beforeEach(() => vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => {
   const path = String(url)

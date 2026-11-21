@@ -67,6 +67,19 @@
 .budget-empty, .record-empty { line-height: 1.7; }
 .profile-centered { margin: 0; padding: 36px 20px 30px; border-radius: 0; background: white; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
 .profile-centered .avatar { width: 104px; height: 104px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark); border: 1px solid #dcece2; font-size: 34px; font-weight: 600; flex-shrink: 0; }
+.profile-centered .profile-photo { object-fit: cover; display: block; }
+.profile-settings-screen { display: flex; flex-direction: column; }
+.profile-settings-screen > .topbar { flex-shrink: 0; }
+.profile-settings-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
+.profile-photo-editor { gap: 16px; }
+.profile-photo-editor .field { width: 100%; text-align: left; }
+.profile-photo-editor input[type="file"] { width: 100%; max-width: 100%; padding: 10px; font-size: 13px; }
+.profile-photo-editor .form-help { margin: 0; }
+.selected-photo-name { max-width: 100%; overflow-wrap: anywhere; font-size: 13px; }
+.profile-photo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; }
+.profile-photo-editor .profile-photo-actions { flex-direction: row; }
+.profile-photo-actions button { margin: 0; }
+.profile-settings-screen .nickname-form { border-top: 1px solid var(--line); }
 .profile-centered > div { min-width: 0; max-width: 100%; }
 .profile-centered > div:last-of-type { display: flex; flex-direction: column; gap: 8px; }
 .profile-centered b { font-size: 21px; line-height: 1.4; overflow-wrap: anywhere; }

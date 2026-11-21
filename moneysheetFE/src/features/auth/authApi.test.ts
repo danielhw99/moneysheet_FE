@@ -3,6 +3,25 @@ import { createHttpClient } from '../../api/httpClient'
 import { createAuthApi } from './authApi'
 const profile = { id: '9223372036854775807', email: 'u@example.com', nickname: 'User' }
 const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } })
+it('uploads raw multipart with CSRF and returns a versioned private photo URL', async () => {
+  const updated = {...profile, avatarUrl:'/api/v1/me/avatar?v='+'a'.repeat(32)}
+  const fetcher = vi.fn().mockResolvedValueOnce(json({token:'csrf',headerName:'X-CSRF-TOKEN'}))
+    .mockResolvedValueOnce(json(updated)).mockResolvedValueOnce(json({...profile,avatarUrl:null}))
+  const api = createAuthApi(createHttpClient({fetcher}))
+  const file = new File(['image'], 'photo.png', {type:'image/png'})
+  expect(await api.uploadAvatar(file)).toEqual(updated)
+  const init = fetcher.mock.calls[1][1]
+  expect(init.body).toBeInstanceOf(FormData)
+  expect(init.body.get('file')).toBe(file)
+  expect(new Headers(init.headers).has('Content-Type')).toBe(false)
+  expect(new Headers(init.headers).get('X-CSRF-TOKEN')).toBe('csrf')
+  expect(await api.deleteAvatar()).toEqual({...profile,avatarUrl:null})
+  expect(fetcher.mock.calls[2][1].method).toBe('DELETE')
+})
+it.each(['https://outside.example/photo','javascript:alert(1)','/api/v1/me/avatar?v=bad'])('rejects an unsafe photo URL %s', async avatarUrl => {
+  const api = createAuthApi(createHttpClient({fetcher:vi.fn().mockResolvedValue(json({...profile,avatarUrl}))}))
+  await expect(api.me()).rejects.toMatchObject({code:'PROTOCOL'})
+})
 it('sends verification requests with CSRF and rejects malformed proof responses', async () => {
   const sent = { challengeId: '12345678-1234-1234-1234-123456789abc', expiresAt: '2026-11-20T00:10:00Z', resendAfterSeconds: 60 }
   const fetcher = vi.fn().mockResolvedValueOnce(json({ token: 'one', headerName: 'X-CSRF-TOKEN' }))

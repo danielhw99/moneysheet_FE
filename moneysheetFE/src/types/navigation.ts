@@ -12,6 +12,7 @@ export type Screen =
   | 'income'
   | 'extra'
   | 'account'
+  | 'profile'
   | 'settings'
   | 'food-settings'
   | 'categories'
