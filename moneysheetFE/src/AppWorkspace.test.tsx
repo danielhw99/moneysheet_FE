@@ -28,6 +28,7 @@ it('keeps the viewed month when entering Monthly and returns to today from the D
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
  await userEvent.click(await screen.findByRole('button',{name:new RegExp('^'+last+'$')}))
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+last+'$')}))
  await screen.findByText('123,456원')
  await userEvent.click(screen.getByRole('button',{name:'Monthly'}))
  await waitFor(()=>expect(vi.mocked(fetch).mock.calls.filter(([url])=>String(url).includes('/summaries/monthly')).at(-1)?.[0]).toContain('month='+last.slice(0,7)))
@@ -39,6 +40,7 @@ it('synchronizes Daily date navigation across a month boundary with the home cal
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
  await userEvent.click(await screen.findByRole('button',{name:new RegExp('^'+last+'$')}))
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+last+'$')}))
  await screen.findByText('123,456원')
  await userEvent.click(screen.getByRole('button',{name:'다음 날짜'}))
  const first=today.slice(0,7)+'-01'
@@ -50,6 +52,8 @@ it('synchronizes Daily date navigation across a month boundary with the home cal
 })
 it('restores the calendar, selected Daily and record input using server summary data',async()=>{
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ expect(document.querySelector('.calendar')).toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+today+'$')}))
  expect(document.querySelector('.calendar')).toBeInTheDocument()
  await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+today+'$')}))
  expect(await screen.findByText('123,456원')).toBeInTheDocument()
