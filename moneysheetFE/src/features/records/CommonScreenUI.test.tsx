@@ -73,5 +73,7 @@ describe('공통 화면 배치',()=>{
   render(<DataProvider implementation={api}><RecordList kind="memos" date={date} go={vi.fn()} changeDate={vi.fn()}/></DataProvider>)
   expect(await screen.findByText('-1,000원')).toHaveClass('amount-expense')
   expect(screen.getByText('+2,000원')).toHaveClass('amount-income')
+  expect(screen.getByText('임시 입금')).toBeInTheDocument()
+  expect(screen.getByText('임시 출금')).toBeInTheDocument()
  })
 })

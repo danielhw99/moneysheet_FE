@@ -1,0 +1,88 @@
+/* MoneySheet visual layer. Navigation geometry and financial meanings stay intact. */
+:root {
+  --primary: #2b9566;
+  --primary-dark: #20774f;
+  --primary-soft: #eaf6ef;
+  --background: #ffffff;
+  --surface: #f6f8f7;
+  --surface-strong: #edf2ef;
+  --text: #222825;
+  --secondary: #626e67;
+  --muted: #748078;
+  --divider: #e5ebe7;
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-frame: 0 20px 70px rgb(25 50 36 / 12%);
+}
+.prototype { background: #f0f4f1; }
+.bottom-nav { --primary: #2e9d68; --muted: #929b97; --divider: #e3e8e5; }
+.app-shell, .detail-shell { color: var(--text); }
+.screen-content:not(.home-calendar-content) { overflow-y: auto; scrollbar-width: thin; }
+.topbar { border-color: var(--divider); }
+.topbar-title { font-size: 17px; letter-spacing: -.3px; }
+.field { font-weight: 500; line-height: 1.5; }
+.field > span { color: var(--secondary); }
+.field input, .field select, .money-input, .time-trigger { border-color: var(--divider); border-radius: 12px; background: #fff; }
+.field input:disabled, .field select:disabled { background: var(--surface); }
+.primary-button { font-weight: 600; letter-spacing: -.1px; box-shadow: 0 2px 4px rgb(28 85 56 / 7%); }
+.secondary-button { font-weight: 600; }
+.prototype button:disabled { cursor: default; }
+.prototype :is(button, input, select):focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 3px; }
+.notice, .form-help { line-height: 1.65; }
+.form-help { color: var(--secondary); }
+.balance-card { border: 1px solid #deeee4; background: linear-gradient(135deg, #f4faf6, #edf7f1); }
+.main-balance > span { font-size: 12px; color: var(--secondary); }
+.main-balance strong, .budget-pair strong, .monthly-card strong, .record-title, .record-row strong, .list-total strong, .status-card dd { font-variant-numeric: tabular-nums; }
+.mini-panel, .fixed-panel { border-color: var(--divider); border-radius: var(--radius-md); background: #fff; }
+.panel-heading { color: var(--text); }
+.panel-heading .icon { color: var(--muted); }
+.panel-add { color: var(--primary-dark); font-weight: 600; }
+.monthly-card { border-color: var(--divider); border-radius: 16px; box-shadow: 0 2px 7px rgb(25 50 36 / 3%); }
+.monthly-copy { min-width: 0; }
+.monthly-copy small { line-height: 1.5; }
+.status-card { border: 1px solid var(--divider); background: #f7faf8; }
+.status-card p { color: var(--secondary); line-height: 1.5; }
+.section-icon.income { color: var(--amount-income); background: #fceeed; }
+.date-strip { background: #fff; }
+.record-date { font-variant-numeric: tabular-nums; }
+.record-row { border-color: var(--divider); }
+.record-title b { line-height: 1.5; overflow-wrap: anywhere; }
+.record-title small { line-height: 1.45; }
+.record-row.memo-record-row { min-height: 88px; padding-block: 12px; }
+.memo-record-row .memo-record-open { grid-template-columns: minmax(0, 1fr) auto 16px; gap: 7px; }
+.memo-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+.memo-badges small { display: inline-block; padding: 2px 5px; border-radius: 5px; background: var(--surface); font-size: 9px; }
+.memo-badges .amount-income { background: #fceeed; color: var(--amount-income); }
+.memo-badges .amount-expense { background: var(--blue-soft); color: var(--amount-expense); }
+.memo-completed { background: #fafbfa; }
+.memo-record-check input { accent-color: var(--primary-dark); }
+.transaction-totals > div, .list-total { border: 1px solid var(--divider); background: var(--surface); }
+.budget-column, .setup-panel, .category-add { border-color: var(--divider); }
+.column-head { background: #f4f8f5; }
+.budget-empty, .record-empty { line-height: 1.7; }
+.profile-centered { margin: 0; padding: 36px 20px 30px; border-radius: 0; background: white; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+.profile-centered .avatar { width: 104px; height: 104px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark); border: 1px solid #dcece2; font-size: 34px; font-weight: 600; flex-shrink: 0; }
+.profile-centered > div { min-width: 0; max-width: 100%; }
+.profile-centered > div:last-of-type { display: flex; flex-direction: column; gap: 8px; }
+.profile-centered b { font-size: 21px; line-height: 1.4; overflow-wrap: anywhere; }
+.profile-centered span { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.profile-settings-button { min-height: 44px; padding: 8px 24px; border: 1px solid var(--text); border-radius: 28px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+.my-content > .menu-list { margin: 0; padding: 12px 20px; border-top: 1px solid var(--divider); }
+.my-content .menu-list > button { min-height: 64px; border-bottom: 0; }
+.my-content .menu-list > button + button { border-top: 1px solid #f0f3f1; }
+.settings-row { color: var(--text); }
+.account-delete { color: var(--field-error); }
+.category-management-row { align-items: flex-start; }
+.category-management-row > div { flex-wrap: wrap; justify-content: flex-end; }
+.category-direction-tabs > button[aria-selected="true"] { background: var(--primary-soft); color: var(--primary-dark); }
+.food-settings-options:disabled { opacity: .55; }
+.feedback-dialog, .guide-dialog, .month-picker-dialog { box-shadow: 0 16px 48px rgb(20 38 28 / 16%); }
+.feedback-dialog::backdrop, .guide-dialog::backdrop { background: rgb(20 32 26 / 34%); }
+.app-settings-dropdown, .home-quick-options, .time-picker-panel { box-shadow: 0 10px 30px rgb(25 50 36 / 13%); }
+@media (max-width: 360px) {
+  .profile-centered { padding: 28px 16px 24px; gap: 18px; }
+  .profile-centered .avatar { width: 88px; height: 88px; font-size: 28px; }
+  .monthly-card { padding: 10px; }
+  .my-content > .menu-list { padding-inline: 16px; }
+}

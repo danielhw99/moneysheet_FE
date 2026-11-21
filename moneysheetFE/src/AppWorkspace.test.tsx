@@ -9,6 +9,18 @@ import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
+it('shows a centered profile with a working profile settings path and existing menus',async()=>{
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ await userEvent.click(screen.getByRole('button',{name:'MY'}))
+ const profileArea=await screen.findByRole('region',{name:'프로필 정보'})
+ expect(profileArea).toHaveTextContent(profile.nickname);expect(profileArea).toHaveTextContent(profile.email)
+ expect(screen.getByRole('button',{name:'계정관리'})).toBeInTheDocument()
+ expect(screen.getByRole('button',{name:/^설정$/})).toBeInTheDocument()
+ expect(screen.getByRole('button',{name:'로그아웃'})).toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'프로필 설정'}))
+ expect(await screen.findByLabelText('닉네임')).toHaveValue(profile.nickname)
+ expect(screen.queryByRole('button',{name:/사진 업로드/})).not.toBeInTheDocument()
+})
 it('moves directly to a selected leap-year month and retains the same month date',async()=>{
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
