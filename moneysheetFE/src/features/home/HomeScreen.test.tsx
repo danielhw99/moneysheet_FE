@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import Home from './HomeScreen'
-import { DataProvider } from '../../data/DataProvider'
+import { DataProvider, useDataAccess } from '../../data/DataProvider'
 import { createMockDataAccess } from '../../data/mock/createMockDataAccess'
 import { currentMonth } from '../../utils/date'
 import type { Screen } from '../../types/navigation'
@@ -42,5 +42,35 @@ describe('홈 날짜 선택',()=>{
   expect(go).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button',{name:new RegExp('^'+first)}))
   expect(go).toHaveBeenCalledExactlyOnceWith('daily')
+ })
+ it('blocks quick entry while loading or failed and enables it after retry',async()=>{
+  const api=createMockDataAccess(),summary=await api.getHome(month)
+  let reject!:(error:Error)=>void
+  vi.spyOn(api,'getHome').mockImplementationOnce(()=>new Promise((_done,fail)=>{reject=fail})).mockResolvedValue(summary)
+  render(<DataProvider implementation={api}><Home month={month} selectedDate={first} selectDate={vi.fn()} changeMonth={vi.fn()} go={vi.fn()} openRecord={vi.fn()}/></DataProvider>)
+  const trigger=screen.getByRole('button',{name:'빠른 작성'})
+  expect(trigger).toBeDisabled()
+  await waitFor(()=>expect(api.getHome).toHaveBeenCalledOnce())
+  await act(async()=>reject(new Error('홈 조회 실패')))
+  expect(trigger).toBeDisabled()
+  fireEvent.click(screen.getByRole('button',{name:'다시 불러오기'}))
+  await waitFor(()=>expect(trigger).toBeEnabled())
+ })
+ it('blocks calendar and quick entry while another save is pending',async()=>{
+  let finish!:()=>void
+  const saving=new Promise<void>(resolve=>{finish=resolve})
+  function SavingHome(){
+   const {mutate}=useDataAccess()
+   return <><button onClick={()=>void mutate(()=>saving)}>저장 시작</button><Home month={month} selectedDate={first} selectDate={vi.fn()} changeMonth={vi.fn()} go={vi.fn()} openRecord={vi.fn()}/></>
+  }
+  render(<DataProvider implementation={createMockDataAccess()}><SavingHome/></DataProvider>)
+  const trigger=screen.getByRole('button',{name:'빠른 작성'})
+  await waitFor(()=>expect(trigger).toBeEnabled())
+  fireEvent.click(trigger);fireEvent.click(screen.getByRole('button',{name:'저장 시작'}))
+  expect(trigger).toBeDisabled();expect(screen.queryByRole('navigation',{name:'빠른 작성 항목'})).not.toBeInTheDocument()
+  expect(screen.getByRole('button',{name:new RegExp('^'+first)})).toBeDisabled()
+  expect(screen.getByRole('button',{name:'이전 달'})).toBeDisabled()
+  await act(async()=>finish())
+  await waitFor(()=>expect(trigger).toBeEnabled())
  })
 })

@@ -4,7 +4,8 @@ import { useDataAccess } from '../../data/DataProvider'
 import { useDataQuery } from '../../data/useDataQuery'
 import QueryStatus from '../../components/QueryStatus'
 import { won } from '../../utils/money'
-import type { Screen } from '../../types/navigation'
+import type { Screen, DailyRecordKind, RecordEntry } from '../../types/navigation'
+import HomeQuickAdd from './HomeQuickAdd'
 import Icon from '../../components/Icon'
 import BottomNav from '../../components/BottomNav'
 import { currentMonth, localDateValue } from '../../utils/date'
@@ -19,9 +20,10 @@ export function HomeMonthHeader({ month, changeMonth, disabled = false }: { mont
   </div>
 }
 
-export default function Home({ go, month, changeMonth, selectedDate, selectDate }: {
+export default function Home({ go, month, changeMonth, selectedDate, selectDate, openRecord }: {
   go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
   selectedDate: string; selectDate: (date: string) => void;
+  openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void;
 }) {
   const { pending } = useDataAccess()
   const [lastPicked, setLastPicked] = useState<string | null>(null)
@@ -43,7 +45,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
   const today = localDateValue(new Date())
   return (
     <main className="app-shell">
-      <section className="screen-content home-content">
+      <section className="screen-content home-content with-quick-add">
         <HomeMonthHeader month={month} changeMonth={changeMonth} disabled={pending} />
         {query.error ? <QueryStatus {...query} /> : summary && query.loading ? <QueryStatus {...query} quietLoading /> : null}
         <div className="legend">
@@ -71,6 +73,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate 
         </button>}
         {!summary && query.loading && <div className="month-summary month-summary-loading" role="status">불러오는 중…</div>}
       </section>
+      {openRecord && <HomeQuickAdd key={selectedDate} date={selectedDate} disabled={pending || query.loading || !!query.error || !summary || selectedDate.slice(0, 7) !== month} onSelect={kind => openRecord(kind, 'new')}/>}
       <BottomNav screen="home" go={go} />
     </main>
   )

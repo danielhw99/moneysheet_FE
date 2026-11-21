@@ -19,6 +19,7 @@ it('returns a direct editor to the selected Daily but a list editor to its list'
  vi.stubGlobal('fetch',fetcher)
  render(<App authApi={auth}/>)
  fireEvent.click(await screen.findByRole('button',{name:new RegExp('^'+selected+'$')}))
+ fireEvent.click(screen.getByRole('button',{name:new RegExp('^'+selected+'$')}))
  fireEvent.click(await screen.findByRole('button',{name:/Direct record/}))
  expect(await screen.findByLabelText('내용')).toHaveValue('Direct record')
  fireEvent.click(screen.getByRole('button',{name:'취소'}))
