@@ -1,13 +1,15 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { currentMonth } from '../../utils/date'
 
+const MIN_YEAR = 1000
+
 export default function HomeMonthPicker({ month, disabled, changeMonth, close, trigger }: { month: string; disabled: boolean; changeMonth: (offset: number) => void; close: () => void; trigger: RefObject<HTMLButtonElement | null> }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [year, setYear] = useState(Number(month.slice(0, 4)))
   const [monthNumber, setMonthNumber] = useState(Number(month.slice(5)))
   const [top, setTop] = useState(76)
   const latest = currentMonth(), latestYear = Number(latest.slice(0, 4)), latestMonth = Number(latest.slice(5))
-  const valid = Number.isInteger(year) && year >= 1 && year <= latestYear && monthNumber >= 1 && monthNumber <= 12 && (year < latestYear || monthNumber <= latestMonth)
+  const valid = Number.isInteger(year) && year >= MIN_YEAR && year <= latestYear && monthNumber >= 1 && monthNumber <= 12 && (year < latestYear || monthNumber <= latestMonth)
   useLayoutEffect(() => {
     const element = dialog.current
     const position = () => setTop(Math.max(16, Math.min((trigger.current?.getBoundingClientRect().bottom ?? 64) + 12, window.innerHeight - 200)))
@@ -37,7 +39,7 @@ export default function HomeMonthPicker({ month, disabled, changeMonth, close, t
           const next = Number(event.target.value)
           setYear(next)
           if (next === latestYear && monthNumber > latestMonth) setMonthNumber(latestMonth)
-        }}>{Array.from({ length: latestYear }, (_, index) => latestYear - index).map(value => <option key={value} value={value}>{value}년</option>)}</select></label>
+        }}>{Array.from({ length: Math.max(0, latestYear - MIN_YEAR + 1) }, (_, index) => latestYear - index).map(value => <option key={value} value={value}>{value}년</option>)}</select></label>
         <label><span>월</span><select aria-label="월" value={monthNumber} disabled={disabled} onChange={event => setMonthNumber(Number(event.target.value))}>
           {Array.from({ length: 12 }, (_, index) => index + 1).map(value => <option key={value} value={value} disabled={year === latestYear && value > latestMonth}>{value}월</option>)}
         </select></label>
