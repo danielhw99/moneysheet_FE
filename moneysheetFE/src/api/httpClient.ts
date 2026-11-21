@@ -21,12 +21,13 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
     try {
       const headers = new Headers({ Accept: 'application/json' })
-      if (body !== undefined) headers.set('Content-Type', 'application/json')
+      const multipart = body instanceof FormData
+      if (body !== undefined && !multipart) headers.set('Content-Type', 'application/json')
       if (csrf) headers.set(csrf.headerName, csrf.token)
       if (requestKey !== undefined) headers.set('Idempotency-Key', requestKey)
       const response = await fetcher('/api/v1' + path, {
         method, headers, credentials: 'same-origin', signal: controller.signal,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
       })
       if (response.status === 204) return undefined as T
       let data: Record<string, unknown>

@@ -16,4 +16,4 @@ export type FoodBudget = { enabled: boolean | null; paymentMode: FoodPaymentMode
 export type MonthlyBudget = { month: string; fixed: BudgetItem[]; food: FoodBudget }
 export type BudgetItemInput = Omit<BudgetItem, 'id'>
 export type CategoryInput = Pick<Category, 'name' | 'scope' | 'direction'>
-export type UserProfile = { id: string; email: string; nickname: string }
+export type UserProfile = { id: string; email: string; nickname: string; avatarUrl?: string | null }

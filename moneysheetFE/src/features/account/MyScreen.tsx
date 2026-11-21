@@ -4,6 +4,7 @@ import type { Screen } from '../../types/navigation'
 import Icon from '../../components/Icon'
 import Header from '../../components/Header'
 import BottomNav from '../../components/BottomNav'
+import ProfileAvatar from './ProfileAvatar'
 
 export default function My({ go, showNavigation = true }: { go: (s: Screen) => void; showNavigation?: boolean }) {
   const auth = useAuth()
@@ -15,7 +16,7 @@ export default function My({ go, showNavigation = true }: { go: (s: Screen) => v
       <section className={`screen-content my-content ${showNavigation ? '' : 'no-bottom-nav'}`}>
         <Header title="마이페이지" />
         {failure && <p role="alert" className="field-error">{failure}</p>}
-        {profile && <section className="profile profile-centered" aria-label="프로필 정보"><div className="avatar" aria-hidden="true">{Array.from(profile.nickname)[0]}</div><div><b>{profile.nickname}</b><span>{profile.email}</span></div><button type="button" className="profile-settings-button" onClick={() => go('account')}>프로필 설정</button></section>}
+        {profile && <section className="profile profile-centered" aria-label="프로필 정보"><ProfileAvatar url={profile.avatarUrl} nickname={profile.nickname}/><div><b>{profile.nickname}</b><span>{profile.email}</span></div><button type="button" className="profile-settings-button" disabled={auth.busy} onClick={() => go('profile')}>프로필 설정</button></section>}
         <div className="menu-list">
           <button onClick={() => go('account')}><Icon name="user" /><span>계정관리</span><Icon name="chevron" /></button>
           <button onClick={() => go('settings')}><Icon name="settings" /><span>설정</span><Icon name="chevron" /></button>

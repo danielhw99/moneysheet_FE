@@ -6,32 +6,12 @@ const length = (value: string) => Array.from(value).length
 const accountError = (error: unknown) => error instanceof ApiError && error.code === 'INVALID_CREDENTIALS'
   ? '현재 비밀번호를 확인해 주세요.' : authErrorMessage(error)
 
-export default function AccountManagement() {
+export default function AccountManagement({openProfile}:{openProfile:()=>void}) {
   const auth = useAuth()
-  const [nickname, setNickname] = useState(auth.profile?.nickname ?? '')
-  const [failure, setFailure] = useState('')
-  const [success, setSuccess] = useState('')
   const [dialog, setDialog] = useState<'password' | 'deletion' | null>(null)
-  const saving = useRef(false)
-  useEffect(() => { setNickname(auth.profile?.nickname ?? '') }, [auth.profile?.nickname])
-  const valid = length(nickname.trim()) >= 1 && length(nickname.trim()) <= 50
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!valid || auth.busy || saving.current) return
-    saving.current = true; setFailure(''); setSuccess('')
-    try { await auth.updateProfile({ nickname: nickname.trim() }); setSuccess('닉네임을 변경했어요.') }
-    catch (error) { setFailure(accountError(error)) }
-    finally { saving.current = false }
-  }
   return <div className="settings-form">
-    <form className="nickname-form" onSubmit={save} noValidate aria-busy={auth.busy}>
-      <label className="field"><span>이메일</span><input value={auth.profile?.email ?? ''} readOnly autoComplete="email" /></label>
-      <label className="field"><span>닉네임</span><input value={nickname} onChange={event => { setNickname(event.target.value); setFailure(''); setSuccess('') }} autoComplete="nickname" disabled={auth.busy} aria-invalid={!valid} /></label>
-      {!valid && <p className="field-error">닉네임은 1~50자로 입력해 주세요.</p>}
-      {failure && <p role="alert" className="field-error">{failure}</p>}
-      {success && <p role="status" className="form-help">{success}</p>}
-      <button className="primary-button" disabled={!valid || auth.busy || nickname.trim() === auth.profile?.nickname}>닉네임 저장</button>
-    </form>
+    <label className="field"><span>이메일</span><input value={auth.profile?.email ?? ''} readOnly autoComplete="email" /></label>
+    <button className="settings-row" disabled={auth.busy} onClick={openProfile}>프로필 설정</button>
     <button className="settings-row" disabled={auth.busy} onClick={() => setDialog('password')}>비밀번호 변경</button>
     <button className="settings-row account-delete" disabled={auth.busy} onClick={() => setDialog('deletion')}>회원 탈퇴</button>
     {dialog && <AccountDialog mode={dialog} close={() => setDialog(null)} />}

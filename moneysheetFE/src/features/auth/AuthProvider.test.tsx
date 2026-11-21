@@ -12,7 +12,7 @@ function fakeApi(): AuthApi {
     signup: vi.fn().mockResolvedValue(profile), login: vi.fn().mockResolvedValue(profile),
     requestEmailVerification: vi.fn().mockResolvedValue({ challengeId: '12345678-1234-1234-1234-123456789abc', expiresAt: new Date(Date.now()+600000).toISOString(), resendAfterSeconds: 60 }),
     confirmEmailVerification: vi.fn().mockResolvedValue({ verificationToken: 'A'.repeat(43), expiresAt: new Date(Date.now()+600000).toISOString() }),
-    logout: vi.fn().mockResolvedValue(undefined), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
+    logout: vi.fn().mockResolvedValue(undefined), uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
 }
 function Probe({ signup = false }: { signup?: boolean }) {
   const auth = useAuth()

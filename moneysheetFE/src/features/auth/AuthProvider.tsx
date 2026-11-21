@@ -19,6 +19,7 @@ type AuthState = {
   profile: UserProfile | null; sessionKey: string; validationRevision: number; initializing: boolean; bootstrapError: string;
   notice: string; busy: boolean; retry: () => void;
   updateProfile: (input: { nickname: string }) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>; deleteAvatar: () => Promise<void>;
   changePassword: (input: { currentPassword: string; newPassword: string }) => Promise<void>;
   deleteAccount: (input: { currentPassword: string }) => Promise<void>;
   login: (input: LoginInput) => Promise<void>; signup: (input: SignupInput) => Promise<void>; logout: () => Promise<void>;
@@ -119,6 +120,8 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
       return result
     },
     updateProfile: input => run(() => api.updateProfile(input), value => accept(value)),
+    uploadAvatar: file => run(() => api.uploadAvatar(file), value => accept(value)),
+    deleteAvatar: () => run(() => api.deleteAvatar(), value => accept(value)),
     changePassword: input => run(() => api.changePassword(input), () => { api.resetCsrf(); clear('비밀번호가 변경됐어요. 다시 로그인해 주세요.') }),
     deleteAccount: input => run(() => api.deleteAccount(input), () => {
       if (current.current) try { localStorage.removeItem(`moneysheet:onboarding:v1:${current.current.id}`) } catch { /* In-memory session still ends. */ }

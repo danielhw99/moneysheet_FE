@@ -12,7 +12,10 @@ function profile(value: unknown): UserProfile {
   if (!data || typeof data.id !== 'string' || !/^[1-9][0-9]*$/.test(data.id) || typeof data.email !== 'string' || typeof data.nickname !== 'string') {
     throw new ApiError(0, 'PROTOCOL', '사용자 정보를 확인하지 못했어요.')
   }
-  return { id: data.id, email: data.email, nickname: data.nickname }
+  if (data.avatarUrl !== undefined && data.avatarUrl !== null && (typeof data.avatarUrl !== 'string' || !/^\/api\/v1\/me\/avatar\?v=[a-f0-9]{32}$/.test(data.avatarUrl))) {
+    throw new ApiError(0, 'PROTOCOL', '프로필 사진 주소를 확인하지 못했어요.')
+  }
+  return { id: data.id, email: data.email, nickname: data.nickname, ...(data.avatarUrl === undefined ? {} : {avatarUrl:data.avatarUrl}) }
 }
 export function createAuthApi(client: HttpClient = httpClient) {
   return {
@@ -40,6 +43,8 @@ export function createAuthApi(client: HttpClient = httpClient) {
       return result
     },
     async updateProfile(input: { nickname: string }) { return profile(await client.patch('/me', input)) },
+    async uploadAvatar(file: File) { const body = new FormData(); body.append('file',file); return profile(await client.put('/me/avatar',body)) },
+    async deleteAvatar() { return profile(await client.delete('/me/avatar')) },
     async changePassword(input: { currentPassword: string; newPassword: string }) { await client.put<void>('/me/password', input); client.invalidateCsrf() },
     async deleteAccount(input: { currentPassword: string }) { await client.post<void>('/me/deletion', input); client.invalidateCsrf() },
     async logout() { await client.post<void>('/auth/logout'); client.invalidateCsrf() },
