@@ -66,7 +66,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate,
             return (
               <button key={i} disabled={!valid || pending} aria-pressed={valid ? date === selectedDate : undefined} aria-label={valid ? [date, ...(info?.entries.map(entry => `${entry.label} ${entryValue(entry)}`) ?? [])].join(', ') : undefined} onClick={() => activateDate(date)} className={`day-cell ${valid && date === selectedDate ? 'selected' : ''} ${valid && date === today ? 'today' : ''}`}>
                 <span className="day-number">{valid ? day : ''}</span>
-                {info && <span className="day-summary" aria-hidden="true">{info.entries.map((entry, index) => <span className="calendar-entry" key={entry.label + index} title={`${entry.label} ${entryValue(entry)}`}><i className={`dot ${colors[entry.kind]}`} /><span className="calendar-entry-value">{entryValue(entry)}</span></span>)}</span>}
+                {info && <span className="day-summary" aria-hidden="true">{info.entries.map((entry, index) => <span className="calendar-entry" data-kind={entry.kind} key={entry.label + index} title={`${entry.label} ${entryValue(entry)}`}><i className={`dot ${colors[entry.kind]}`} /><span className="calendar-entry-value">{entryValue(entry)}</span></span>)}</span>}
               </button>
             )
           })}

@@ -18,6 +18,10 @@
 .prototype { background: #f0f4f1; }
 .bottom-nav { --primary: #2e9d68; --muted: #929b97; --divider: #e3e8e5; }
 .app-shell, .detail-shell { color: var(--text); }
+.home-calendar-content .calendar-entry[data-kind="free"] { color: var(--primary-dark); }
+.home-calendar-content .calendar-entry[data-kind="fixed"] { color: var(--amount-income); }
+.home-calendar-content .calendar-entry[data-kind="transaction"] { color: var(--amount-expense); }
+.home-calendar-content .calendar-entry[data-kind="memo"] { color: var(--text); }
 .screen-content:not(.home-calendar-content) { overflow-y: auto; scrollbar-width: thin; }
 .topbar { border-color: var(--divider); }
 .topbar-title { font-size: 17px; letter-spacing: -.3px; }
