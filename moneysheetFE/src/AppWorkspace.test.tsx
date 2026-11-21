@@ -9,6 +9,30 @@ import { localDateValue } from './utils/date'
 const auth=():AuthApi=>({requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
+it('closes quick entry when another calendar date is selected and uses the new date',async()=>{
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ const trigger=await screen.findByRole('button',{name:'빠른 작성'})
+ await waitFor(()=>expect(trigger).toBeEnabled())
+ await userEvent.click(trigger)
+ const chosen=today.slice(0,7)+'-04'
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+chosen+'$')}))
+ expect(screen.queryByRole('navigation',{name:'빠른 작성 항목'})).not.toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:'빠른 작성'}))
+ expect(screen.getByRole('navigation',{name:'빠른 작성 항목'})).toHaveTextContent(chosen)
+})
+it.each([['내역 작성','내역 추가'],['메모 작성','메모 추가'],['고정지출 지급 작성','고정지출 지급 추가']])('opens %s directly with the selected home date',async(label,title)=>{
+ render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ const chosen=today.slice(0,7)+'-03'
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+chosen+'$')}))
+ expect(document.querySelector('.calendar')).toBeInTheDocument()
+ const trigger=await screen.findByRole('button',{name:'빠른 작성'})
+ await waitFor(()=>expect(trigger).toBeEnabled())
+ await userEvent.click(trigger)
+ await userEvent.click(screen.getByRole('button',{name:label}))
+ expect(await screen.findByText(title)).toBeInTheDocument()
+ expect(await screen.findByLabelText('날짜')).toHaveValue(chosen)
+ expect(screen.queryByRole('region',{name:'기록 목록'})).not.toBeInTheDocument()
+})
 it('provides app settings outside MY and reopens the guide from its dropdown',async()=>{
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
@@ -28,6 +52,7 @@ it('keeps the viewed month when entering Monthly and returns to today from the D
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
  await userEvent.click(await screen.findByRole('button',{name:new RegExp('^'+last+'$')}))
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+last+'$')}))
  await screen.findByText('123,456원')
  await userEvent.click(screen.getByRole('button',{name:'Monthly'}))
  await waitFor(()=>expect(vi.mocked(fetch).mock.calls.filter(([url])=>String(url).includes('/summaries/monthly')).at(-1)?.[0]).toContain('month='+last.slice(0,7)))
@@ -39,6 +64,7 @@ it('synchronizes Daily date navigation across a month boundary with the home cal
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
  await userEvent.click(screen.getByRole('button',{name:'이전 달'}))
  await userEvent.click(await screen.findByRole('button',{name:new RegExp('^'+last+'$')}))
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+last+'$')}))
  await screen.findByText('123,456원')
  await userEvent.click(screen.getByRole('button',{name:'다음 날짜'}))
  const first=today.slice(0,7)+'-01'
@@ -50,6 +76,8 @@ it('synchronizes Daily date navigation across a month boundary with the home cal
 })
 it('restores the calendar, selected Daily and record input using server summary data',async()=>{
  render(<App authApi={auth()}/>);await screen.findByRole('button',{name:new RegExp('^'+today+'$')})
+ expect(document.querySelector('.calendar')).toBeInTheDocument()
+ await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+today+'$')}))
  expect(document.querySelector('.calendar')).toBeInTheDocument()
  await userEvent.click(screen.getByRole('button',{name:new RegExp('^'+today+'$')}))
  expect(await screen.findByText('123,456원')).toBeInTheDocument()

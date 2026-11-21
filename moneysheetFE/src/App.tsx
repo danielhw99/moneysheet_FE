@@ -71,7 +71,7 @@ function Screens() {
     </main>
   }
   else if (screen === 'basic') view = basic
-  else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} />; ownNavigation = true }
+  else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
   else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} changeDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
   else if (screen === 'monthly') { view = <Monthly go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
   else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}:${recordEntry === 'new' ? 'new' : recordEntry?.id ?? 'list'}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} initialEntry={recordEntry} onCloseEntry={() => go('daily')} />
