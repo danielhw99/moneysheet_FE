@@ -88,11 +88,11 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
           const detail = kind === 'memos' ? item.completedOn === date ? '완료일 ' + item.completedOn : '작성일 ' + item.date
             : kind === 'fixed-pay' ? budgetItem ? budgetItem.complete ? '월 기준 지급 완료' : `월 기준 잔여 ${won(budgetItem.remaining)}원` : '예산 항목 없음'
             : kind === 'transactions' ? category?.name ?? '미분류' : item.date
-          return <div className={`record-row ${kind === 'memos' ? 'memo-record-row' : ''}`} key={item.id}>
+          return <div className={`record-row ${kind === 'memos' ? `memo-record-row ${item.completedOn === date ? 'memo-completed' : ''}` : ''}`} key={item.id}>
             {kind === 'memos' ? <label className="memo-record-check"><input type="checkbox" disabled={pending || query.loading || !!query.error} checked={item.completedOn === date} onChange={() => void toggleMemo(item)} aria-label={item.title + (item.completedOn === date ? ' 완료 취소' : ' 완료')} /></label>
               : <span className="record-date">{monthly ? Number(item.date.slice(8)) + '일' : item.time}</span>}
             <button type="button" className="memo-record-open" disabled={pending || query.loading || !!query.error} onClick={() => setEditing(item)}>
-              <span className="record-title"><b>{kind === 'fixed-pay' ? budgetItem?.name ?? item.title : item.title}</b><small>{detail}</small></span>
+              <span className="record-title">{kind === 'memos' && <span className="memo-badges"><small className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{item.direction === 'income' ? '임시 입금' : '임시 출금'}</small><small>{item.completedOn === date ? '완료' : '미완료'}</small></span>}<b>{kind === 'fixed-pay' ? budgetItem?.name ?? item.title : item.title}</b><small>{detail}</small></span>
               <strong className={kind === 'income' || (kind === 'transactions' || kind === 'memos') && item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{kind === 'transactions' || kind === 'memos' ? signedWon(recordValue(item)) : won(item.amount) + '원'}</strong><Icon name="chevron" size={16} />
             </button>
           </div>

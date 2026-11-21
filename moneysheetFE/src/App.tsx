@@ -19,6 +19,7 @@ import BottomNav from './components/BottomNav'
 import AppSettings from './components/AppSettings'
 import CategoryManagement, { CategorySettingsScreen } from './features/categories/CategoryManagementScreen'
 import QueryStatus from './components/QueryStatus'
+import LoadingStatus from './components/LoadingStatus'
 import { useDataQuery } from './data/useDataQuery'
 import { currentMonth } from './utils/date'
 
@@ -61,7 +62,7 @@ function Screens() {
   else if (business && (!readiness.data || (readiness.error && screen !== 'basic'))) {
     if (screen === 'home') {
       view = <main className="app-shell"><section className="screen-content home-content">
-        <HomeMonthHeader month={month} changeMonth={changeMonth} />
+        <HomeMonthHeader month={month} changeMonth={changeMonth} disabled={pending} />
         {readiness.errorCode === 'BUDGET_NOT_READY' ? <div className="home-readiness">{setupNotice}</div> : <QueryStatus {...readiness} />}
       </section><BottomNav screen="home" go={go} /></main>
       ownNavigation = true
@@ -87,7 +88,7 @@ function Screens() {
 function AuthGate() {
   const auth = useAuth()
   const [screen, setScreen] = useState<'login' | 'signup'>('login')
-  if (auth.initializing) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="status">로딩 중…</p></main></div></div>
+  if (auth.initializing) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><LoadingStatus className="auth-loading">로딩 중…</LoadingStatus></main></div></div>
   if (auth.bootstrapError) return <div className="prototype"><div className="phone-frame"><main className="auth-screen"><p role="alert">{auth.bootstrapError}</p><button className="primary-button" onClick={auth.retry}>다시 확인</button></main></div></div>
   if (!auth.profile) return <div className="prototype"><div className="phone-frame"><Login key={screen} signup={screen === 'signup'} go={next => { if (next === 'login' || next === 'signup') setScreen(next) }} /></div></div>
   return <DataProvider key={auth.sessionKey} refreshToken={auth.validationRevision}><OnboardingProvider userId={auth.profile.id}><Screens /></OnboardingProvider></DataProvider>

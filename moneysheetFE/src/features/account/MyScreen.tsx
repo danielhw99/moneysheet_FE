@@ -12,10 +12,10 @@ export default function My({ go, showNavigation = true }: { go: (s: Screen) => v
   const logout = async () => { setFailure(''); try { await auth.logout() } catch (error) { setFailure(authErrorMessage(error)) } }
   return (
     <main className="app-shell">
-      <section className={`screen-content ${showNavigation ? '' : 'no-bottom-nav'}`}>
+      <section className={`screen-content my-content ${showNavigation ? '' : 'no-bottom-nav'}`}>
         <Header title="마이페이지" />
         {failure && <p role="alert" className="field-error">{failure}</p>}
-        {profile && <div className="profile"><div className="avatar">{profile.nickname.slice(0, 1)}</div><div><b>{profile.nickname}</b><span>{profile.email}</span></div></div>}
+        {profile && <section className="profile profile-centered" aria-label="프로필 정보"><div className="avatar" aria-hidden="true">{Array.from(profile.nickname)[0]}</div><div><b>{profile.nickname}</b><span>{profile.email}</span></div><button type="button" className="profile-settings-button" onClick={() => go('account')}>프로필 설정</button></section>}
         <div className="menu-list">
           <button onClick={() => go('account')}><Icon name="user" /><span>계정관리</span><Icon name="chevron" /></button>
           <button onClick={() => go('settings')}><Icon name="settings" /><span>설정</span><Icon name="chevron" /></button>

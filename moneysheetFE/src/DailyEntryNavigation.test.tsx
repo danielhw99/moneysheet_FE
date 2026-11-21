@@ -18,6 +18,8 @@ it('returns a direct editor to the selected Daily but a list editor to its list'
  })
  vi.stubGlobal('fetch',fetcher)
  render(<App authApi={auth}/>)
+ const quickEntry=await screen.findByRole('button',{name:'빠른 작성'})
+ await waitFor(()=>expect(quickEntry).toBeEnabled())
  fireEvent.click(await screen.findByRole('button',{name:new RegExp('^'+selected+'$')}))
  fireEvent.click(screen.getByRole('button',{name:new RegExp('^'+selected+'$')}))
  fireEvent.click(await screen.findByRole('button',{name:/Direct record/}))

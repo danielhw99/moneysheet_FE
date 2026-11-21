@@ -9,6 +9,13 @@ import type { Screen } from '../../types/navigation'
 
 describe('홈 날짜 선택',()=>{
  const month=currentMonth(),first=month+'-01',second=month+'-02'
+ it('uses a calendar layout without the removed monthly summary card',async()=>{
+  render(<DataProvider implementation={createMockDataAccess()}><SelectedHome/></DataProvider>)
+  await waitFor(()=>expect(screen.queryByRole('status')).not.toBeInTheDocument())
+  expect(screen.queryByRole('button',{name:/총지출/})).not.toBeInTheDocument()
+  expect(document.querySelector('.home-calendar-content')).not.toBeNull()
+  expect(document.querySelector('.calendar')).toHaveStyle(`--calendar-weeks: ${document.querySelectorAll('.day-cell').length/7}`)
+ })
  function SelectedHome({shownMonth=month,go=vi.fn()}:{shownMonth?:string;go?:(screen:Screen)=>void}){
   const [selected,setSelected]=useState(first)
   return <Home month={shownMonth} selectedDate={selected} selectDate={setSelected} changeMonth={vi.fn()} go={go}/>
