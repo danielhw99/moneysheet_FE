@@ -306,7 +306,9 @@
 .memo-record-open { min-width: 0; min-height: 54px; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 8px; align-items: center; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
 .memo-record-open strong { font: 600 12px Inter, sans-serif; }
 
-.screen-content.home-content { overflow-y: auto; scrollbar-gutter: stable; }
+.screen-content.home-content { overflow-y: auto; scrollbar-gutter: stable both-edges; }
+.home-content .month-picker { padding-inline: 0; white-space: nowrap; font-size: clamp(16px, 4.5vw, 18px); }
+.signed-in-frame:has(.app-settings-dock) .home-content .month-head { padding-inline: 44px; gap: 4px; }
 .screen-content.home-content.with-quick-add { padding-bottom: 94px; }
 .home-quick-add { position: absolute; right: 16px; bottom: 84px; z-index: 6; }
 .home-quick-trigger { width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--primary-dark); color: white; display: grid; place-items: center; box-shadow: 0 4px 14px rgba(21, 42, 31, .2); cursor: pointer; }
