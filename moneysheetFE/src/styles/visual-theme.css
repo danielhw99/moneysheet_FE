@@ -79,7 +79,7 @@
 .profile-photo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; }
 .profile-photo-editor .profile-photo-actions { flex-direction: row; }
 .profile-photo-actions button { margin: 0; }
-.profile-settings-screen .nickname-form { border-top: 1px solid var(--line); }
+.profile-settings-screen .nickname-form { border-top: 1px solid var(--divider); }
 .profile-centered > div { min-width: 0; max-width: 100%; }
 .profile-centered > div:last-of-type { display: flex; flex-direction: column; gap: 8px; }
 .profile-centered b { font-size: 21px; line-height: 1.4; overflow-wrap: anywhere; }

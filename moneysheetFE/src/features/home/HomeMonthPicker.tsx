@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { currentMonth } from '../../utils/date'
+import { visibleViewportBounds } from '../../utils/floatingPanel'
 
 const MIN_YEAR = 1000
 
@@ -7,16 +8,22 @@ export default function HomeMonthPicker({ month, disabled, changeMonth, close, t
   const dialog = useRef<HTMLDialogElement>(null)
   const [year, setYear] = useState(Number(month.slice(0, 4)))
   const [monthNumber, setMonthNumber] = useState(Number(month.slice(5)))
-  const [top, setTop] = useState(76)
+  const [placement, setPlacement] = useState<React.CSSProperties>({top:76})
   const latest = currentMonth(), latestYear = Number(latest.slice(0, 4)), latestMonth = Number(latest.slice(5))
   const valid = Number.isInteger(year) && year >= MIN_YEAR && year <= latestYear && monthNumber >= 1 && monthNumber <= 12 && (year < latestYear || monthNumber <= latestMonth)
   useLayoutEffect(() => {
     const element = dialog.current
-    const position = () => setTop(Math.max(16, Math.min((trigger.current?.getBoundingClientRect().bottom ?? 64) + 12, window.innerHeight - 200)))
+    const position = () => {
+      const bounds = visibleViewportBounds(trigger.current?.closest('.phone-frame') ?? null)
+      const top = Math.max(bounds.top + 8, Math.min((trigger.current?.getBoundingClientRect().bottom ?? 64) + 12, bounds.bottom - 192))
+      setPlacement({top,left:(bounds.left+bounds.right)/2,maxHeight:Math.max(0,bounds.bottom-top-8),maxWidth:Math.max(0,bounds.right-bounds.left-16)})
+    }
     position()
     element?.showModal()
     window.addEventListener('resize', position)
-    return () => { window.removeEventListener('resize', position); if (element?.open) element.close(); trigger.current?.focus({ preventScroll: true }) }
+    window.visualViewport?.addEventListener('resize', position)
+    window.visualViewport?.addEventListener('scroll', position)
+    return () => { window.removeEventListener('resize', position); window.visualViewport?.removeEventListener('resize', position); window.visualViewport?.removeEventListener('scroll', position); if (element?.open) element.close(); trigger.current?.focus({ preventScroll: true }) }
   }, [trigger])
   const move = () => {
     if (disabled || !valid) return
@@ -24,7 +31,7 @@ export default function HomeMonthPicker({ month, disabled, changeMonth, close, t
     close()
     if (offset !== 0) changeMonth(offset)
   }
-  return <dialog ref={dialog} className="month-picker-dialog" style={{top, maxHeight: `calc(100dvh - ${top + 16}px)`}} aria-labelledby="month-picker-title"
+  return <dialog ref={dialog} className="month-picker-dialog" style={placement} aria-labelledby="month-picker-title"
     onCancel={event => { event.preventDefault(); close() }}
     onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); close() } }}
     onClick={event => {
