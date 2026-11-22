@@ -5,7 +5,7 @@ import Header from '../../components/Header'
 
 export default function SimpleSettings({ type, go }: { type: 'account' | 'settings'; go: (s: Screen) => void }) {
   return (
-    <main className="detail-shell">
+    <main className="detail-shell settings-screen">
       <Header title={type === 'account' ? '계정관리' : '설정'} onBack={() => go('my')} />
       {type === 'account' ? <AccountManagement openProfile={() => go('profile')} /> : <div className="menu-list settings-menu">
         <button><span>이용약관</span><Icon name="chevron" /></button>
