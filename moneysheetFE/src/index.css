@@ -400,6 +400,26 @@
 
 /* Budget preparation keeps the add action outside the growing item list. */
 .setup-form { padding: 12px; }
+.budget-setup-screen > .setup-form { display: flex; flex: 1; min-height: 0; height: auto; overflow: hidden; }
+.budget-setup-screen .setup-fields { min-width: 0; }
+.setup-progress { display: flex; list-style: none; gap: 14px; margin: 0; padding: 4px 0 10px; border-bottom: 1px solid var(--divider); }
+.setup-progress li { display: flex; align-items: center; gap: 7px; color: var(--secondary); font-size: 13px; }
+.setup-progress li span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); border: 1px solid var(--divider); }
+.setup-progress li[aria-current="step"] { color: var(--primary-dark); font-weight: 700; }
+.setup-progress li[aria-current="step"] span { background: var(--primary-soft); border-color: var(--primary); }
+.budget-setup-screen .setup-content { flex: 1; flex-shrink: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.setup-month { margin: 0 0 12px; color: var(--secondary); font-size: 13px; }
+.budget-setup-screen .setup-panel { min-height: auto; }
+.budget-setup-screen .setup-panel[hidden] { display: none; }
+.budget-setup-screen .setup-panel-head { position: sticky; top: 0; z-index: 1; background: var(--background); padding-bottom: 8px; }
+.budget-setup-screen .setup-item-list { overflow: visible; flex: none; }
+.budget-setup-screen .setup-food { overflow: visible; }
+.budget-setup-screen .setup-food > h2 { font-size: 16px; margin: 0; }
+.budget-setup-screen .food-settings-fields > h2 { display: none; }
+.budget-setup-screen .setup-guide { margin: 0 0 12px; padding: 12px; }
+.budget-setup-screen .setup-error { max-height: 76px; overflow-y: auto; overflow-wrap: anywhere; margin: 0; }
+.setup-action-buttons { display: flex; gap: 10px; }
+.setup-action-buttons > button { flex: 1; min-width: 0; margin: 0; font-size: 13px; }
 .setup-fields { display: flex; flex-direction: column; min-height: 0; flex: 1; gap: 12px; }
 .setup-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; flex: 1; min-height: 240px; }
 .setup-panel { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; border: 1px solid var(--divider); border-radius: var(--radius-md); padding: 12px; }
