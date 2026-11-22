@@ -91,7 +91,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     finally { working.current = false; setSaving(false) }
   }
   const change = (key: number, patch: Partial<DraftItem>) => { setError(''); setRows(previous => previous.map(row => row.key === key ? { ...row, item: { ...row.item, ...patch } } : row)) }
-  return <main className="detail-shell budget-detail budget-setup-screen"><Header title="월 예산 준비" onBack={() => { if (!blocked && !working.current) { if (step === 1) previous(); else onCancel() } }} />
+  return <main className="detail-shell budget-detail budget-setup-screen"><Header title="월 예산 준비" onBack={() => { if (working.current) return; if (step === 1) previous(); else onCancel() }} />
     {readOnly && <p role="alert">현재 월만 예산을 준비할 수 있어요.</p>}
     {!draft && !readOnly && <QueryStatus loading={loading} error={error} retry={() => setAttempt(value => value + 1)} />}
     {draft && <form className="record-form setup-form" onSubmit={save} noValidate>

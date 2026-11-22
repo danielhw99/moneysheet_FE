@@ -13,6 +13,15 @@ function start(copied=false) {
  return {api,done,cancel}
 }
 const next=()=>fireEvent.click(screen.getByRole('button',{name:'다음: 식비 설정'}))
+it.each(['2000-01','2999-01'])('allows leaving read-only month %s without preparing or saving',async month=>{
+ const api=createMockDataAccess(),cancel=vi.fn()
+ api.prepareBudget=vi.fn();api.setupBudget=vi.fn()
+ render(<DataProvider implementation={api}><BudgetSetupScreen month={month} onDone={vi.fn()} onCancel={cancel}/></DataProvider>)
+ expect(await screen.findByRole('alert')).toHaveTextContent('현재 월만')
+ fireEvent.click(screen.getByRole('button',{name:'뒤로가기'}))
+ expect(cancel).toHaveBeenCalledOnce()
+ expect(api.prepareBudget).not.toHaveBeenCalled();expect(api.setupBudget).not.toHaveBeenCalled()
+})
 it('shows only one full-width step and preserves both drafts without saving between steps',async()=>{
  const {api}=start(true)
  expect(await screen.findByRole('region',{name:'고정비 설정'})).toBeVisible()
