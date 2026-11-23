@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { dailySummary, budgetSummary, homeSummary } from './queries'
 import type { MonthlyBudget, RecordStore } from '../models'
 
-const budget: MonthlyBudget = { month: '2026-11', fixed: [{ id: 'free-allowance', name: '고정여유비', categoryId: 'pocket', amount: 50000 }], food: { enabled: true, paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } }
+const budget: MonthlyBudget = { month: '2026-11', fixed: [{ id: 'free-allowance', name: '고정여유비', categoryId: 'pocket', amount: 50000 }], food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } }
 const empty = (): RecordStore => ({ transactions: [], memos: [], 'fixed-pay': [], income: [], extra: [] })
 describe('ordinary fixed budgets and monthly free balance', () => {
   it('starts day one with only food and gives savings to the same day', () => {
@@ -34,4 +34,16 @@ describe('ordinary fixed budgets and monthly free balance', () => {
     records['fixed-pay'].push({ id: 'pay', budgetItemId: 'free-allowance', date: '2026-11-01', time: '12:00', title: 'pay', amount: 20000, direction: 'expense', categoryId: null, completedOn: null })
     expect(budgetSummary(budget, records).items[0]).toMatchObject({ paid: 20000, remaining: 30000, complete: false })
   })
+})
+
+it('splits on 1/11/21 including leap months without adding a round to daily free',()=>{
+ for(const month of ['2026-11','2024-02']) {
+  const b:MonthlyBudget={...budget,month,fixed:[]}
+  expect(budgetSummary(b,empty()).foodSummary.installments).toEqual([110000,110000,(month==='2024-02'?9:10)*11000])
+  for(const day of [1,10,11,20,21,month==='2024-02'?29:30]) {
+   const date=month+'-'+String(day).padStart(2,'0'),d=dailySummary(date,b,empty())
+   expect(d.freeBalance).toBe(day*11000)
+   expect(d.remainingFood).toBe(((day<=10?10:day<=20?20:month==='2024-02'?29:30)-day)*11000)
+  }
+ }
 })

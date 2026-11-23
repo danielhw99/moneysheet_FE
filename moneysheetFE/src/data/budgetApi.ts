@@ -15,11 +15,11 @@ const name = (v: unknown): string => { if (typeof v !== 'string' || !v.trim() ||
 const month = (v: string) => { if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(v)) throw new ApiError(400, 'VALIDATION', '조회할 월을 확인해 주세요.'); return v }
 function food(v: unknown, draft = false): FoodBudget {
  const d=object(v)
- if ((typeof d.enabled!=='boolean' && !(draft&&d.enabled===null)) || (d.paymentMode!=='threeInstallments'&&d.paymentMode!=='monthStart')) throw protocol()
+ if ((d.paymentMode!=='threeInstallments'&&d.paymentMode!=='monthStart')) throw protocol()
  const values=[d.weekday,d.saturday,d.sunday]
  if(!values.every(value=>value===null) && !values.every(value=>typeof value==='number'&&value>=1)) throw protocol()
- if(d.enabled===true && values.some(value=>value===null)) throw protocol()
- return {enabled:d.enabled as boolean|null,paymentMode:d.paymentMode,weekday:d.weekday===null?null:money(d.weekday),saturday:d.saturday===null?null:money(d.saturday),sunday:d.sunday===null?null:money(d.sunday)}
+ if(!draft && values.some(value=>value===null)) throw protocol()
+ return {paymentMode:d.paymentMode,weekday:d.weekday===null?null:money(d.weekday),saturday:d.saturday===null?null:money(d.saturday),sunday:d.sunday===null?null:money(d.sunday)}
 }
 function item(v: unknown): BudgetItem { const d = object(v); return { id: id(d.id), name: name(d.name), categoryId: d.categoryId === null ? null : id(d.categoryId), amount: money(d.amount) } }
 function summary(v: unknown, expectedMonth: string): BudgetSummary {

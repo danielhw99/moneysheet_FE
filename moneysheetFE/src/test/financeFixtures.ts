@@ -1,7 +1,7 @@
 import { currentMonth, daysInMonth, localDateValue } from '../utils/date'
 export const month=currentMonth(), today=localDateValue(new Date())
 export const profile={id:'1',email:'finance@example.com',nickname:'Finance'}
-export const budget=(m=month)=>({month:m,status:'ready',items:[],food:{enabled: true, paymentMode: 'threeInstallments', weekday:11000,saturday:11000,sunday:11000},fixedTotal:0,foodSummary:{total:daysInMonth(m)*11000,installments:[121000,110000,(daysInMonth(m)-21)*11000]}})
+export const budget=(m=month)=>({month:m,status:'ready',items:[],food:{paymentMode: 'threeInstallments', weekday:11000,saturday:11000,sunday:11000},fixedTotal:0,foodSummary:{total:daysInMonth(m)*11000,installments:[110000,110000,(daysInMonth(m)-20)*11000]}})
 export const monthly=(m=month)=>({month:m,income:1000000,extra:100000,fixedBudget:0,foodBudget:daysInMonth(m)*11000,basicTotal:daysInMonth(m)*11000,totalExpense:daysInMonth(m)*11000+100000,net:1000000-daysInMonth(m)*11000-100000})
 export const daily=(date=today)=>({date,mainBalance:123456,freeBalance:2000,foodBudget:11000,carryoverFreeBalance:0,availableBeforeSpending:11000,remainingFood:0,expenseTotal:9000,incomeTotal:0,transactions:[],activeMemos:[],payments:[]})
 export const home=(m=month)=>({month:m,asOfDate:m===month?today:`${m}-${daysInMonth(m)}`,expense:monthly(m).totalExpense,freeBalance:2000,days:Array.from({length:daysInMonth(m)},(_,i)=>({date:`${m}-${String(i+1).padStart(2,'0')}`,entries:[]}))})

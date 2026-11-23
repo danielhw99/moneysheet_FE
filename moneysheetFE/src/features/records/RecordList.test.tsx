@@ -17,7 +17,7 @@ it.each([
  ['transactions','expense'],['transactions','income'],['memos','expense'],['memos','income'],['fixed-pay','expense'],['income','income'],['extra','expense'],
 ] as const)('keeps retry keys but separates changed input and new forms for %s/%s',async(kind,direction)=>{
  const service=api();service.getRecords.mockResolvedValue({...page([]),pendingMemoTotal:0})
- service.getBudget=vi.fn().mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:null,amount:100000,paid:0,remaining:100000,complete:false}],food:{enabled: true, paymentMode: 'threeInstallments', weekday:1,saturday:1,sunday:1},fixedTotal:100000,foodSummary:{total:30,installments:[11,10,9]}})
+ service.getBudget=vi.fn().mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:null,amount:100000,paid:0,remaining:100000,complete:false}],food:{paymentMode: 'threeInstallments', weekday:1,saturday:1,sunday:1},fixedTotal:100000,foodSummary:{total:30,installments:[11,10,9]}})
  const create=vi.spyOn(service,'createRecord').mockResolvedValue(row('8','Lunch')).mockRejectedValueOnce(new Error('response lost')).mockRejectedValueOnce(new Error('response lost'))
  render(<View service={service} kind={kind}/>);
  const add={transactions:'거래 추가',memos:'메모 추가','fixed-pay':'지급 기록 추가',income:'수입 추가',extra:'지출 추가'}[kind]
@@ -105,7 +105,7 @@ it('retains loaded rows after a page failure and retries a read without sending 
 
 it('names the fixed-item selector explicitly and blocks amounts above the remaining monthly budget',async()=>{
  const service=api();service.getRecords.mockResolvedValue({...page([]),total:0,expenseTotal:0,incomeTotal:0})
- vi.spyOn(service,'getBudget').mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:'9',amount:10000,paid:6000,remaining:4000,complete:false}],food:{enabled: true, paymentMode: 'threeInstallments', weekday:11000,saturday:11000,sunday:11000},fixedTotal:10000,foodSummary:{total:330000,installments:[121000,110000,99000]}})
+ vi.spyOn(service,'getBudget').mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:'9',amount:10000,paid:6000,remaining:4000,complete:false}],food:{paymentMode: 'threeInstallments', weekday:11000,saturday:11000,sunday:11000},fixedTotal:10000,foodSummary:{total:330000,installments:[121000,110000,99000]}})
  const create=vi.spyOn(service,'createRecord');render(<View service={service} kind="fixed-pay"/>);await screen.findByText('해당 기간의 기록이 없습니다.')
  await userEvent.click(screen.getByRole('button',{name:'지급 기록 추가'}));await userEvent.selectOptions(screen.getByRole('combobox',{name:'고정지출 예산 항목'}),'51')
  await userEvent.type(screen.getByLabelText('이번 지급액'),'4001');await userEvent.click(screen.getByRole('button',{name:'저장'}))

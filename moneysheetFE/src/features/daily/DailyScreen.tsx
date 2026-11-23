@@ -59,7 +59,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
           {foodSettings.loading
             ? <div><span role="status">식비 설정 확인 중…</span></div>
             : foodSettings.error ? <div><span>식비 설정 확인 실패</span></div>
-            : foodSettings.data?.food.enabled && <div><span>오늘 식비 예산</span><strong>{summaryBlocked ? '—' : `${won(summary.foodBudget)}원`}</strong></div>}
+            : foodSettings.data && <div><span>오늘 식비 예산</span><strong>{summaryBlocked ? '—' : `${won(summary.foodBudget)}원`}</strong></div>}
         </section>
         <div className="split-panels">
           <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" addDisabled={summaryBlocked || pending} onAdd={() => open('transactions', 'new')}>

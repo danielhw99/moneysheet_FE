@@ -33,7 +33,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
     setSaveError('')
     const values = foodDraft ?? { weekday: budget.food.weekday===null?'':won(budget.food.weekday), saturday: budget.food.saturday===null?'':won(budget.food.saturday), sunday: budget.food.sunday===null?'':won(budget.food.sunday) }
     let input: FoodBudget
-    try { input = { enabled:true,paymentMode:budget.food.paymentMode,weekday: budgetAmount(values.weekday), saturday: budgetAmount(values.saturday), sunday: budgetAmount(values.sunday) } }
+    try { input = { paymentMode:budget.food.paymentMode,weekday: budgetAmount(values.weekday), saturday: budgetAmount(values.saturday), sunday: budgetAmount(values.sunday) } }
     catch (error) { setSaveError(errorMessage(error)); return }
     try {
       await mutate(api => api.updateFoodBudget(month, input))
@@ -71,7 +71,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
       <div className="sub-month">{month.replace('-', '.')} {pastMonth || futureMonth ? <span>{pastMonth?'지난달 · 조회 전용':'미래 월 · 조회 전용'}</span> : <button className={`lock-button budget-lock-toggle ${locked ? 'locked' : ''}`} disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} aria-pressed={locked} aria-label={locked ? '예산 잠금 해제' : '예산 잠금'} onClick={() => { setSaveError(''); setLocked(!locked) }}><Icon name={locked ? 'lock' : 'unlock'} size={17} /><span>{locked?'예산 잠금':'편집 중'}</span></button>}</div>
       <p className="notice">{pastMonth ? '지난달 예산은 수정할 수 없어요.' : futureMonth ? '미래 월 예산은 조회만 할 수 있어요.' : locked ? hasUnsavedFood && !query.loading ? '미저장 식비 변경이 있어요. 잠금을 해제하고 저장해 주세요.' : '잠금을 해제하면 이번 달 예산을 수정할 수 있어요.' : `수정한 값은 ${Number(month.slice(5))}월 전체에 적용됩니다.`}</p>
       {saveError && <p className="query-status" role="alert">{saveError}</p>}
-      <div className={`budget-columns ${budget.food.enabled ? '' : 'without-food'}`}>
+      <div className="budget-columns">
         <section className="budget-column">
           <div className="column-head fixed-budget-head"><b>고정지출</b><span>합계 <strong>{won(budget.fixedTotal)}원</strong></span><button type="button" className="primary-button add-budget" disabled={pastMonth || futureMonth || pending || query.loading || !!query.error} onClick={() => { if (locked) setLocked(false); setEditing('new') }}>{locked ? '잠금 해제하고 고정비 추가' : '+ 고정비 추가'}</button></div>
           <div className="column-scroll">
@@ -83,19 +83,19 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
           </div>
           <button className="panel-add" disabled={readOnly} onClick={() => openForm('new')}><Icon name="plus" size={16} />고정비 추가</button>
         </section>
-        {budget.food.enabled && <section className="budget-column food-column">
+        {<section className="budget-column food-column">
           <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(budget.foodSummary.total)}원</strong></span></div>
           <div className="column-scroll">
             {([['주중', 'weekday'], ['토요일', 'saturday'], ['일요일', 'sunday']] as const).map(([label, key]) => <label className="budget-input" key={key}><span>{label}</span><div><MoneyInput disabled={readOnly} value={foodDraft?.[key] ?? (budget.food[key]===null?'':won(budget.food[key]))} onValueChange={value => setFoodDraft(previous => ({ ...(previous ?? { weekday: budget.food.weekday===null?'':won(budget.food.weekday), saturday: budget.food.saturday===null?'':won(budget.food.saturday), sunday: budget.food.sunday===null?'':won(budget.food.sunday) }), [key]: value }))} /><b>원</b></div></label>)}
             <div className="periods">
-              <span><small>1차</small><b>{budget.food.paymentMode==='monthStart'?'월 전체':'1~11일'}</b><strong>{won(budget.foodSummary.installments[0])}원</strong></span>
-              {budget.food.paymentMode!=='monthStart' && <><span><small>2차</small><b>12~21일</b><strong>{won(budget.foodSummary.installments[1])}원</strong></span>
-              <span><small>3차</small><b>22일~말일</b><strong>{won(budget.foodSummary.installments[2])}원</strong></span></>}
+              <span><small>1차</small><b>{budget.food.paymentMode==='monthStart'?'월 전체':'1~10일'}</b><strong>{won(budget.foodSummary.installments[0])}원</strong></span>
+              {budget.food.paymentMode!=='monthStart' && <><span><small>2차</small><b>11~20일</b><strong>{won(budget.foodSummary.installments[1])}원</strong></span>
+              <span><small>3차</small><b>21일~말일</b><strong>{won(budget.foodSummary.installments[2])}원</strong></span></>}
             </div>
           </div>
         </section>}
       </div>
-      {budget.food.enabled && <button className="primary-button bottom-action" disabled={readOnly} onClick={() => void saveFood()}>저장</button>}
+      {<button className="primary-button bottom-action" disabled={readOnly} onClick={() => void saveFood()}>저장</button>}
     </main>
   )
 }

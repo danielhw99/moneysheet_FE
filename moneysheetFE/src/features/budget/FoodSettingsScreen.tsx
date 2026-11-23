@@ -19,14 +19,12 @@ export default function FoodSettingsScreen({month,go}:{month:string;go:(screen:S
 }
 function FoodSettingsForm({month,food,blocked:queryBlocked}:{month:string;food:Readonly<FoodBudget>;blocked:boolean}) {
  const {mutate,pending}=useDataAccess()
- const [enabled,setEnabled]=useState(food.enabled)
  const [mode,setMode]=useState<FoodPaymentMode>(food.paymentMode)
  const [amounts,setAmounts]=useState<FoodAmounts>({weekday:food.weekday===null?'':String(food.weekday),saturday:food.saturday===null?'':String(food.saturday),sunday:food.sunday===null?'':String(food.sunday)})
- const [baseline,setBaseline]=useState(food)
  const [dirty,setDirty]=useState(false)
  useEffect(()=>{
   if(dirty||queryBlocked||pending)return
-  setBaseline(food);setEnabled(food.enabled);setMode(food.paymentMode)
+  setMode(food.paymentMode)
   setAmounts({weekday:food.weekday===null?'':String(food.weekday),saturday:food.saturday===null?'':String(food.saturday),sunday:food.sunday===null?'':String(food.sunday)})
  },[food,dirty,queryBlocked,pending])
  const [error,setError]=useState(''),[saved,setSaved]=useState(false),[saving,setSaving]=useState(false)
@@ -35,17 +33,16 @@ function FoodSettingsForm({month,food,blocked:queryBlocked}:{month:string;food:R
   event.preventDefault();if(blocked)return
   setError('');setSaved(false)
   try {
-   if(enabled===null)throw new Error('식비 사용 여부를 선택해 주세요.')
-   const input:FoodBudget=enabled?{enabled:true,paymentMode:mode,weekday:budgetAmount(amounts.weekday),saturday:budgetAmount(amounts.saturday),sunday:budgetAmount(amounts.sunday)}:{enabled:false,paymentMode:baseline.paymentMode,weekday:null,saturday:null,sunday:null}
+   const input:FoodBudget={paymentMode:mode,weekday:budgetAmount(amounts.weekday),saturday:budgetAmount(amounts.saturday),sunday:budgetAmount(amounts.sunday)}
    setSaving(true)
    const result=await mutate(api=>api.updateFoodBudget(month,input))
-   setBaseline(result.food);setEnabled(result.food.enabled);setMode(result.food.paymentMode)
+   setMode(result.food.paymentMode)
    setAmounts({weekday:result.food.weekday===null?'':String(result.food.weekday),saturday:result.food.saturday===null?'':String(result.food.saturday),sunday:result.food.sunday===null?'':String(result.food.sunday)})
    setDirty(false);setSaved(true)
   }catch(e){setError(errorMessage(e))}finally{setSaving(false)}
  }
  return <form className="record-form food-settings-form" onSubmit={save} noValidate>
-  <FoodSettingsFields enabled={enabled} setEnabled={value=>{setError('');setDirty(true);setEnabled(value);if(!value)setMode(baseline.paymentMode);setSaved(false)}} mode={mode} setMode={value=>{setError('');setDirty(true);setMode(value);setSaved(false)}} amounts={amounts} setAmounts={value=>{setError('');setDirty(true);setAmounts(value);setSaved(false)}} disabled={blocked}/>
+  <FoodSettingsFields mode={mode} setMode={value=>{setError('');setDirty(true);setMode(value);setSaved(false)}} amounts={amounts} setAmounts={value=>{setError('');setDirty(true);setAmounts(value);setSaved(false)}} disabled={blocked}/>
   <p className="notice">저장하면 이번 달 전체에 적용됩니다. 지난 날짜를 포함한 여유비·Main·월 현황이 다시 계산되며 지난달에는 영향을 주지 않습니다. 저장 없이 나가면 변경은 적용되지 않습니다.</p>
   {month!==currentMonth()&&<p className="form-help">지난달 식비 설정은 변경할 수 없어요.</p>}
   {error&&<p role="alert" className="field-error">{error}</p>}{saved&&<p role="status">식비 설정을 저장했어요.</p>}

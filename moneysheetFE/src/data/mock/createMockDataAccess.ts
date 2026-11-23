@@ -94,10 +94,9 @@ export function createMockDataAccess(options: { today?: () => string; createId?:
     async getBudget(month) { return clone(budgetSummary(getBudget(month), records)) },
     async updateFoodBudget(month, input) {
       const budget = editableBudget(month)
-      if(typeof input.enabled!=='boolean'||!['threeInstallments','monthStart'].includes(input.paymentMode)) fail('식비 설정을 확인해 주세요.')
-      if(input.enabled && [input.weekday,input.saturday,input.sunday].some(value=>value===null||!Number.isSafeInteger(value)||value<1||value>9999999999)) fail('식비 금액을 입력해 주세요.')
-      if(!input.enabled && ([input.weekday,input.saturday,input.sunday].some(value=>value!==null)||input.paymentMode!==budget.food.paymentMode))fail('OFF에서는 하위 설정을 변경할 수 없어요.')
-      const food = input.enabled ? {...input} : {...budget.food,enabled:false}
+      if(!['threeInstallments','monthStart'].includes(input.paymentMode)) fail('식비 설정을 확인해 주세요.')
+      if([input.weekday,input.saturday,input.sunday].some(value=>value===null||!Number.isSafeInteger(value)||value<1||value>9999999999)) fail('식비 금액을 입력해 주세요.')
+      const food = {...input}
       const total = foodThrough(month, daysInMonth(month), food) + budget.fixed.reduce((sum, item) => sum + item.amount, 0)
       if (!Number.isSafeInteger(total)) fail('월 예산 합계를 정확하게 계산할 수 없어요.')
       budget.food = food

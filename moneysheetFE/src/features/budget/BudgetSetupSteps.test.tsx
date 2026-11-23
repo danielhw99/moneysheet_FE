@@ -7,7 +7,7 @@ import BudgetSetupScreen from './BudgetSetupScreen'
 
 function start(copied=false) {
  const api=createMockDataAccess(),done=vi.fn(),cancel=vi.fn()
- api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',copiedFromMonth:copied?'2026-10':null,items:copied?[{id:'51',name:'월세',categoryId:null,amount:10000}]:[],food:{enabled:null,paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
+ api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',copiedFromMonth:copied?'2026-10':null,items:copied?[{id:'51',name:'월세',categoryId:null,amount:10000}]:[],food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
  api.setupBudget=vi.fn().mockResolvedValue({})
  render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={cancel}/></DataProvider>)
  return {api,done,cancel}
@@ -30,7 +30,7 @@ it('shows only one full-width step and preserves both drafts without saving betw
  fireEvent.change(screen.getByLabelText('예산 금액 1'),{target:{value:'12345'}})
  next();expect(screen.getByRole('region',{name:'식비 설정'})).toBeVisible()
  expect(screen.getByRole('heading',{name:'식비 설정'})).toHaveFocus()
- fireEvent.click(screen.getByRole('switch',{name:'식비 사용'}))
+
  fireEvent.change(screen.getByLabelText('주중 식비'),{target:{value:'11000'}})
  fireEvent.change(screen.getByLabelText('지급 방식'),{target:{value:'monthStart'}})
  fireEvent.click(screen.getByRole('button',{name:'이전: 고정비 설정'}))
@@ -50,20 +50,20 @@ it('validates fixed rows before moving on but allows a completely empty list',as
  fireEvent.click(screen.getByRole('button',{name:'항목 삭제 1'}));next()
  expect(screen.getByRole('region',{name:'식비 설정'})).toBeVisible();expect(api.setupBudget).not.toHaveBeenCalled()
 })
-it('treats a first-step form submit as next and saves explicit OFF only at the final step',async()=>{
+it('treats a first-step form submit as next and saves required food only at the final step',async()=>{
  const {api,done}=start();const nextButton=await screen.findByRole('button',{name:'다음: 식비 설정'})
  fireEvent.submit(nextButton.closest('form')!)
  expect(api.setupBudget).not.toHaveBeenCalled()
- fireEvent.click(screen.getByRole('button',{name:'식비 사용하지 않기'}))
+ for(const name of ['주중 식비','토요일 식비','일요일 식비']) fireEvent.change(screen.getByLabelText(name),{target:{value:'11000'}})
  fireEvent.click(screen.getByRole('button',{name:'예산 저장'}))
  await waitFor(()=>expect(done).toHaveBeenCalledWith(true))
- expect(api.setupBudget).toHaveBeenCalledExactlyOnceWith(currentMonth(),{items:[],food:{enabled:false,paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
+ expect(api.setupBudget).toHaveBeenCalledExactlyOnceWith(currentMonth(),{items:[],food:{paymentMode:'threeInstallments',weekday:11000,saturday:11000,sunday:11000}})
 })
 it('blocks step and header navigation during saving and preserves copied IDs and both drafts on failure',async()=>{
  const {api,cancel}=start(true);await screen.findByRole('button',{name:'다음: 식비 설정'});next()
  let reject!:(error:Error)=>void
  api.setupBudget=vi.fn(()=>new Promise<Awaited<ReturnType<typeof api.setupBudget>>>((_,fail)=>{reject=fail}))
- fireEvent.click(screen.getByRole('button',{name:'식비 사용하지 않기'}))
+ for(const name of ['주중 식비','토요일 식비','일요일 식비']) fireEvent.change(screen.getByLabelText(name),{target:{value:'11000'}})
  fireEvent.click(screen.getByRole('button',{name:'예산 저장'}))
  expect(await screen.findByRole('button',{name:'저장 중…'})).toBeDisabled()
  expect(screen.getByRole('button',{name:'이전: 고정비 설정'})).toBeDisabled()

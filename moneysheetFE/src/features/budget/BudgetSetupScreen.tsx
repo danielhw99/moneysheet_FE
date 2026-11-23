@@ -19,7 +19,6 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
   const beginSetup = guide?.beginSetup
   const [draft, setDraft] = useState<BudgetPreparation | null>(null)
   const [rows, setRows] = useState<Row[]>([])
-  const [enabled,setEnabled]=useState<boolean|null>(null)
   const [mode,setMode]=useState<FoodPaymentMode>('threeInstallments')
   const [food, setFood] = useState({ weekday: '', saturday: '', sunday: '' })
   const [error, setError] = useState('')
@@ -50,7 +49,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
       beginSetup?.(value.copiedFromMonth !== null)
       setDraft(value)
       setStep(0)
-      setEnabled(value.food.enabled);setMode(value.food.paymentMode)
+      setMode(value.food.paymentMode)
       setRows(value.items.map(item => ({ key: sequence.current++, item, amount: item.amount === null ? '' : String(item.amount) })))
       setFood({ weekday: value.food.weekday === null ? '' : String(value.food.weekday), saturday: value.food.saturday === null ? '' : String(value.food.saturday), sunday: value.food.sunday === null ? '' : String(value.food.sunday) })
     }).catch(error => { if (active) setError(errorMessage(error)) })
@@ -83,9 +82,8 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     try {
       let items: ReturnType<typeof fixedItems>
       try { items = fixedItems() } catch (error) { setStep(0); throw error }
-      if(enabled===null)throw new Error('식비 사용 여부를 선택해 주세요.')
       working.current = true; setSaving(true)
-      await mutate(api => api.setupBudget(month, { items, food: enabled?{enabled:true,paymentMode:mode,weekday:budgetAmount(food.weekday),saturday:budgetAmount(food.saturday),sunday:budgetAmount(food.sunday)}:{enabled:false,paymentMode:draft.food.paymentMode,weekday:null,saturday:null,sunday:null} }))
+      await mutate(api => api.setupBudget(month, { items, food: {paymentMode:mode,weekday:budgetAmount(food.weekday),saturday:budgetAmount(food.saturday),sunday:budgetAmount(food.sunday)} }))
       onDone(true)
     } catch (error) { setError(errorMessage(error)) }
     finally { working.current = false; setSaving(false) }
@@ -119,7 +117,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
           </section>
           <section className="setup-panel setup-food" aria-label="식비 설정" hidden={step !== 1}>
             <h2 ref={foodTitle} tabIndex={-1}>식비 설정</h2>
-            <FoodSettingsFields enabled={enabled} setEnabled={value=>{setError('');setEnabled(value);if(!value)setMode(draft.food.paymentMode)}} mode={mode} setMode={value=>{setError('');setMode(value)}} amounts={food} setAmounts={value=>{setError('');setFood(value)}} disabled={blocked}/>
+            <FoodSettingsFields mode={mode} setMode={value=>{setError('');setMode(value)}} amounts={food} setAmounts={value=>{setError('');setFood(value)}} disabled={blocked}/>
           </section>
         </div>
         {error && <p className="query-status setup-error" role="alert">{error}</p>}

@@ -4,10 +4,9 @@ export { validateRecord } from '../validation'
 import type { MoneyRecord, FoodBudget } from '../models'
 
 // Prototype defaults; actual budget configuration is supplied by the service.
-export const defaultFoodBudget: FoodBudget = { enabled:true,paymentMode:'threeInstallments',weekday: 11000, saturday: 18000, sunday: 15000 }
+export const defaultFoodBudget: FoodBudget = { paymentMode:'threeInstallments',weekday: 11000, saturday: 18000, sunday: 15000 }
 export const memoActive = (memo: MoneyRecord, date: string) => memo.date.slice(0, 7) === date.slice(0, 7) && memo.date <= date && (!memo.completedOn || memo.completedOn > date)
 export const foodForDate = (date: string, food: FoodBudget = defaultFoodBudget) => {
-  if(food.enabled===false)return 0
   const day = new Date(date + 'T12:00:00').getDay()
   return (day === 0 ? food.sunday : day === 6 ? food.saturday : food.weekday) ?? 0
 }

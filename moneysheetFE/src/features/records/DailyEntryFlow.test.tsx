@@ -12,7 +12,7 @@ function service(){
  const api=createMockDataAccess({today:()=>date})
  vi.spyOn(api,'getRecords').mockResolvedValue(page)
  vi.spyOn(api,'getRecord').mockResolvedValue(record)
- vi.spyOn(api,'getBudget').mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:null,amount:10000,paid:100,remaining:9900,complete:false}],food:{enabled: true, paymentMode: 'threeInstallments', weekday:100,saturday:100,sunday:100},fixedTotal:10000,foodSummary:{total:3000,installments:[1100,1000,900]}})
+ vi.spyOn(api,'getBudget').mockResolvedValue({month:'2026-11',items:[{id:'51',name:'Rent',categoryId:null,amount:10000,paid:100,remaining:9900,complete:false}],food:{paymentMode: 'threeInstallments', weekday:100,saturday:100,sunday:100},fixedTotal:10000,foodSummary:{total:3000,installments:[1100,1000,900]}})
  return api
 }
 it.each([
