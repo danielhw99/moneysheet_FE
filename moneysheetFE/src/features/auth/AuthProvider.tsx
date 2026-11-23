@@ -41,6 +41,7 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
   const current = useRef<UserProfile | null>(null)
   const epoch = useRef(0)
   const checkSequence = useRef(0)
+  const checking = useRef<{ epoch: number; sequence: number } | null>(null)
   const working = useRef(false)
 
   const clear = useCallback((message = '') => {
@@ -56,7 +57,9 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
   const check = useCallback(async (bootstrap = false) => {
     if (working.current) return
     const ticket = epoch.current
+    if (checking.current?.epoch === ticket) return
     const sequence = ++checkSequence.current
+    checking.current = { epoch: ticket, sequence }
     if (bootstrap) { setInitializing(true); setBootstrapError('') }
     try {
       const value = await api.me()
@@ -71,7 +74,7 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
       }
       else if (bootstrap) setBootstrapError(authErrorMessage(error))
       else setNotice(authErrorMessage(error))
-    } finally { if (bootstrap && ticket === epoch.current && sequence === checkSequence.current) setInitializing(false) }
+    } finally { if (checking.current?.sequence === sequence) checking.current = null; if (bootstrap && ticket === epoch.current && sequence === checkSequence.current) setInitializing(false) }
   }, [api, accept, clear])
 
   useEffect(() => {

@@ -11,6 +11,43 @@ function deferred<T>() {
  return {promise,resolve}
 }
 describe('Daily actual balance', () => {
+ it('shows an already loaded account balance while the summary is still pending',async()=>{
+  const api=createMockDataAccess({today:()=> '2026-11-17'});
+  await api.saveBalanceCheck('2026-11-17',{actualBalance:123,locked:false});
+  const late=deferred<Awaited<ReturnType<typeof api.getDaily>>>();
+  const original=api.getDaily.bind(api);
+  vi.spyOn(api,'getDaily').mockImplementationOnce(()=>late.promise);
+  render(<DataProvider implementation={api}><Daily date="2026-11-17" go={()=>{}}/></DataProvider>);
+  const field=await screen.findByLabelText('실제 계좌 잔액');
+  await waitFor(()=>expect(field).toHaveValue('123'));
+  expect(field).toHaveAttribute('aria-busy','false');
+  expect(field).toBeDisabled();
+  await act(async()=>late.resolve(await original('2026-11-17')));
+  await waitFor(()=>expect(field).toBeEnabled());
+ })
+ it('preserves the just-saved amount when its refetch fails',async()=>{
+  const api=createMockDataAccess({today:()=> '2026-11-17'});
+  await api.saveBalanceCheck('2026-11-17',{actualBalance:100,locked:false});
+  const original=api.getBalanceCheck.bind(api);
+  vi.spyOn(api,'getBalanceCheck').mockImplementationOnce(original).mockRejectedValue(new Error('잔액 재조회 실패'));
+  render(<DataProvider implementation={api}><Daily date="2026-11-17" go={()=>{}}/></DataProvider>);
+  const field=await screen.findByLabelText('실제 계좌 잔액');
+  await waitFor(()=>expect(field).toBeEnabled());
+  fireEvent.change(field,{target:{value:'333'}});
+  fireEvent.click(screen.getByRole('button',{name:'잔액 잠금'}));
+  await screen.findByText('잔액 재조회 실패');
+  expect(field).toHaveValue('333');
+  expect(screen.getByRole('button',{name:'잔액 잠금 해제'})).toBeDisabled();
+ })
+ it('does not request a future account balance and shows a disabled explanation',async()=>{
+  const api=createMockDataAccess({today:()=> '2026-11-17'});
+  const load=vi.spyOn(api,'getBalanceCheck');
+  render(<DataProvider implementation={api}><Daily date="2099-11-01" go={()=>{}}/></DataProvider>);
+  await screen.findByText('미래 날짜의 실제 계좌 잔액은 조회하거나 입력할 수 없어요.');
+  expect(screen.getByLabelText('실제 계좌 잔액')).toBeDisabled();
+  expect(screen.getByLabelText('실제 계좌 잔액')).toHaveAttribute('aria-busy','false');
+  expect(load).not.toHaveBeenCalled();
+ })
  it.each([
   ['2026-11-01','이전 날짜','2026-10-31'],
   ['2026-01-01','이전 날짜','2025-12-31'],

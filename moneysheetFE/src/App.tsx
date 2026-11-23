@@ -21,7 +21,7 @@ import AppSettings from './components/AppSettings'
 import CategoryManagement, { CategorySettingsScreen } from './features/categories/CategoryManagementScreen'
 import QueryStatus from './components/QueryStatus'
 import LoadingStatus from './components/LoadingStatus'
-import { useDataQuery } from './data/useDataQuery'
+import { useBudgetQuery, useDataQuery } from './data/useDataQuery'
 import { currentMonth } from './utils/date'
 
 function Screens() {
@@ -31,7 +31,7 @@ function Screens() {
   const [budgetLocks, setBudgetLocks] = useState<Record<string, boolean>>({})
   const { pending } = useDataAccess()
   const auth = useAuth(), guide = useOnboarding(), month = recordDate.slice(0, 7)
-  const readiness = useDataQuery(`workspace-budget:${month}`, api => api.getBudget(month))
+  const readiness = useBudgetQuery(month)
   const go = (next: Screen, menu = false) => {
     if (pending || auth.busy || next === 'login' || next === 'signup') return
     setRecordEntry(undefined)
