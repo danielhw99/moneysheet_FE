@@ -16,7 +16,7 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
     let active = true
     const request = loader.current
     setState(previous => ({ key, identity, data: previous.key === key ? previous.data : undefined, loading: true, error: '', lastErrorCode: previous.key === key ? previous.errorCode ?? previous.lastErrorCode : undefined }))
-    const response = (share ? sharedQuery(JSON.stringify([key, attempt]), () => request(api)) : Promise.resolve().then(() => request(api)))
+    const response = (share ? sharedQuery(key, () => request(api)) : Promise.resolve().then(() => request(api)))
     response.then(data => {
       if (active) setState({ key, identity, data, loading: false, error: '' })
     }).catch(error => {
