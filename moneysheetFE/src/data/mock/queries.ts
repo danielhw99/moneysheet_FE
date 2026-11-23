@@ -8,8 +8,8 @@ export function budgetSummary(budget: MonthlyBudget, records: RecordStore): Budg
     const remaining = item.amount - paid
     return { ...item, paid, remaining, complete: remaining === 0 }
   })
-  const first = foodThrough(budget.month, 11, budget.food)
-  const second = foodThrough(budget.month, 21, budget.food)
+  const first = foodThrough(budget.month, 10, budget.food)
+  const second = foodThrough(budget.month, 20, budget.food)
   const total = foodThrough(budget.month, daysInMonth(budget.month), budget.food)
   return { month: budget.month, items, food: { ...budget.food }, fixedTotal: items.reduce((sum, item) => sum + item.amount, 0), foodSummary: { total, installments: budget.food.paymentMode==='monthStart' ? [total,0,0] : [first, second - first, total - second] } }
 }
@@ -27,8 +27,8 @@ export function dailySummary(date: string, budget: MonthlyBudget, records: Recor
   const carryoverFreeBalance = foodThrough(month, day - 1, budget.food) - previousSpending + previousIncome
   const availableBeforeSpending = carryoverFreeBalance + foodForDate(date, budget.food)
   const freeBalance = availableBeforeSpending - expenseTotal + incomeTotal
-  const roundStart = day >= 22 ? 22 : day >= 12 ? 12 : 1
-  const roundEnd = budget.food.paymentMode==='monthStart' ? daysInMonth(month) : day >= 22 ? daysInMonth(month) : day >= 12 ? 21 : 11
+  const roundStart = day >= 21 ? 21 : day >= 11 ? 11 : 1
+  const roundEnd = budget.food.paymentMode==='monthStart' ? daysInMonth(month) : day >= 21 ? daysInMonth(month) : day >= 11 ? 20 : 10
   const allocatedBeforeRound = foodThrough(month, roundStart - 1, budget.food)
   const roundBudget = foodThrough(month, roundEnd, budget.food) - allocatedBeforeRound
   const allocatedInRound = foodThrough(month, day, budget.food) - allocatedBeforeRound
