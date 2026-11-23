@@ -32,7 +32,7 @@ export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) =>
             <button className="monthly-card" key={item.title} onClick={() => go(item.target)}>
               <span className={`section-icon ${item.title === '수입' ? 'income' : item.title === '그 외 지출' ? 'extra' : ''}`}><Icon name={item.title === '기본지출' ? 'wallet' : item.title === '수입' ? 'plus' : 'monthly'} size={19} /></span>
               <span className="monthly-copy"><b>{item.title}</b><small>{item.target==='basic'
-                ? budgetQuery.loading ? '식비 설정 확인 중…' : budgetQuery.error ? '식비 설정 확인 실패' : !budgetQuery.data ? '식비 설정 확인 전' : budgetQuery.data.food.enabled===false ? '고정지출 예산' : item.desc
+                ? budgetQuery.loading ? '식비 설정 확인 중…' : budgetQuery.error ? '식비 설정 확인 실패' : !budgetQuery.data ? '식비 설정 확인 전' : item.desc
                 : item.desc}</small></span>
               <strong className={item.target === 'income' ? 'amount-income' : 'amount-expense'}>{query.loading ? '집계 중' : query.error ? '집계 실패' : data ? `${won(item.target === 'basic' ? basicTotal : item.target === 'income' ? income : extra)}원` : '—'}</strong><Icon name="chevron" size={17} />
             </button>
