@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { MoneySheetDataAccess } from './MoneySheetDataAccess'
 import { errorMessage, useDataAccess } from './DataProvider'
 
-export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) => Promise<T>) {
-  const { api, revision } = useDataAccess()
+export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) => Promise<T>, share = false) {
+  const { api, revision, sharedQuery } = useDataAccess()
   const [attempt, setAttempt] = useState(0)
   const identity = JSON.stringify([key, revision, attempt])
   const loader = useRef(load)
@@ -16,14 +16,15 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
     let active = true
     const request = loader.current
     setState(previous => ({ key, identity, data: previous.key === key ? previous.data : undefined, loading: true, error: '', lastErrorCode: previous.key === key ? previous.errorCode ?? previous.lastErrorCode : undefined }))
-    Promise.resolve().then(() => request(api)).then(data => {
+    const response = (share ? sharedQuery(JSON.stringify([key, attempt]), () => request(api)) : Promise.resolve().then(() => request(api)))
+    response.then(data => {
       if (active) setState({ key, identity, data, loading: false, error: '' })
     }).catch(error => {
       if (active) setState(previous => ({ ...previous, key, identity, loading: false, lastErrorCode: undefined, error: errorMessage(error), errorCode: error instanceof ApiError ? error.code : undefined }))
     })
     // Old screen/date/month responses must never replace the current query.
     return () => { active = false }
-  }, [api, key, identity])
+  }, [api, key, identity, share, sharedQuery])
   return {
     data: state.key === key ? state.data : undefined,
     loading: state.identity !== identity || state.loading,
@@ -33,4 +34,9 @@ export function useDataQuery<T>(key: string, load: (api: MoneySheetDataAccess) =
     lastErrorCode: state.key === key ? state.errorCode ?? state.lastErrorCode : undefined,
     retry: () => setAttempt(previous => previous + 1),
   }
+}
+
+// Share only month-budget reads; other screen queries keep their refetch semantics.
+export function useBudgetQuery(month: string) {
+  return useDataQuery(`budget:${month}`, api => api.getBudget(month), true)
 }

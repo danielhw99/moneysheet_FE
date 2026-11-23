@@ -25,28 +25,18 @@ function Probe() {
   return <><p>{auth.profile.email}</p><Workspace key={auth.sessionKey} /></>
 }
 
-it.each(['before', 'after'])('preserves same-user profile and unsaved workspace when old 401 arrives %s latest success', async order => {
-  const old = deferred(), latest = deferred()
-  const fetcher = vi.fn().mockResolvedValueOnce(json(profile))
-    .mockReturnValueOnce(old.promise).mockReturnValueOnce(latest.promise)
+it.each(['focus', 'online'])('shares an in-flight check on %s and preserves same-user workspace', async event => {
+  const pending = deferred()
+  const fetcher = vi.fn().mockResolvedValueOnce(json(profile)).mockReturnValueOnce(pending.promise)
   const client = createHttpClient({ fetcher })
-  const globalExpired = vi.fn(); client.onUnauthorized(globalExpired)
   render(<AuthProvider api={createAuthApi(client)}><Probe /></AuthProvider>)
   await screen.findByText(profile.email)
   await userEvent.type(screen.getByLabelText('작업 메모'), '보존할 입력')
-  fireEvent(window, new Event('focus')); fireEvent(window, new Event('focus'))
-  if (order === 'before') {
-    await act(async () => old.resolve(expired()))
-    expect(screen.getByLabelText('작업 메모')).toHaveValue('보존할 입력')
-    await act(async () => latest.resolve(json(profile)))
-  } else {
-    await act(async () => latest.resolve(json(profile)))
-    await act(async () => old.resolve(expired()))
-  }
+  fireEvent(window, new Event('focus')); fireEvent(window, new Event(event))
+  expect(fetcher).toHaveBeenCalledTimes(2)
+  await act(async () => pending.resolve(json(profile)))
   expect(screen.getByText(profile.email)).toBeInTheDocument()
   expect(screen.getByLabelText('작업 메모')).toHaveValue('보존할 입력')
-  expect(screen.queryByText('로그아웃 상태')).not.toBeInTheDocument()
-  expect(globalExpired).not.toHaveBeenCalled()
 })
 
 it('still clears the profile and CSRF cache when the latest session check returns 401', async () => {

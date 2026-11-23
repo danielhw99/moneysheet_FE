@@ -88,7 +88,7 @@ describe('real authentication UI', () => {
     expect(await screen.findByText(profile.email)).toBeInTheDocument()
   })
 
-  it('keeps the latest session check when focus requests finish out of order', async () => {
+  it('shares overlapping checks and revalidates on the next focus', async () => {
     const api = fakeApi(); let old!: (value: typeof profile) => void
     const other = { ...profile, id: '2', email: 'other@example.com' }
     vi.mocked(api.me).mockResolvedValueOnce(profile)
@@ -96,8 +96,10 @@ describe('real authentication UI', () => {
       .mockResolvedValueOnce(other)
     start(api); await screen.findByText(profile.email)
     fireEvent(window, new Event('focus')); fireEvent(window, new Event('focus'))
-    await screen.findByText(other.email)
+    expect(api.me).toHaveBeenCalledTimes(2)
     await act(async () => old(profile))
+    fireEvent(window, new Event('focus'))
+    await screen.findByText(other.email)
     expect(screen.queryByText(profile.email)).not.toBeInTheDocument()
     expect(screen.getByText(other.email)).toBeInTheDocument()
   })

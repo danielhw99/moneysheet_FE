@@ -11,6 +11,20 @@ function deferred<T>() {
  return {promise,resolve}
 }
 describe('Daily actual balance', () => {
+ it('shows an already loaded account balance while the summary is still pending',async()=>{
+  const api=createMockDataAccess({today:()=> '2026-11-17'});
+  await api.saveBalanceCheck('2026-11-17',{actualBalance:123,locked:false});
+  const late=deferred<Awaited<ReturnType<typeof api.getDaily>>>();
+  const original=api.getDaily.bind(api);
+  vi.spyOn(api,'getDaily').mockImplementationOnce(()=>late.promise);
+  render(<DataProvider implementation={api}><Daily date="2026-11-17" go={()=>{}}/></DataProvider>);
+  const field=await screen.findByLabelText('실제 계좌 잔액');
+  await waitFor(()=>expect(field).toHaveValue('123'));
+  expect(field).toHaveAttribute('aria-busy','false');
+  expect(field).toBeDisabled();
+  await act(async()=>late.resolve(await original('2026-11-17')));
+  await waitFor(()=>expect(field).toBeEnabled());
+ })
  it.each([
   ['2026-11-01','이전 날짜','2026-10-31'],
   ['2026-01-01','이전 날짜','2025-12-31'],

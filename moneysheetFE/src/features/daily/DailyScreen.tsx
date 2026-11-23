@@ -2,7 +2,7 @@ import MoneyInput from '../../components/MoneyInput'
 import { useEffect, useState } from 'react'
 import type { Screen, DailyRecordKind, RecordEntry } from '../../types/navigation'
 import { useDataAccess, errorMessage } from '../../data/DataProvider'
-import { useDataQuery } from '../../data/useDataQuery'
+import { useBudgetQuery, useDataQuery } from '../../data/useDataQuery'
 import { recordValue } from '../../data/values'
 import { won, signedWon } from '../../utils/money'
 import Icon from '../../components/Icon'
@@ -16,7 +16,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
-  const foodSettings=useDataQuery(`daily-food:${date.slice(0,7)}`,api=>api.getBudget(date.slice(0,7)))
+  const foodSettings=useBudgetQuery(date.slice(0,7))
   const summary = query.data
   const open = (kind: DailyRecordKind, entry: RecordEntry) => {
     if (pending || query.loading || !!query.error) return
@@ -52,7 +52,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
         {actionError && <p className="query-status" role="alert">{actionError}</p>}
         <section className="balance-card">
           <div className="main-balance"><span>Main 계산 잔액</span><strong>{summaryBlocked ? '—' : `${won(summary.mainBalance)}원`}</strong></div>
-          <BalanceCheck key={date} date={date} summaryBlocked={summaryBlocked} summaryLoading={query.loading} />
+          <BalanceCheck key={date} date={date} summaryBlocked={summaryBlocked} />
         </section>
         <section className="budget-pair">
           <div><span>오늘 여유비</span><strong>{summaryBlocked ? '—' : `${won(summary.freeBalance)}원`}</strong></div>
@@ -84,9 +84,9 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
   )
 }
 
-function BalanceCheck({ date, summaryBlocked, summaryLoading }: { date: string; summaryBlocked: boolean; summaryLoading: boolean }) {
+function BalanceCheck({ date, summaryBlocked }: { date: string; summaryBlocked: boolean }) {
  const query = useDataQuery(`balance-check:${date}`, api => api.getBalanceCheck(date))
- return <><QueryStatus loading={false} error={query.error} retry={query.retry} /><BalanceCheckForm key={date} date={date} initial={query.data ?? {date,actualBalance:null,locked:true}} loading={query.loading || summaryLoading} blocked={summaryBlocked || query.loading || !!query.error || !query.data} /></>
+ return <><QueryStatus loading={false} error={query.error} retry={query.retry} /><BalanceCheckForm key={date} date={date} initial={query.data ?? {date,actualBalance:null,locked:true}} loading={query.loading} blocked={summaryBlocked || query.loading || !!query.error || !query.data} /></>
 }
 
 function BalanceCheckForm({ date, initial, blocked, loading }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean; loading:boolean }) {
@@ -97,10 +97,10 @@ function BalanceCheckForm({ date, initial, blocked, loading }: { date: string; i
  const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
-  if (dirty || blocked || saving) return
+  if (dirty || loading || saving) return
   setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
   setLocked(initial.locked)
- }, [initial, dirty, blocked, pending, saving])
+ }, [initial, dirty, loading, pending, saving])
  const toggle = async () => {
   if (blocked || pending || saving) return
   setSaving(true)
