@@ -119,3 +119,21 @@
 @media (prefers-reduced-motion: reduce) {
   .prototype *, .prototype *::before, .prototype *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Composite amount controls own their focus ring, including the currency suffix. */
+.prototype .money-input { gap: 6px; }
+.prototype .money-input input { width: 0; flex: 1 1 0; min-width: 0; background: transparent; }
+.prototype .money-input b, .prototype .budget-input b { flex: 0 0 auto; white-space: nowrap; }
+.prototype .money-input:focus-within, .prototype .budget-input > div:focus-within {
+  border-color: var(--primary-dark);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.prototype .money-input input:focus, .prototype .money-input input:focus-visible,
+.prototype .budget-input input:focus, .prototype .budget-input input:focus-visible {
+  outline: none; box-shadow: none;
+}
+.prototype .budget-input > div { gap: 4px; }
+.prototype .budget-input input { width: 0; flex: 1 1 0; }
+.prototype .account-balance label { min-width: 0; column-gap: 6px; grid-template-columns: minmax(0, 1fr) minmax(0, 100px) 14px; }
+.prototype .account-balance input { width: 100%; }
+.prototype .account-balance input:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 0; }
