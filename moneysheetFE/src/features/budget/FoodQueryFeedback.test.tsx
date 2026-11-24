@@ -27,7 +27,7 @@ describe.each(['daily','monthly'])('%s 식비 조회 피드백',kind=>{
   expect(screen.queryByText(label)).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button',{name:'다시 불러오기'}))
   await waitFor(()=>expect(load).toHaveBeenCalledTimes(3))
-  await act(async()=>resolve({...budget,food:{...budget.food}}))
+  await act(async()=>resolve({...budget,foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{...budget.food}}))
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   expect(screen.getByText(label)).toBeInTheDocument()
  })

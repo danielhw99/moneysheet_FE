@@ -13,6 +13,7 @@ export default function FoodSettingsScreen({month,go}:{month:string;go:(screen:S
  const query=useDataQuery(`food-settings:${month}`,api=>api.getBudget(month))
  return <main className="detail-shell budget-detail"><Header title="식비 설정" onBack={()=>go('monthly')}/><p className="notice">{month} 식비 설정</p>
   <QueryStatus {...query}/>
+  {query.data&&!query.loading&&!query.error&&<p className="notice">식비 시작일: {query.data.foodStartDate} · 시작일은 변경할 수 없어요.</p>}
   {query.data && <FoodSettingsForm key={month} month={month} food={query.data.food} blocked={query.loading||!!query.error}/>}
   {query.errorCode==='BUDGET_NOT_READY'&&<button className="primary-button" onClick={()=>go('basic')}>월 예산 준비</button>}
  </main>

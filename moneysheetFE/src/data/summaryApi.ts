@@ -1,7 +1,8 @@
+import { readFoodStartDate } from './foodStartDate'
 import { httpClient, type HttpClient } from '../api/httpClient'
 import type { DailySummary, MonthlySummary, HomeSummary, HomeDayEntry } from './MoneySheetDataAccess'
 import { readRecord } from './recordApi'
-import { protocol, object, safe, positiveTotal, money, date, text, array, month, bool } from './apiValidation'
+import { protocol, object, safe, positiveTotal, date, text, array, month, bool } from './apiValidation'
 import { validDate, daysInMonth } from '../utils/date'
 
 export function createSummaryApi(client: HttpClient = httpClient) {
@@ -18,12 +19,12 @@ export function createSummaryApi(client: HttpClient = httpClient) {
     if(record.date!==selected || paid<record.amount || complete!==(remaining===0)) return protocol()
     return {record,itemName:text(row.itemName,100),paid,remaining,complete}
    })
-   return {date:selected,mainBalance:safe(d.mainBalance),freeBalance:safe(d.freeBalance),foodBudget:money(d.foodBudget),carryoverFreeBalance:safe(d.carryoverFreeBalance),availableBeforeSpending:safe(d.availableBeforeSpending),remainingFood:positiveTotal(d.remainingFood),expenseTotal:positiveTotal(d.expenseTotal),incomeTotal:positiveTotal(d.incomeTotal),transactions,activeMemos,payments}
+   return {foodStartDate:readFoodStartDate(d.foodStartDate,m),date:selected,mainBalance:safe(d.mainBalance),freeBalance:safe(d.freeBalance),foodBudget:positiveTotal(d.foodBudget),carryoverFreeBalance:safe(d.carryoverFreeBalance),availableBeforeSpending:safe(d.availableBeforeSpending),remainingFood:positiveTotal(d.remainingFood),expenseTotal:positiveTotal(d.expenseTotal),incomeTotal:positiveTotal(d.incomeTotal),transactions,activeMemos,payments}
   },
   async getMonthly(selected: string): Promise<MonthlySummary> {
    const d=object(await client.get('/summaries/monthly?'+new URLSearchParams({month:month(selected)})))
    if(d.month!==selected) return protocol()
-   return {month:selected,income:positiveTotal(d.income),extra:positiveTotal(d.extra),fixedBudget:positiveTotal(d.fixedBudget),foodBudget:positiveTotal(d.foodBudget),basicTotal:positiveTotal(d.basicTotal),totalExpense:positiveTotal(d.totalExpense),net:safe(d.net)}
+   return {foodStartDate:readFoodStartDate(d.foodStartDate,selected),month:selected,income:positiveTotal(d.income),extra:positiveTotal(d.extra),fixedBudget:positiveTotal(d.fixedBudget),foodBudget:positiveTotal(d.foodBudget),basicTotal:positiveTotal(d.basicTotal),totalExpense:positiveTotal(d.totalExpense),net:safe(d.net)}
   },
   async getHome(selected: string): Promise<HomeSummary> {
    const d=object(await client.get('/summaries/home?'+new URLSearchParams({month:month(selected)}))),asOfDate=date(d.asOfDate)
@@ -42,7 +43,7 @@ export function createSummaryApi(client: HttpClient = httpClient) {
     })
     days[day]={entries}
    }
-   return {month:selected,asOfDate,source:'records',days,expense:positiveTotal(d.expense),freeBalance:safe(d.freeBalance)}
+   return {foodStartDate:readFoodStartDate(d.foodStartDate,selected),month:selected,asOfDate,source:'records',days,expense:positiveTotal(d.expense),freeBalance:safe(d.freeBalance)}
   },
  }
 }

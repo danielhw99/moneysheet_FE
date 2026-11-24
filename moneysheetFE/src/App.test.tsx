@@ -14,7 +14,7 @@ function api(): AuthApi {
 beforeEach(() => vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) => {
   const path = String(url)
   if (path.endsWith('/auth/csrf')) return new Response(JSON.stringify({ token: 'test', headerName: 'X-CSRF-TOKEN' }))
-  if (path.endsWith('/budget-preparation')) return new Response(JSON.stringify({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday:null, saturday: null, sunday: null } }))
+  if (path.endsWith('/budget-preparation')) return new Response(JSON.stringify({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday:null, saturday: null, sunday: null } }))
   return new Response(JSON.stringify({ code: 'BUDGET_NOT_READY', message: '예산 설정 필요' }), { status: 409 })
 })))
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
@@ -23,7 +23,7 @@ it('opens separate category management screens before any budget is ready', asyn
   const path=String(url)
   if(path.includes('/categories'))return new Response(JSON.stringify({items:[]}))
   if(path.endsWith('/auth/csrf'))return new Response(JSON.stringify({token:'test',headerName:'X-CSRF-TOKEN'}))
-  if(path.endsWith('/budget-preparation'))return new Response(JSON.stringify({month:currentMonth(),status:'draft',copiedFromMonth:null,items:[],food:{paymentMode: 'threeInstallments', weekday:null,saturday:null,sunday:null}}))
+  if(path.endsWith('/budget-preparation'))return new Response(JSON.stringify({month:currentMonth(),status:'draft',foodStartDateEditable:true,copiedFromMonth:null,items:[],foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{paymentMode: 'threeInstallments', weekday:null,saturday:null,sunday:null}}))
   return new Response(JSON.stringify({code:'BUDGET_NOT_READY',message:'예산 설정 필요'}),{status:409})
  }))
  render(<App authApi={api()} />)

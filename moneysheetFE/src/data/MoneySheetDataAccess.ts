@@ -4,25 +4,26 @@ import type { BudgetItem, BudgetItemInput, Category, CategoryInput, FoodBudget, 
 export type BudgetItemSummary = Readonly<BudgetItem & { paid: number; remaining: number; complete: boolean }>
 export type FoodSummary = Readonly<{ total: number; installments: readonly number[] }>
 export type BudgetSummary = Readonly<{
-  month: string; items: readonly BudgetItemSummary[]; food: Readonly<FoodBudget>;
+  month: string; foodStartDate: string; items: readonly BudgetItemSummary[]; food: Readonly<FoodBudget>;
   fixedTotal: number; foodSummary: FoodSummary;
 }>
 export type DailyPaymentSummary = Readonly<{ record: Readonly<MoneyRecord>; itemName: string; paid: number; remaining: number; complete: boolean }>
 export type DailySummary = Readonly<{
-  date: string; mainBalance: number; freeBalance: number; foodBudget: number;
+  foodStartDate: string; date: string; mainBalance: number; freeBalance: number; foodBudget: number;
   carryoverFreeBalance: number; availableBeforeSpending: number; remainingFood: number;
   expenseTotal: number; incomeTotal: number;
   transactions: readonly Readonly<MoneyRecord>[]; activeMemos: readonly Readonly<MoneyRecord>[];
   payments: readonly DailyPaymentSummary[];
 }>
 export type MonthlySummary = Readonly<{
-  month: string; income: number; extra: number; fixedBudget: number; foodBudget: number;
+  foodStartDate: string; month: string; income: number; extra: number; fixedBudget: number; foodBudget: number;
   basicTotal: number; totalExpense: number; net: number;
 }>
 export type RecordQuery = { kind: ListKind; memoStatus?: 'pending' | 'completed'; cursor?: string; limit?: number } & ({ date: string; month?: never } | { month: string; date?: never })
 export type RecordsSummary = Readonly<{ rows: readonly Readonly<MoneyRecord>[]; nextCursor: string | null; expenseTotal: number; incomeTotal: number; pendingMemoTotal: number; total: number }>
 export type HomeDayEntry = Readonly<{ kind: 'fixed' | 'transaction' | 'free' | 'memo'; label: string } & ({ amount: number; count?: never } | { count: number; amount?: never })>
 export type HomeSummary = Readonly<{
+  foodStartDate: string;
   month: string;
   asOfDate: string;
   source: 'records';

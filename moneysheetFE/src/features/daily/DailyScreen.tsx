@@ -61,6 +61,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
             : foodSettings.error ? <div><span>식비 설정 확인 실패</span></div>
             : foodSettings.data && <div><span>오늘 식비 예산</span><strong>{summaryBlocked ? '—' : `${won(summary.foodBudget)}원`}</strong></div>}
         </section>
+        {!summaryBlocked&&date<summary.foodStartDate&&<p className="form-help">식비 시작일({summary.foodStartDate}) 이전이라 오늘 식비는 0원이에요. 내역·메모·실제 잔액은 기록할 수 있어요.</p>}
         <div className="split-panels">
           <MiniList title="내역" onOpen={() => go('transactions')} addLabel="내역 추가" addDisabled={summaryBlocked || pending} onAdd={() => open('transactions', 'new')}>
             {!summaryBlocked && dayTransactions.length === 0 && <p className="record-empty">해당 날짜의 내역이 없습니다.</p>}{dayTransactions.map(item => <button disabled={summaryBlocked || pending} className="compact-row" key={item.id} onClick={() => open('transactions', { id: item.id })}><span className="truncate">{item.title}</span><b className={item.direction === 'income' ? 'amount-income' : 'amount-expense'}>{signedWon(recordValue(item))}</b></button>)}

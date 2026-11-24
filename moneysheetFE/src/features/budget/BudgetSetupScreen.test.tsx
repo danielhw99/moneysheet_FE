@@ -13,7 +13,7 @@ import BudgetSetupScreen from './BudgetSetupScreen'
 describe('budget preparation', () => {
   it('automatically prepares and keeps food input when setup fails', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     api.setupBudget = vi.fn().mockRejectedValue(new Error('저장 실패'))
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
     expect(screen.queryByRole('button', { name: '예산 초안 불러오기' })).not.toBeInTheDocument()
@@ -24,11 +24,11 @@ describe('budget preparation', () => {
     fireEvent.click(screen.getByRole('button', { name: '예산 저장' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('저장 실패')
     expect(screen.getByLabelText('주중 식비')).toHaveValue('11000')
-    expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(), { items: [], food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } })
+    expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(), { items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } })
   })
   it('saves required food with no fixed items', async () => {
     const api=createMockDataAccess(),done=vi.fn()
-    api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',copiedFromMonth:null,items:[],food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
+    api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',foodStartDateEditable:true,copiedFromMonth:null,items:[],foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
     api.setupBudget=vi.fn().mockResolvedValue({})
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()}/></DataProvider>)
     fireEvent.click(await screen.findByRole('button',{name:'다음: 식비 설정'}))
@@ -36,7 +36,7 @@ describe('budget preparation', () => {
     expect(screen.getByLabelText('주중 식비')).toBeRequired()
     fireEvent.click(screen.getByRole('button',{name:'예산 저장'}))
     await waitFor(()=>expect(done).toHaveBeenCalledWith(true))
-    expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(),{items:[],food:{paymentMode:'threeInstallments',weekday:11000,saturday:11000,sunday:11000}})
+    expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(),{items:[],foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{paymentMode:'threeInstallments',weekday:11000,saturday:11000,sunday:11000}})
   })
   it('shows the initial category lookup and keeps loaded choices during refresh', async () => {
     const api = createMockDataAccess()
@@ -44,9 +44,9 @@ describe('budget preparation', () => {
     let resolveInitial!: (value: Awaited<ReturnType<MoneySheetDataAccess['getCategories']>>) => void
     let resolveRefresh!: (value: Awaited<ReturnType<MoneySheetDataAccess['getCategories']>>) => void
     api.prepareBudget = vi.fn().mockResolvedValue({
-      month: currentMonth(), status: 'draft', copiedFromMonth: null,
+      month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null,
       items: [{ id: null, name: 'Rent', categoryId: null, amount: 100 }],
-      food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 },
+      foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 },
     })
     api.getCategories = vi.fn<MoneySheetDataAccess['getCategories']>()
       .mockImplementationOnce(() => new Promise(resolve => { resolveInitial = resolve }))
@@ -79,7 +79,7 @@ describe('budget preparation', () => {
   })
   it('prepares once under StrictMode and only retries after an explicit retry', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockRejectedValueOnce(new Error('연결 실패')).mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockRejectedValueOnce(new Error('연결 실패')).mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     render(<StrictMode><DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider></StrictMode>)
     expect(await screen.findByRole('alert')).toHaveTextContent('연결 실패')
     expect(api.prepareBudget).toHaveBeenCalledTimes(1)
@@ -89,7 +89,7 @@ describe('budget preparation', () => {
   })
   it('preserves copied item IDs and does not finalize a prepared draft', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: '2026-10', items: [{ id: '51', name: '월세', categoryId: 'housing', amount: 100 }], food: { paymentMode: 'threeInstallments', weekday: 1, saturday: 2, sunday: 3 } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: '2026-10', items: [{ id: '51', name: '월세', categoryId: 'housing', amount: 100 }], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 1, saturday: 2, sunday: 3 } })
     api.setupBudget = vi.fn().mockResolvedValue({})
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
     expect(await screen.findByLabelText('항목명 1')).toHaveValue('월세')
@@ -99,7 +99,7 @@ describe('budget preparation', () => {
     await waitFor(() => expect(api.setupBudget).toHaveBeenCalledWith(currentMonth(), expect.objectContaining({ items: [{ id: '51', name: '월세', categoryId: 'housing', amount: 100 }] })))
   })
   it('returns to the saved budget when prepare observes READY', async () => {
-    const api = createMockDataAccess(); api.prepareBudget = vi.fn().mockResolvedValue({ status: 'ready' })
+    const api = createMockDataAccess(); api.prepareBudget = vi.fn().mockResolvedValue({ status: 'ready',foodStartDateEditable:false })
     const done = vi.fn()
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider>)
     await waitFor(() => expect(done).toHaveBeenCalledWith(false))
@@ -109,7 +109,7 @@ describe('budget preparation', () => {
   it('skipping the tutorial never finalizes the budget or loses food input', async () => {
     localStorage.clear()
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     api.setupBudget = vi.fn().mockRejectedValue(new Error('실패'))
     const done = vi.fn()
     function State() { return <output data-testid="tutorial-state">{useOnboarding()?.stage}</output> }
@@ -132,7 +132,7 @@ describe('budget preparation', () => {
 
   it('rejects missing or zero food without calling setup', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     api.setupBudget = vi.fn()
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)
     fireEvent.click(await screen.findByRole('button', { name: '다음: 식비 설정' }))
@@ -151,13 +151,13 @@ describe('budget preparation', () => {
     const rendered = render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider>)
     await waitFor(() => expect(api.prepareBudget).toHaveBeenCalledOnce())
     rendered.unmount()
-    await act(async () => { resolve({ month: currentMonth(), status: 'ready', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: 1, saturday: 1, sunday: 1 } }) })
+    await act(async () => { resolve({ month: currentMonth(), status: 'ready',foodStartDateEditable:false, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 1, saturday: 1, sunday: 1 } }) })
     expect(done).not.toHaveBeenCalled()
   })
 
   it('announces saving and prevents duplicate submits until a delayed save fails', async () => {
     const api = createMockDataAccess()
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 11000, sunday: 11000 } })
     let reject!: (error: Error) => void
     api.setupBudget = vi.fn(() => new Promise<Awaited<ReturnType<typeof api.setupBudget>>>((_resolve, fail) => { reject = fail }))
     render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={vi.fn()} onCancel={vi.fn()} /></DataProvider>)

@@ -3,9 +3,9 @@ import { createHttpClient } from '../api/httpClient'
 import { createSummaryApi } from './summaryApi'
 const m='2026-11', date=m+'-03'
 const row={id:'8',date,time:'12:30',title:'Meal',amount:9000,direction:'expense',categoryId:null}
-const daily={date,mainBalance:123456,freeBalance:2000,foodBudget:11000,carryoverFreeBalance:0,availableBeforeSpending:11000,remainingFood:0,expenseTotal:9000,incomeTotal:0,transactions:[row],activeMemos:[{...row,date:m+'-01',completedOn:m+'-04'}],payments:[]}
-const monthly={month:m,income:100000,extra:10000,fixedBudget:20000,foodBudget:30000,basicTotal:50000,totalExpense:60000,net:40000}
-const home={month:m,asOfDate:m+'-02',expense:60000,freeBalance:-2000,days:Array.from({length:30},(_,i)=>({date:m+'-'+String(i+1).padStart(2,'0'),entries:i===0?[{kind:'free',label:'여유비',amount:-2000},{kind:'memo',label:'미완료 메모',count:2}]:[]}))}
+const daily={foodStartDate:m+'-01',date,mainBalance:123456,freeBalance:2000,foodBudget:11000,carryoverFreeBalance:0,availableBeforeSpending:11000,remainingFood:0,expenseTotal:9000,incomeTotal:0,transactions:[row],activeMemos:[{...row,date:m+'-01',completedOn:m+'-04'}],payments:[]}
+const monthly={foodStartDate:m+'-01',month:m,income:100000,extra:10000,fixedBudget:20000,foodBudget:30000,basicTotal:50000,totalExpense:60000,net:40000}
+const home={foodStartDate:m+'-01',month:m,asOfDate:m+'-02',expense:60000,freeBalance:-2000,days:Array.from({length:30},(_,i)=>({date:m+'-'+String(i+1).padStart(2,'0'),entries:i===0?[{kind:'free',label:'여유비',amount:-2000},{kind:'memo',label:'미완료 메모',count:2}]:[]}))}
 function setup(value:unknown) { const fetcher=vi.fn(async(_url:RequestInfo|URL,_options?:RequestInit)=>new Response(JSON.stringify(value)));return {api:createSummaryApi(createHttpClient({fetcher})),fetcher} }
 it('uses server Daily balances and historical active memo DTOs unchanged',async()=>{
  const {api,fetcher}=setup(daily);const result=await api.getDaily(date)
