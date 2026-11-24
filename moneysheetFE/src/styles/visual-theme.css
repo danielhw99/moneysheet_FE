@@ -137,3 +137,10 @@
 .prototype .account-balance label { min-width: 0; column-gap: 6px; grid-template-columns: minmax(0, 1fr) minmax(0, 100px) 14px; }
 .prototype .account-balance input { width: 100%; }
 .prototype .account-balance input:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 0; }
+
+/* Match standalone text fields to the composite amount control's rounded focus ring. */
+.prototype .field > input:focus, .prototype .field > input:focus-visible {
+  border-color: var(--primary-dark);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  outline: none;
+}
