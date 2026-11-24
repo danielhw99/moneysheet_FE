@@ -114,6 +114,7 @@ describe('budget preparation', () => {
     const done = vi.fn()
     function State() { return <output data-testid="tutorial-state">{useOnboarding()?.stage}</output> }
     render(<OnboardingProvider userId="setup-test"><State /><DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={vi.fn()} /></DataProvider></OnboardingProvider>)
+    fireEvent.click(await screen.findByRole('button',{name:'시작하기'}))
     await screen.findByRole('complementary', { name: '첫 예산 설정 안내' })
     fireEvent.click(screen.getByRole('button', { name: '다음: 식비 설정' }))
 
