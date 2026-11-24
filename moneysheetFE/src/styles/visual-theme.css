@@ -300,3 +300,13 @@
 }
 .record-form .direction-segment > button { position: relative; z-index: 1; }
 .record-form .direction-segment button[data-direction][aria-pressed="true"] { background: transparent; box-shadow: none; }
+
+.prototype .bottom-nav[data-has-selection="false"]::before { opacity: 0; }
+@media (forced-colors: active) {
+  /* Actual account balance intentionally retains its requested outline-free style. */
+  .prototype input:focus-visible:not(.account-balance input) {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+}

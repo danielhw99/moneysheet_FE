@@ -10,9 +10,9 @@ const navItems: { key: Screen; label: string; icon: IconName }[] = [
 ]
 
 export default function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen, menu?: boolean) => void }) {
-  const selected = Math.max(0, navItems.findIndex(item => item.key === screen))
+  const selected = navItems.findIndex(item => item.key === screen)
   return (
-    <nav className="bottom-nav" aria-label="하단 메뉴" style={{'--nav-index': selected} as CSSProperties}>
+    <nav className="bottom-nav" aria-label="하단 메뉴" data-has-selection={selected >= 0} style={{'--nav-index': selected} as CSSProperties}>
       {navItems.map((item) => (
         <button type="button" aria-current={screen === item.key ? 'page' : undefined} key={item.key} className={screen === item.key ? 'nav-item active' : 'nav-item'} onClick={() => go(item.key, true)}>
           <Icon name={item.icon} size={21} /><span>{item.label}</span>

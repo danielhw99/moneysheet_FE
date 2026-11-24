@@ -23,3 +23,14 @@ it('updates selection on the same mounted navigation',()=>{
  expect(screen.getByRole('navigation')).toBe(nav);expect(nav).toHaveStyle('--nav-index: 2');
  expect(screen.getByRole('button',{name:'Monthly'})).toHaveAttribute('aria-current','page');
 })
+
+it.each(['account','settings','categories'] as const)('does not highlight Home for unmatched %s screens',destination=>{
+ const view=render(<BottomNav screen="home" go={vi.fn()}/>);
+ view.rerender(<BottomNav screen={destination} go={vi.fn()}/>);
+ expect(screen.getByRole('navigation')).toHaveAttribute('data-has-selection','false');
+ expect(screen.getByRole('navigation')).toHaveStyle('--nav-index: -1');
+ for(const button of screen.getAllByRole('button'))expect(button).not.toHaveAttribute('aria-current');
+ view.rerender(<BottomNav screen="daily" go={vi.fn()}/>);
+ expect(screen.getByRole('navigation')).toHaveAttribute('data-has-selection','true');
+ expect(screen.getByRole('button',{name:'Daily'})).toHaveAttribute('aria-current','page');
+})

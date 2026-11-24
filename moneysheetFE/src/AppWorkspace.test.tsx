@@ -227,6 +227,7 @@ it('keeps one identical bottom navigation element across page changes',async()=>
  const nav=await screen.findByRole('navigation',{name:'하단 메뉴'});
  for(const name of ['Daily','Monthly','MY','홈']){
   await userEvent.click(screen.getByRole('button',{name}));
+  await waitFor(()=>expect(screen.getByRole('button',{name})).toHaveAttribute('aria-current','page'));
   expect(screen.getByRole('navigation',{name:'하단 메뉴'})).toBe(nav);
   expect(screen.getAllByRole('navigation',{name:'하단 메뉴'})).toHaveLength(1);
  }
