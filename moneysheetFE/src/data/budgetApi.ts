@@ -1,11 +1,12 @@
+import { readFoodStartDate } from './foodStartDate'
 import { ApiError, httpClient, type HttpClient } from '../api/httpClient'
 import type { CreateOptions } from './writeAttempt'
 import type { BudgetItem, BudgetItemInput, Category, CategoryInput, FoodBudget } from './models'
 import type { BudgetSummary, CategoryQuery } from './MoneySheetDataAccess'
 
 export type DraftItem = { id: string | null; name: string; categoryId: string | null; amount: number | null }
-export type BudgetPreparation = { month: string; status: 'draft' | 'ready'; copiedFromMonth: string | null; items: DraftItem[]; food: FoodBudget }
-export type BudgetSetupInput = { items: DraftItem[]; food: FoodBudget }
+export type BudgetPreparation = { month: string; status: 'draft' | 'ready'; copiedFromMonth: string | null; items: DraftItem[]; food: FoodBudget; foodStartDate: string; foodStartDateEditable: boolean }
+export type BudgetSetupInput = { items: DraftItem[]; food: FoodBudget; foodStartDate: string }
 const protocol = () => new ApiError(0, 'PROTOCOL', '서버 예산 응답을 확인하지 못했어요.')
 const object = (v: unknown): Record<string, unknown> => { if (!v || typeof v !== 'object' || Array.isArray(v)) throw protocol(); return v as Record<string, unknown> }
 const id = (v: unknown): string => { if (typeof v !== 'string' || !/^[1-9][0-9]{0,18}$/.test(v) || BigInt(v) > 9223372036854775807n) throw protocol(); return v }
@@ -25,7 +26,7 @@ function item(v: unknown): BudgetItem { const d = object(v); return { id: id(d.i
 function summary(v: unknown, expectedMonth: string): BudgetSummary {
   const d = object(v); const f = object(d.foodSummary)
   if (d.month !== expectedMonth || d.status !== 'ready' || !Array.isArray(d.items) || !Array.isArray(f.installments) || f.installments.length !== 3) throw protocol()
-  return { month: expectedMonth, food: food(d.food), fixedTotal: total(d.fixedTotal), foodSummary: { total: total(f.total), installments: f.installments.map(total) }, items: d.items.map(value => {
+  return { foodStartDate:readFoodStartDate(d.foodStartDate,expectedMonth),month: expectedMonth, food: food(d.food), fixedTotal: total(d.fixedTotal), foodSummary: { total: total(f.total), installments: f.installments.map(total) }, items: d.items.map(value => {
     const row = object(value)
     if (typeof row.complete !== 'boolean') throw protocol()
     return { ...item(row), paid: total(row.paid), remaining: total(row.remaining), complete: row.complete }
@@ -45,7 +46,8 @@ export function createBudgetApi(client: HttpClient = httpClient) {
       const d = object(await client.post(`${base(m)}/budget-preparation`))
       if (d.month !== m || (d.status !== 'draft' && d.status !== 'ready') || !Array.isArray(d.items) || (d.copiedFromMonth !== null && (typeof d.copiedFromMonth !== 'string' || month(d.copiedFromMonth) !== d.copiedFromMonth))) throw protocol()
 
-      return { month: m, status: d.status, copiedFromMonth: d.copiedFromMonth as string | null,
+      if(typeof d.foodStartDateEditable!=='boolean'||(d.status==='ready'&&d.foodStartDateEditable))throw protocol()
+      return { foodStartDate:readFoodStartDate(d.foodStartDate,m),foodStartDateEditable:d.foodStartDateEditable,month: m, status: d.status, copiedFromMonth: d.copiedFromMonth as string | null,
         items: d.items.map(value => { const row = object(value); return { id: row.id === null ? null : id(row.id), name: name(row.name), categoryId: row.categoryId === null ? null : id(row.categoryId), amount: row.amount === null ? null : money(row.amount) } }),
         food: food(d.food,d.status==='draft') }
     },

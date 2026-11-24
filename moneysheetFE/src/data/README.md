@@ -112,3 +112,7 @@ CodeRabbit 보완:
 - monthStart는 1일 전액, threeInstallments는 1·11·21일 지급이며 구간은 1~10일/11~20일/21일~월말입니다.
 - mock도 같은 검증과 회차를 사용합니다. mock prepare/setup은 미제공이며 화면 테스트는 실제 계약 fixture를 주입합니다.
 - 실제 연동 전에 BE V10 적용 여부를 확인해야 합니다. 이번 FE 작업은 DB를 변경하지 않습니다.
+
+
+## 시작일 계약 (#71)
+foodStartDate는 예산·요약 응답의 필수 날짜이며 같은 관리 월인지 검증합니다. 준비 응답에는 boolean foodStartDateEditable이 필요합니다. setup만 날짜를 쓰고 food-budget은 금액/방식만 씁니다. Daily foodBudget=0은 시작일 이전에 정상이며 기존 기록은 그대로 표시합니다.

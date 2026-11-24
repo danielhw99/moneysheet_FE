@@ -8,7 +8,7 @@ import type { BudgetSummary } from '../../data/MoneySheetDataAccess'
 
 async function setup() {
  const api=createMockDataAccess(),month=currentMonth()
- const initial={...await api.getBudget(month),food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}} satisfies BudgetSummary
+ const initial={...await api.getBudget(month),foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}} satisfies BudgetSummary
  api.getBudget=vi.fn().mockResolvedValue(initial)
  api.updateFoodBudget=vi.fn().mockImplementation(async(_month,input)=>({...initial,food:input}))
  await act(async()=>{render(<DataProvider implementation={api}><FoodSettingsScreen month={month} go={vi.fn()}/></DataProvider>)})

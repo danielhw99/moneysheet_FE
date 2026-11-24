@@ -7,7 +7,7 @@ import BudgetSetupScreen from './BudgetSetupScreen'
 
 function start(copied=false) {
  const api=createMockDataAccess(),done=vi.fn(),cancel=vi.fn()
- api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',copiedFromMonth:copied?'2026-10':null,items:copied?[{id:'51',name:'월세',categoryId:null,amount:10000}]:[],food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
+ api.prepareBudget=vi.fn().mockResolvedValue({month:currentMonth(),status:'draft',foodStartDateEditable:true,copiedFromMonth:copied?'2026-10':null,items:copied?[{id:'51',name:'월세',categoryId:null,amount:10000}]:[],foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{paymentMode:'threeInstallments',weekday:null,saturday:null,sunday:null}})
  api.setupBudget=vi.fn().mockResolvedValue({})
  render(<DataProvider implementation={api}><BudgetSetupScreen month={currentMonth()} onDone={done} onCancel={cancel}/></DataProvider>)
  return {api,done,cancel}
@@ -57,7 +57,7 @@ it('treats a first-step form submit as next and saves required food only at the 
  for(const name of ['주중 식비','토요일 식비','일요일 식비']) fireEvent.change(screen.getByLabelText(name),{target:{value:'11000'}})
  fireEvent.click(screen.getByRole('button',{name:'예산 저장'}))
  await waitFor(()=>expect(done).toHaveBeenCalledWith(true))
- expect(api.setupBudget).toHaveBeenCalledExactlyOnceWith(currentMonth(),{items:[],food:{paymentMode:'threeInstallments',weekday:11000,saturday:11000,sunday:11000}})
+ expect(api.setupBudget).toHaveBeenCalledExactlyOnceWith(currentMonth(),{items:[],foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food:{paymentMode:'threeInstallments',weekday:11000,saturday:11000,sunday:11000}})
 })
 it('blocks step and header navigation during saving and preserves copied IDs and both drafts on failure',async()=>{
  const {api,cancel}=start(true);await screen.findByRole('button',{name:'다음: 식비 설정'});next()

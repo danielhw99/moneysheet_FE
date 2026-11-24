@@ -87,6 +87,7 @@ export default function BasicBudget({ go, month, locked, setLocked }: { go: (s: 
           <div className="column-head"><b>식비</b><span>월 합계 <strong>{won(budget.foodSummary.total)}원</strong></span></div>
           <div className="column-scroll">
             {([['주중', 'weekday'], ['토요일', 'saturday'], ['일요일', 'sunday']] as const).map(([label, key]) => <label className="budget-input" key={key}><span>{label}</span><div><MoneyInput disabled={readOnly} value={foodDraft?.[key] ?? (budget.food[key]===null?'':won(budget.food[key]))} onValueChange={value => setFoodDraft(previous => ({ ...(previous ?? { weekday: budget.food.weekday===null?'':won(budget.food.weekday), saturday: budget.food.saturday===null?'':won(budget.food.saturday), sunday: budget.food.sunday===null?'':won(budget.food.sunday) }), [key]: value }))} /><b>원</b></div></label>)}
+            <p className="form-help">식비 시작일: {budget.foodStartDate} · 저장 후 변경 불가</p>
             <div className="periods">
               <span><small>1차</small><b>{budget.food.paymentMode==='monthStart'?'월 전체':'1~10일'}</b><strong>{won(budget.foodSummary.installments[0])}원</strong></span>
               {budget.food.paymentMode!=='monthStart' && <><span><small>2차</small><b>11~20일</b><strong>{won(budget.foodSummary.installments[1])}원</strong></span>

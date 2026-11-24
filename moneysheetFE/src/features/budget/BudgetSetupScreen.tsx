@@ -9,6 +9,9 @@ import MoneyInput from '../../components/MoneyInput'
 import CategoryPicker from '../../components/CategoryPicker'
 import { errorMessage, useDataAccess } from '../../data/DataProvider'
 import type { BudgetPreparation, DraftItem } from '../../data/budgetApi'
+import { foodStartPreview } from './foodStartPreview'
+import { won } from '../../utils/money'
+import { validDate,localDateValue } from '../../utils/date'
 import { currentMonth } from '../../utils/date'
 import { budgetAmount } from './budgetInput'
 
@@ -20,6 +23,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
   const [draft, setDraft] = useState<BudgetPreparation | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [mode,setMode]=useState<FoodPaymentMode>('threeInstallments')
+  const [foodStartDate,setFoodStartDate]=useState('')
   const [food, setFood] = useState({ weekday: '', saturday: '', sunday: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -50,6 +54,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
       setDraft(value)
       setStep(0)
       setMode(value.food.paymentMode)
+      setFoodStartDate(value.foodStartDate)
       setRows(value.items.map(item => ({ key: sequence.current++, item, amount: item.amount === null ? '' : String(item.amount) })))
       setFood({ weekday: value.food.weekday === null ? '' : String(value.food.weekday), saturday: value.food.saturday === null ? '' : String(value.food.saturday), sunday: value.food.sunday === null ? '' : String(value.food.sunday) })
     }).catch(error => { if (active) setError(errorMessage(error)) })
@@ -67,6 +72,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     try { return { ...item, name: item.name.trim(), amount: budgetAmount(amount) } }
     catch (error) { throw new Error(`고정비 ${index + 1}: ${errorMessage(error)}`) }
   })
+  const preview=foodStartPreview(month,foodStartDate,food,mode)
   const blocked = pending || saving || loading || readOnly
   const advance = () => {
     if (blocked || !draft || working.current) return
@@ -82,8 +88,9 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     try {
       let items: ReturnType<typeof fixedItems>
       try { items = fixedItems() } catch (error) { setStep(0); throw error }
+      if(!validDate(foodStartDate)||foodStartDate.slice(0,7)!==month||foodStartDate>localDateValue(new Date())||(!draft.foodStartDateEditable&&foodStartDate!==draft.foodStartDate))throw new Error('식비 시작일을 확인해 주세요.')
       working.current = true; setSaving(true)
-      await mutate(api => api.setupBudget(month, { items, food: {paymentMode:mode,weekday:budgetAmount(food.weekday),saturday:budgetAmount(food.saturday),sunday:budgetAmount(food.sunday)} }))
+      await mutate(api => api.setupBudget(month, { items, foodStartDate,food: {paymentMode:mode,weekday:budgetAmount(food.weekday),saturday:budgetAmount(food.saturday),sunday:budgetAmount(food.sunday)} }))
       onDone(true)
     } catch (error) { setError(errorMessage(error)) }
     finally { working.current = false; setSaving(false) }
@@ -118,7 +125,10 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
           </section>
           <section className="setup-panel setup-food" aria-label="식비 설정" hidden={step !== 1}>
             <h2 ref={foodTitle} tabIndex={-1}>식비 설정</h2>
+            <label className="field"><span>식비 시작일 (필수)</span><input type="date" aria-label="식비 시작일" aria-describedby="food-start-help" required value={foodStartDate} min={month+'-01'} max={localDateValue(new Date())} disabled={blocked||!draft.foodStartDateEditable} onChange={e=>{setError('');setFoodStartDate(e.target.value)}} /></label>
+            <p id="food-start-help" className="form-help">{draft.foodStartDateEditable?'선택한 날짜부터 식비를 계산해요. 시작일 이전 내역·메모는 기록할 수 있어요. 저장 후에는 시작일을 바꿀 수 없어요.':'이 월은 1일부터 식비를 계산해요. 시작일은 변경할 수 없어요.'}</p>
             <FoodSettingsFields mode={mode} setMode={value=>{setError('');setMode(value)}} amounts={food} setAmounts={value=>{setError('');setFood(value)}} disabled={blocked}/>
+            {preview&&<aside className="notice" aria-label="식비 예상 금액">이번 달 식비 예산 {won(preview.total)}원 · 첫 반영 금액 {won(preview.first)}원</aside>}
           </section>
         </div>
         {error && <p className="query-status setup-error" role="alert">{error}</p>}

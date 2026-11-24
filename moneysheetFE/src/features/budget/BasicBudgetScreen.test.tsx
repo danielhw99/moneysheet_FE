@@ -13,10 +13,10 @@ function Editor() {
 }
 function fixture() {
   const api = createMockDataAccess()
-  let server: BudgetSummary = { month: currentMonth(), items: [], food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 15000, sunday: 10000 }, fixedTotal: 0, foodSummary: { total: 350000, installments: [1, 1, 1] } }
+  let server: BudgetSummary = { month: currentMonth(), items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 11000, saturday: 15000, sunday: 10000 }, fixedTotal: 0, foodSummary: { total: 350000, installments: [1, 1, 1] } }
   api.getBudget = vi.fn(async () => structuredClone(server))
   api.updateFoodBudget = vi.fn(async (_month, food) => { server = { ...server, food }; return structuredClone(server) })
-  return { api, changeServer: () => { server = { ...server, food: { paymentMode: 'threeInstallments', weekday: 22000, saturday: 22000, sunday: 22000 } } } }
+  return { api, changeServer: () => { server = { ...server, foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: 22000, saturday: 22000, sunday: 22000 } } } }
 }
 describe('food draft refresh', () => {
   it.each([true,false])('shows future-month read-only guidance before lock state %s', async locked => {
@@ -55,7 +55,7 @@ describe('food draft refresh', () => {
     let finishRefresh!: () => void
     const refreshed = new Promise<BudgetSummary>((_resolve, reject) => { finishRefresh = () => reject(new ApiError(409, 'BUDGET_NOT_READY', '예산 미설정')) })
     api.getBudget = vi.fn().mockRejectedValueOnce(new ApiError(409, 'BUDGET_NOT_READY', '예산 미설정')).mockReturnValueOnce(refreshed)
-    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft', copiedFromMonth: null, items: [], food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
+    api.prepareBudget = vi.fn().mockResolvedValue({ month: currentMonth(), status: 'draft',foodStartDateEditable:true, copiedFromMonth: null, items: [], foodStartDate:new Date().toLocaleDateString('sv-SE').slice(0,7)+'-01',food: { paymentMode: 'threeInstallments', weekday: null, saturday: null, sunday: null } })
     render(<DataProvider implementation={api}><Editor /></DataProvider>)
     const food = await screen.findByLabelText('주중 식비')
     expect(screen.queryByRole('button', { name: '예산 설정 시작' })).not.toBeInTheDocument()
