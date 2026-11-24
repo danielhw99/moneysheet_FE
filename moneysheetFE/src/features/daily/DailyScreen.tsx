@@ -98,14 +98,14 @@ function SavedBalanceCheck({ date, summaryBlocked }: { date: string; summaryBloc
 
 function BalanceCheckForm({ date, initial, blocked, loading, queryFailed, future = false }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean; loading:boolean; queryFailed: boolean; future?: boolean }) {
  const { mutate, pending } = useDataAccess()
- const [amount, setAmount] = useState(initial.actualBalance === null ? '' : String(initial.actualBalance))
+ const [amount, setAmount] = useState(initial.actualBalance === null ? '' : won(initial.actualBalance))
  const [locked, setLocked] = useState(initial.locked)
  const [dirty, setDirty] = useState(false)
  const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
   if (dirty || loading || saving || queryFailed) return
-  setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
+  setAmount(initial.actualBalance === null ? '' : won(initial.actualBalance))
   setLocked(initial.locked)
  }, [initial, dirty, loading, pending, saving, queryFailed])
  const toggle = async () => {
@@ -117,7 +117,7 @@ function BalanceCheckForm({ date, initial, blocked, loading, queryFailed, future
    const actualBalance = amount === '' ? null : Number(amount.replace(/,/g, ''))
    if (actualBalance !== null && (!Number.isSafeInteger(actualBalance) || actualBalance < 0 || actualBalance > 9999999999)) throw new Error('실제 잔액은 0~9,999,999,999원으로 입력해 주세요.')
    const saved = await mutate(api => api.saveBalanceCheck(date, { actualBalance, locked: !locked }))
-   setAmount(saved.actualBalance === null ? '' : String(saved.actualBalance))
+   setAmount(saved.actualBalance === null ? '' : won(saved.actualBalance))
    setLocked(saved.locked)
    setDirty(false)
   } catch (e) { setError(errorMessage(e)) }

@@ -174,3 +174,16 @@ describe('Daily actual balance', () => {
   await waitFor(()=>expect(screen.getByLabelText('실제 계좌 잔액')).toHaveValue(''))
  })
 })
+
+it('formats a loaded and saved actual balance with commas while persisting a number',async()=>{
+ const api=createMockDataAccess({today:()=> '2026-11-17'});
+ await api.saveBalanceCheck('2026-11-17',{actualBalance:1234567,locked:false});
+ const save=vi.spyOn(api,'saveBalanceCheck');
+ render(<DataProvider implementation={api}><Daily date="2026-11-17" go={()=>{}}/></DataProvider>);
+ const field=await screen.findByLabelText('실제 계좌 잔액');
+ await waitFor(()=>{expect(field).toHaveValue('1,234,567');expect(field).toBeEnabled()});
+ fireEvent.change(field,{target:{value:'2345678'}});
+ fireEvent.click(screen.getByRole('button',{name:'잔액 잠금'}));
+ await waitFor(()=>{expect(field).toHaveValue('2,345,678');expect(field).toBeDisabled()});
+ expect(save).toHaveBeenCalledWith('2026-11-17',{actualBalance:2345678,locked:true});
+})
