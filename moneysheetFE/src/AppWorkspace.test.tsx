@@ -221,3 +221,26 @@ async function enterSetup(){
  if(button.textContent==='시작하기')fireEvent.click(button)
  return screen.findByRole('button',{name:'다음: 식비 설정'})
 }
+
+it('keeps one identical bottom navigation element across page changes',async()=>{
+ render(<App authApi={auth()}/>);
+ const nav=await screen.findByRole('navigation',{name:'하단 메뉴'});
+ for(const name of ['Daily','Monthly','MY','홈']){
+  await userEvent.click(screen.getByRole('button',{name}));
+  await waitFor(()=>expect(screen.getByRole('button',{name})).toHaveAttribute('aria-current','page'));
+  expect(screen.getByRole('navigation',{name:'하단 메뉴'})).toBe(nav);
+  expect(screen.getAllByRole('navigation',{name:'하단 메뉴'})).toHaveLength(1);
+ }
+})
+
+it.each(['계정관리','설정'])('keeps MY selected inside %s',async destination=>{
+ render(<App authApi={auth()}/>);await screen.findByRole('navigation',{name:'하단 메뉴'});
+ await userEvent.click(screen.getByRole('button',{name:'MY'}));await userEvent.click(screen.getByRole('button',{name:destination}));
+ expect(screen.getByRole('button',{name:'MY'})).toHaveAttribute('aria-current','page');
+})
+it.each(['카테고리 관리','식비 설정','사용 가이드'])('selects Monthly for app setting %s',async destination=>{
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')};HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')};
+ render(<App authApi={auth()}/>);await screen.findByRole('navigation',{name:'하단 메뉴'});
+ await userEvent.click(screen.getByRole('button',{name:'앱 설정'}));await userEvent.click(screen.getByRole('button',{name:destination}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Monthly',hidden:true})).toHaveAttribute('aria-current','page'));
+})

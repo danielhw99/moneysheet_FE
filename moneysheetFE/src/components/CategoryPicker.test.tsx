@@ -44,3 +44,9 @@ it('preserves inline category creation and cancel',async()=>{
  await waitFor(()=>expect(change).toHaveBeenCalledWith('32'))
  expect(api.createCategory).toHaveBeenCalledWith({name:'교통',scope:'mainTransaction',direction:'expense'})
 })
+
+it('shows a decorative spinner inside the category control while loading',()=>{
+ const api=createMockDataAccess();vi.spyOn(api,'getCategories').mockReturnValue(new Promise(()=>{}));
+ const view=render(<DataProvider implementation={api}><CategoryPicker value={null} onChange={vi.fn()} scope="mainTransaction" direction="expense"/></DataProvider>);
+ expect(view.container.querySelector('.category-select-field .loading-spinner')).toHaveAttribute('aria-hidden','true');
+})

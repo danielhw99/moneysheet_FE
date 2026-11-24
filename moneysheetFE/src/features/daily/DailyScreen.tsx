@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner'
 import MoneyInput from '../../components/MoneyInput'
 import { useEffect, useState } from 'react'
 import type { Screen, DailyRecordKind, RecordEntry } from '../../types/navigation'
@@ -12,7 +13,7 @@ import MiniList from '../../components/MiniList'
 import QueryStatus from '../../components/QueryStatus'
 import { currentMonth, localDateValue } from '../../utils/date'
 
-export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void; openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void }) {
+export default function Daily({ go, date, changeDate, openRecord, showNavigation = true }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void; showNavigation?: boolean; openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
@@ -80,7 +81,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
           <button className="panel-add" disabled={summaryBlocked || pending} onClick={() => open('fixed-pay', 'new')}><Icon name="plus" size={16} />지급 기록</button>
         </section>
       </section>
-      <BottomNav screen="daily" go={go} />
+      {showNavigation && <BottomNav screen="daily" go={go} />}
     </main>
   )
 }
@@ -98,14 +99,14 @@ function SavedBalanceCheck({ date, summaryBlocked }: { date: string; summaryBloc
 
 function BalanceCheckForm({ date, initial, blocked, loading, queryFailed, future = false }: { date: string; initial: import('../../data/MoneySheetDataAccess').DailyBalanceCheck; blocked: boolean; loading:boolean; queryFailed: boolean; future?: boolean }) {
  const { mutate, pending } = useDataAccess()
- const [amount, setAmount] = useState(initial.actualBalance === null ? '' : String(initial.actualBalance))
+ const [amount, setAmount] = useState(initial.actualBalance === null ? '' : won(initial.actualBalance))
  const [locked, setLocked] = useState(initial.locked)
  const [dirty, setDirty] = useState(false)
  const [saving, setSaving] = useState(false)
  const [error, setError] = useState('')
  useEffect(() => {
   if (dirty || loading || saving || queryFailed) return
-  setAmount(initial.actualBalance === null ? '' : String(initial.actualBalance))
+  setAmount(initial.actualBalance === null ? '' : won(initial.actualBalance))
   setLocked(initial.locked)
  }, [initial, dirty, loading, pending, saving, queryFailed])
  const toggle = async () => {
@@ -117,7 +118,7 @@ function BalanceCheckForm({ date, initial, blocked, loading, queryFailed, future
    const actualBalance = amount === '' ? null : Number(amount.replace(/,/g, ''))
    if (actualBalance !== null && (!Number.isSafeInteger(actualBalance) || actualBalance < 0 || actualBalance > 9999999999)) throw new Error('실제 잔액은 0~9,999,999,999원으로 입력해 주세요.')
    const saved = await mutate(api => api.saveBalanceCheck(date, { actualBalance, locked: !locked }))
-   setAmount(saved.actualBalance === null ? '' : String(saved.actualBalance))
+   setAmount(saved.actualBalance === null ? '' : won(saved.actualBalance))
    setLocked(saved.locked)
    setDirty(false)
   } catch (e) { setError(errorMessage(e)) }
@@ -125,7 +126,7 @@ function BalanceCheckForm({ date, initial, blocked, loading, queryFailed, future
  }
  return <>
   <div className="account-balance">
-   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} aria-busy={loading} placeholder={loading ? '불러오는 중…' : '미입력'} /><b>원</b></label>
+   <label><span>실제 계좌 잔액</span><span className="balance-amount-field">{loading && <LoadingSpinner/>}<MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} aria-busy={loading} placeholder={loading ? '불러오는 중…' : '미입력'} /></span><b>원</b></label>
    <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || saving || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
   </div>
   <p className="helper">{future ? '미래 날짜의 실제 계좌 잔액은 조회하거나 입력할 수 없어요.' : pending ? '저장 중…' : locked ? amount === '' ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '실제 잔액이 저장되어 잠겨 있어요.' : '입력 후 잠금을 누르면 저장돼요. 계산 잔액에는 반영되지 않아요.'}</p>

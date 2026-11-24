@@ -12,7 +12,7 @@ const monthlySections = [
   { title: '수입', desc: '이번 달 수동 입력', target: 'income' as Screen },
 ]
 
-export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void }) {
+export default function Monthly({ go, month, changeMonth, showNavigation = true }: { go: (s: Screen) => void; month: string; showNavigation?: boolean; changeMonth: (offset: number) => void }) {
   const query = useDataQuery(`monthly:${month}`, api => api.getMonthly(month))
   const budgetQuery = useDataQuery(`monthly-food:${month}`, api => api.getBudget(month))
   const data = query.data
@@ -44,7 +44,7 @@ export default function Monthly({ go, month, changeMonth }: { go: (s: Screen) =>
           <p>순증감은 월 수입에서 총지출을 뺀 금액이에요.</p>
         </section>}
       </section>
-      <BottomNav screen="monthly" go={go} />
+      {showNavigation && <BottomNav screen="monthly" go={go} />}
     </main>
   )
 }

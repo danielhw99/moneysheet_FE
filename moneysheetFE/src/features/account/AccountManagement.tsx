@@ -54,7 +54,7 @@ function AccountDialog({ mode, close }: { mode: 'password' | 'deletion'; close: 
         {confirmation && newPassword !== confirmation && <p className="field-error">새 비밀번호가 일치하지 않아요.</p>}
       </> : <label className="account-confirm"><input type="checkbox" checked={agreed} disabled={auth.busy} onChange={event => setAgreed(event.target.checked)} />모든 데이터가 삭제됨을 확인했습니다.</label>}
       {failure && <p role="alert" className="field-error">{failure}</p>}
-      <button type="submit" className="primary-button" disabled={!valid || auth.busy}>{isPassword ? '비밀번호 변경하기' : '탈퇴하기'}</button>
+      <button type="submit" className={`primary-button ${isPassword ? '' : 'feedback-dialog-danger'}`} disabled={!valid || auth.busy}>{isPassword ? '비밀번호 변경하기' : '탈퇴하기'}</button>
       <button type="button" className="settings-row" disabled={auth.busy} onClick={close}>취소</button>
     </form>
   </dialog>

@@ -54,7 +54,7 @@ function Screens() {
   const basic = <BasicBudget key={month} go={go} month={month} locked={budgetLocks[month] ?? true} setLocked={locked => setBudgetLocks(previous => ({ ...previous, [month]: locked }))} />
   const business = !['my','account','profile','settings','food-settings','categories','fixed-categories','transaction-categories'].includes(screen)
   let view: React.ReactNode, ownNavigation = false
-  if (screen === 'my') { view = <My go={go} />; ownNavigation = true }
+  if (screen === 'my') { view = <My go={go} showNavigation={false} reserveNavigationSpace />; ownNavigation = true }
   else if (screen === 'account' || screen === 'settings') view = <SimpleSettings type={screen} go={go} />
   else if (screen === 'profile') view = <ProfileSettingsScreen go={go}/>
   else if (screen === 'food-settings') view = <FoodSettingsScreen key={month} month={month} go={go}/>
@@ -66,7 +66,7 @@ function Screens() {
       view = <main className="app-shell"><section className="screen-content home-content">
         <HomeMonthHeader month={month} changeMonth={changeMonth} disabled={pending} />
         {readiness.errorCode === 'BUDGET_NOT_READY' ? <div className="home-readiness">{setupNotice}</div> : <QueryStatus {...readiness} />}
-      </section><BottomNav screen="home" go={go} /></main>
+      </section></main>
       ownNavigation = true
     } else view = <main className="detail-shell workspace-status">
       <h1>자금 현황</h1><div className="sub-month"><button disabled={pending} onClick={() => changeMonth(-1)} aria-label="이전 월">◀</button><span>{month}</span><button disabled={pending || month >= currentMonth()} onClick={() => changeMonth(1)} aria-label="다음 월">▶</button></div>
@@ -74,15 +74,18 @@ function Screens() {
     </main>
   }
   else if (screen === 'basic') view = basic
-  else if (screen === 'home') { view = <Home go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
-  else if (screen === 'daily') { view = <Daily key={recordDate} go={go} date={recordDate} changeDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
-  else if (screen === 'monthly') { view = <Monthly go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
+  else if (screen === 'home') { view = <Home showNavigation={false} go={go} month={month} changeMonth={changeMonth} selectedDate={recordDate} selectDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
+  else if (screen === 'daily') { view = <Daily showNavigation={false} key={recordDate} go={go} date={recordDate} changeDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
+  else if (screen === 'monthly') { view = <Monthly showNavigation={false} go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
   else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}:${recordEntry === 'new' ? 'new' : recordEntry?.id ?? 'list'}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} initialEntry={recordEntry} onCloseEntry={() => go('daily')} />
-  const navScreen = screen === 'profile' ? 'my' : screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
+  const navScreen = guide?.guideOpen ? 'monthly'
+    : ['my', 'profile', 'account', 'settings'].includes(screen) ? 'my'
+    : ['basic', 'income', 'extra', 'categories', 'fixed-categories', 'transaction-categories', 'food-settings'].includes(screen) ? 'monthly'
+    : ['transactions', 'memos', 'fixed-pay'].includes(screen) ? 'daily' : screen
   return <div className="prototype"><div className="phone-frame signed-in-frame">
     {screen !== 'my' && <AppSettings key={screen} disabled={pending || auth.busy} openGuide={() => guide?.openGuide()} openCategories={() => go('categories')} openFood={() => go('food-settings')} />}
     {auth.notice && <p className="session-note" role="status">{auth.notice}</p>}
-    <div className={`workspace-content ${ownNavigation ? '' : 'with-workspace-nav'}`}>{view}{!ownNavigation && <BottomNav screen={navScreen} go={go} />}</div>
+    <div className={`workspace-content ${ownNavigation ? '' : 'with-workspace-nav'}`}>{view}<BottomNav screen={navScreen} go={go} /></div>
     <GuideDialog onFinish={() => go('home')} />
   </div></div>
 }

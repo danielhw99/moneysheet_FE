@@ -6,14 +6,14 @@ import Header from '../../components/Header'
 import BottomNav from '../../components/BottomNav'
 import ProfileAvatar from './ProfileAvatar'
 
-export default function My({ go, showNavigation = true }: { go: (s: Screen) => void; showNavigation?: boolean }) {
+export default function My({ go, showNavigation = true, reserveNavigationSpace = showNavigation }: { go: (s: Screen) => void; showNavigation?: boolean; reserveNavigationSpace?: boolean }) {
   const auth = useAuth()
   const profile = auth.profile
   const [failure, setFailure] = useState('')
   const logout = async () => { setFailure(''); try { await auth.logout() } catch (error) { setFailure(authErrorMessage(error)) } }
   return (
     <main className="app-shell">
-      <section className={`screen-content my-content ${showNavigation ? '' : 'no-bottom-nav'}`}>
+      <section className={`screen-content my-content ${reserveNavigationSpace ? '' : 'no-bottom-nav'}`}>
         <Header title="마이페이지" />
         {failure && <p role="alert" className="field-error">{failure}</p>}
         {profile && <section className="profile profile-centered" aria-label="프로필 정보"><ProfileAvatar url={profile.avatarUrl} nickname={profile.nickname}/><div><b>{profile.nickname}</b><span>{profile.email}</span></div><button type="button" className="profile-settings-button" disabled={auth.busy} onClick={() => go('profile')}>프로필 설정</button></section>}
