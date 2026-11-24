@@ -10,10 +10,11 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
   const [email, setEmail] = useState('')
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
   const [agreed, setAgreed] = useState(false)
   const [verificationToken, setVerificationToken] = useState('')
   const [verificationRevision, setVerificationRevision] = useState(0)
-  const [touched, setTouched] = useState({ email: false, nickname: false, password: false, agreed: false })
+  const [touched, setTouched] = useState({ email: false, nickname: false, password: false, confirmation: false, agreed: false })
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState('')
   const submitting = useRef(false)
@@ -21,7 +22,8 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
   const errors = {
     email: !email.trim() ? '이메일을 입력해 주세요.' : email.trim().length > 254 || !/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(email.trim()) ? '올바른 이메일 형식을 입력해 주세요.' : '',
     nickname: signup && (!nickname.trim() || nickname.trim().length > 50) ? '닉네임을 1~50자로 입력해 주세요.' : '',
-    password: !password.length ? '비밀번호를 입력해 주세요.' : length > 128 || signup && length < 15 ? (signup ? '비밀번호는 15~128자로 입력해 주세요.' : '비밀번호는 128자 이내로 입력해 주세요.') : '',
+    password: !password.length ? '비밀번호를 입력해 주세요.' : (signup ? length < 10 || length > 20 : length > 128) ? (signup ? '비밀번호는 10~20자로 입력해 주세요.' : '비밀번호는 128자 이내로 입력해 주세요.') : '',
+    confirmation: signup && (!confirmation || confirmation !== password) ? '비밀번호가 일치하지 않아요.' : '',
     agreed: signup && !agreed ? '개인정보처리방침 동의가 필요해요.' : '',
   }
   const canSubmit = Object.values(errors).every(error => !error) && !auth.busy && (!signup || !!verificationToken)
@@ -29,7 +31,7 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
   const edit = (field: string) => { setFailure(''); setServerErrors(previous => ({ ...previous, [field]: '' })) }
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
-    setTouched({ email: true, nickname: true, password: true, agreed: true })
+    setTouched({ email: true, nickname: true, password: true, confirmation: true, agreed: true })
     if (!canSubmit || submitting.current) return
     submitting.current = true; setFailure(''); setServerErrors({})
     try {
@@ -68,9 +70,13 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
         {fieldError('nickname') && <small className="field-error" id="auth-nickname-error">{fieldError('nickname')}</small>}
       </label>}
       <label className="field"><span id="auth-password-label">비밀번호</span>
-        <input aria-labelledby="auth-password-label" type="password" name="password" autoComplete={signup ? 'new-password' : 'current-password'} placeholder={signup ? '15~128자, 공백·한글 사용 가능' : '비밀번호 입력'} required disabled={auth.busy} value={password} onChange={event => { setPassword(event.target.value); edit('password') }} onBlur={() => touch('password')} aria-invalid={!!fieldError('password')} aria-describedby={fieldError('password') ? 'auth-password-error' : undefined} />
+        <input aria-labelledby="auth-password-label" type="password" name="password" autoComplete={signup ? 'new-password' : 'current-password'} placeholder={signup ? '10~20자, 공백·한글 사용 가능' : '비밀번호 입력'} required disabled={auth.busy} value={password} onChange={event => { setPassword(event.target.value); edit('password') }} onBlur={() => touch('password')} aria-invalid={!!fieldError('password')} aria-describedby={fieldError('password') ? 'auth-password-error' : undefined} />
         {fieldError('password') && <small className="field-error" id="auth-password-error">{fieldError('password')}</small>}
       </label>
+      {signup && <label className="field"><span id="auth-confirmation-label">비밀번호 확인</span>
+        <input aria-labelledby="auth-confirmation-label" type="password" name="passwordConfirmation" autoComplete="new-password" placeholder="비밀번호를 다시 입력해 주세요" required disabled={auth.busy} value={confirmation} onChange={event => { setConfirmation(event.target.value); touch('confirmation') }} onBlur={() => touch('confirmation')} aria-invalid={!!fieldError('confirmation')} aria-describedby={fieldError('confirmation') ? 'auth-confirmation-error' : undefined} />
+        {fieldError('confirmation') && <small className="field-error" id="auth-confirmation-error">{fieldError('confirmation')}</small>}
+      </label>}
       {signup && <div><label className="policy"><input type="checkbox" required disabled={auth.busy} checked={agreed} onChange={event => { setAgreed(event.target.checked); touch('agreed'); edit('privacyAgreed') }} aria-invalid={!!fieldError('agreed')} /> <span>개인정보처리방침을 확인했으며 동의합니다.</span></label>
         {fieldError('agreed') && <small className="field-error">{fieldError('agreed')}</small>}
       </div>}
