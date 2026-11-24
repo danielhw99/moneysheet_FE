@@ -10,9 +10,9 @@ const navItems: { key: Screen; label: string; icon: IconName }[] = [
 
 export default function BottomNav({ screen, go }: { screen: Screen; go: (s: Screen, menu?: boolean) => void }) {
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label="하단 메뉴">
       {navItems.map((item) => (
-        <button key={item.key} className={screen === item.key ? 'nav-item active' : 'nav-item'} onClick={() => go(item.key, true)}>
+        <button type="button" aria-current={screen === item.key ? 'page' : undefined} key={item.key} className={screen === item.key ? 'nav-item active' : 'nav-item'} onClick={() => go(item.key, true)}>
           <Icon name={item.icon} size={21} /><span>{item.label}</span>
         </button>
       ))}
