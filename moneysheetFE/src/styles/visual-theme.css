@@ -134,7 +134,7 @@
 .prototype .budget-input input { width: 0; flex: 1 1 0; }
 .prototype .account-balance label { min-width: 0; column-gap: 6px; grid-template-columns: minmax(0, 1fr) minmax(0, 100px) 14px; }
 .prototype .account-balance input { width: 100%; }
-.prototype .account-balance input:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 0; }
+.prototype .account-balance input:focus, .prototype .account-balance input:focus-visible { outline: none; box-shadow: none; }
 
 /* Match standalone text fields to the composite amount control's rounded focus ring. */
 .prototype .field > input:focus, .prototype .field > input:focus-visible {
