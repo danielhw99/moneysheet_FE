@@ -78,7 +78,10 @@ function Screens() {
   else if (screen === 'daily') { view = <Daily showNavigation={false} key={recordDate} go={go} date={recordDate} changeDate={changeDate} openRecord={openRecord} />; ownNavigation = true }
   else if (screen === 'monthly') { view = <Monthly showNavigation={false} go={go} month={month} changeMonth={changeMonth} />; ownNavigation = true }
   else if (screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' || screen === 'income' || screen === 'extra') view = <RecordList key={`${screen}:${recordDate}:${recordEntry === 'new' ? 'new' : recordEntry?.id ?? 'list'}`} kind={screen} go={go} date={recordDate} changeDate={changeDate} initialEntry={recordEntry} onCloseEntry={() => go('daily')} />
-  const navScreen = screen === 'profile' ? 'my' : screen === 'basic' || screen === 'income' || screen === 'extra' ? 'monthly' : screen === 'transactions' || screen === 'memos' || screen === 'fixed-pay' ? 'daily' : screen
+  const navScreen = guide?.guideOpen ? 'monthly'
+    : ['my', 'profile', 'account', 'settings'].includes(screen) ? 'my'
+    : ['basic', 'income', 'extra', 'categories', 'fixed-categories', 'transaction-categories', 'food-settings'].includes(screen) ? 'monthly'
+    : ['transactions', 'memos', 'fixed-pay'].includes(screen) ? 'daily' : screen
   return <div className="prototype"><div className="phone-frame signed-in-frame">
     {screen !== 'my' && <AppSettings key={screen} disabled={pending || auth.busy} openGuide={() => guide?.openGuide()} openCategories={() => go('categories')} openFood={() => go('food-settings')} />}
     {auth.notice && <p className="session-note" role="status">{auth.notice}</p>}
