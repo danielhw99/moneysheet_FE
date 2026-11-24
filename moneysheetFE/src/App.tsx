@@ -83,7 +83,7 @@ function Screens() {
     {screen !== 'my' && <AppSettings key={screen} disabled={pending || auth.busy} openGuide={() => guide?.openGuide()} openCategories={() => go('categories')} openFood={() => go('food-settings')} />}
     {auth.notice && <p className="session-note" role="status">{auth.notice}</p>}
     <div className={`workspace-content ${ownNavigation ? '' : 'with-workspace-nav'}`}>{view}{!ownNavigation && <BottomNav screen={navScreen} go={go} />}</div>
-    <GuideDialog />
+    <GuideDialog onFinish={() => go('home')} />
   </div></div>
 }
 

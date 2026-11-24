@@ -27,7 +27,7 @@ it('opens separate category management screens before any budget is ready', asyn
   return new Response(JSON.stringify({code:'BUDGET_NOT_READY',message:'예산 설정 필요'}),{status:409})
  }))
  render(<App authApi={api()} />)
- await screen.findByRole('button',{name:'다음: 식비 설정'})
+ await enterSetup()
  await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
  await userEvent.click(screen.getByRole('button',{name:'카테고리 관리'}))
  await userEvent.click(screen.getByRole('button',{name:/고정비 카테고리/}))
@@ -44,25 +44,25 @@ it('keeps app settings accessible before the first budget is configured', async 
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')}
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
  render(<App authApi={api()} />)
- await screen.findByRole('button',{name:'다음: 식비 설정'})
+ await enterSetup()
  expect(screen.queryByRole('navigation',{name:'업무 메뉴'})).not.toBeInTheDocument()
  await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
  await userEvent.click(screen.getByRole('button',{name:'사용 가이드'}))
- expect(await screen.findByRole('dialog',{name:'moneysheet 사용 가이드'})).toBeVisible()
- await userEvent.click(screen.getByRole('button',{name:'사용 가이드 닫기'}))
+ expect(await screen.findByRole('dialog',{name:'머니시트 100% 활용 가이드!'})).toBeVisible()
+ await userEvent.click(screen.getByRole('button',{name:'건너뛰기'}))
  expect(screen.getByRole('button',{name:'다음: 식비 설정'})).toBeInTheDocument()
 })
 it('resets navigation and date state on user changes, without showing a demo profile', async () => {
   vi.stubEnv('DEV', true)
   const auth = api(); vi.mocked(auth.me).mockResolvedValueOnce(first).mockResolvedValueOnce(second)
   render(<App authApi={auth} />)
-  await screen.findByRole('button', { name: '다음: 식비 설정' })
+  await enterSetup()
   await screen.findByRole('button', { name: 'MY' })
   await userEvent.click(screen.getByRole('button', { name: 'MY' }))
   expect(await screen.findByText(first.email)).toBeInTheDocument()
   fireEvent(window, new Event('focus'))
   await waitFor(() => expect(auth.me).toHaveBeenCalledTimes(2))
-  await screen.findByRole('button', { name: '다음: 식비 설정' })
+  await enterSetup()
   await userEvent.click(screen.getByRole('button', { name: 'MY' }))
   expect(await screen.findByText(second.email)).toBeInTheDocument()
   expect(screen.queryByText(first.email)).not.toBeInTheDocument()
@@ -70,7 +70,7 @@ it('resets navigation and date state on user changes, without showing a demo pro
 it('does not render business mock screens in a production build', async () => {
   vi.stubEnv('DEV', false)
   render(<App authApi={api()} />)
-  expect(await screen.findByRole('button', { name: '다음: 식비 설정' })).toBeInTheDocument()
+  expect(await enterSetup()).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: 'MY' }))
   expect(await screen.findByText(first.email)).toBeInTheDocument()
   expect(document.querySelector('.calendar')).not.toBeInTheDocument()
@@ -87,7 +87,7 @@ it('removes the protected workspace when the session expires', async () => {
 it('preserves an authenticated session on CSRF logout rejection and allows explicit retry', async () => {
   vi.stubEnv('DEV', true)
   const auth = api(); vi.mocked(auth.logout).mockRejectedValueOnce(new ApiError(403, 'CSRF_INVALID', 'csrf')).mockResolvedValueOnce(undefined)
-  render(<App authApi={auth} />); await screen.findByRole('button', { name: '다음: 식비 설정' }); await userEvent.click(await screen.findByRole('button', { name: 'MY' }))
+  render(<App authApi={auth} />); await enterSetup(); await userEvent.click(await screen.findByRole('button', { name: 'MY' }))
   await userEvent.click(screen.getByRole('button', { name: '로그아웃' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('다시 눌러')
   expect(screen.getByText(first.email)).toBeInTheDocument()
@@ -99,7 +99,7 @@ it('preserves an authenticated session on CSRF logout rejection and allows expli
 it('revalidates budgets after successful same-user focus and online checks', async () => {
   const auth = api()
   render(<App authApi={auth} />)
-  await screen.findByRole('button', { name: '다음: 식비 설정' })
+  await enterSetup()
   const requests = () => vi.mocked(fetch).mock.calls.filter(([path]) => String(path).endsWith('/budget')).length
   const initial = requests()
   fireEvent(window, new Event('focus'))
@@ -108,3 +108,9 @@ it('revalidates budgets after successful same-user focus and online checks', asy
   fireEvent(window, new Event('online'))
   await waitFor(() => expect(requests()).toBeGreaterThan(afterFocus))
 })
+
+async function enterSetup(){
+ const button=await screen.findByRole('button',{name:/^(시작하기|다음: 식비 설정)$/})
+ if(button.textContent==='시작하기')fireEvent.click(button)
+ return screen.findByRole('button',{name:'다음: 식비 설정'})
+}

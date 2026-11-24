@@ -68,8 +68,8 @@ it('provides app settings outside MY and reopens the guide from its dropdown',as
  expect(screen.queryByRole('navigation',{name:'업무 메뉴'})).not.toBeInTheDocument()
  await userEvent.click(screen.getByRole('button',{name:'앱 설정'}))
  await userEvent.click(screen.getByRole('button',{name:'사용 가이드'}))
- expect(await screen.findByRole('dialog',{name:'moneysheet 사용 가이드'})).toBeVisible()
- await userEvent.click(screen.getByRole('button',{name:'사용 가이드 닫기'}))
+ expect(await screen.findByRole('dialog',{name:'머니시트 100% 활용 가이드!'})).toBeVisible()
+ await userEvent.click(screen.getByRole('button',{name:'건너뛰기'}))
  await userEvent.click(screen.getByRole('button',{name:'MY'}))
  expect(screen.queryByRole('button',{name:'앱 설정'})).not.toBeInTheDocument()
  await userEvent.click(screen.getByRole('button',{name:'계정관리'}))
@@ -215,3 +215,9 @@ it('preserves unsaved food after a fixed-item save succeeds but budget reloads f
  const food=screen.getByLabelText(/주중/) as HTMLInputElement
  expect(food.value.replace(/,/g,'')).toBe('12345');expect(food).toBeDisabled()
 })
+
+async function enterSetup(){
+ const button=await screen.findByRole('button',{name:/^(시작하기|다음: 식비 설정)$/})
+ if(button.textContent==='시작하기')fireEvent.click(button)
+ return screen.findByRole('button',{name:'다음: 식비 설정'})
+}

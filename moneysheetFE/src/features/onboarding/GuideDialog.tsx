@@ -1,22 +1,43 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useOnboarding } from './OnboardingProvider'
-export default function GuideDialog() {
-  const guide = useOnboarding()
-  const dialog = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const element = dialog.current
-    if (!guide?.guideOpen || !element) return
-    element.showModal()
-    return () => { if (element.open) element.close() }
-  }, [guide?.guideOpen])
-  if (!guide) return null
-  return <dialog ref={dialog} className="guide-dialog" aria-labelledby="guide-title" aria-describedby="guide-description" onCancel={event => { event.preventDefault(); guide.closeGuide(false) }}>
-    <div className="guide-heading"><h2 id="guide-title">moneysheet 사용 가이드</h2><button type="button" className="text-button" autoFocus onClick={() => guide.closeGuide(false)} aria-label="사용 가이드 닫기">닫기</button></div>
-    <p id="guide-description">예산을 준비한 뒤에는 아래 세 가지를 기억해 주세요.</p>
-    <section><h3>1. 예산 준비</h3><p>고정비는 필요한 항목만 추가하고 식비는 필수예요. 주중·토·일 하루 예산을 입력해요. 예산 저장을 눌러야 설정이 완료돼요. 다음 달에는 전달 목록과 식비 설정을 확인해 다시 저장해요.</p></section>
-    <section><h3>2. 오늘 여유비</h3><p>같은 달 전날 여유비에 오늘 식비와 오늘 일반 입금을 더하고 오늘 본인 지출을 빼요. 월 1일의 기초 여유비는 0원이며  Monthly 수익과 임시 입금 메모는 여유비에 포함되지 않아요.</p></section>
-    <section><h3>3. Main 잔액과 메모</h3><p>Main은 은행 앱 잔액과 비교할 계산 금액이에요. 일반 입금은 오늘 여유비를 통해 Main에 한 번만 반영돼요. 아직 받지 못한 정산금처럼 임시 입출금은 메모로 남기며 Main에만 반영해요.</p></section>
-    <p className="form-help">홈에서 날짜를 선택해 Daily를 열고 내역과 메모를 기록해요. Monthly에서 이번 달 수입·지출을 확인할 수 있어요. 안내는 이 브라우저의 계정별로 기억하며, 사용 가이드에서 다시 볼 수 있어요.</p>
-    <button className="primary-button" type="button" onClick={() => guide.closeGuide(true)}>확인했어요</button>
-  </dialog>
+import { tutorialPages } from './tutorialPages'
+export default function GuideDialog({onFinish}:{onFinish?:()=>void}) {
+ const guide=useOnboarding(),dialog=useRef<HTMLDialogElement>(null)
+ const [index,setIndex]=useState(0),body=useRef<HTMLDivElement>(null),heading=useRef<HTMLHeadingElement>(null)
+ const open=!!guide?.guideOpen
+ useEffect(()=>{
+  const element=dialog.current
+  if(!open||!element)return
+  const frame=element.closest('.phone-frame')
+  const position=()=>{
+   if(!frame)return
+   const rect=frame.getBoundingClientRect(),padding=getComputedStyle(frame)
+   const left=Math.max(8,rect.left+8+parseFloat(padding.paddingLeft||'0'))
+   const top=Math.max(8,rect.top+8+parseFloat(padding.paddingTop||'0'))
+   const right=Math.min(innerWidth-8,rect.right-8-parseFloat(padding.paddingRight||'0'))
+   const bottom=Math.min(innerHeight-8,rect.bottom-8-parseFloat(padding.paddingBottom||'0'))
+   Object.assign(element.style,{inset:'auto',left:`${left}px`,top:`${top}px`,width:`${Math.max(1,right-left)}px`,height:`${Math.max(1,Math.min(760,bottom-top))}px`,margin:'0'})
+  }
+  setIndex(0);position();element.showModal()
+  const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(position)
+  if(frame)observer?.observe(frame)
+  window.addEventListener('resize',position);window.addEventListener('scroll',position,true)
+  return()=>{observer?.disconnect();window.removeEventListener('resize',position);window.removeEventListener('scroll',position,true);if(element.open)element.close()}
+ },[open])
+ useEffect(()=>{if(open){if(body.current)body.current.scrollTop=0;heading.current?.focus({preventScroll:true})}},[index,open])
+ if(!open||!guide)return null
+ const page=tutorialPages[index],last=index===tutorialPages.length-1
+ const finish=(completed:boolean)=>{guide.closeGuide(completed);onFinish?.()}
+ return <dialog ref={dialog} className="guide-dialog tutorial-dialog" aria-labelledby="guide-title" onCancel={e=>{e.preventDefault();finish(false)}}>
+  <header className="tutorial-header"><span>사용 가이드</span>{!last&&<button className="text-button" onClick={()=>finish(false)}>건너뛰기</button>}<span className="tutorial-progress" aria-label="진행 상황">{index+1} / {tutorialPages.length}</span></header>
+  <div className="tutorial-body" ref={body}><h2 id="guide-title" ref={heading} tabIndex={-1}>{page.title}</h2><p className="tutorial-lead">{page.lead}</p>
+   {page.example&&<section className="tutorial-example" aria-label="설명용 예시"><small>설명용 예시 · 실제 저장되지 않아요</small><dl>{page.example.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>}
+   {page.paragraphs.map(text=><p key={text}>{text}</p>)}
+   {page.tip&&<aside className="tutorial-tip"><b>💡 개발자 꿀팁</b><p>{page.tip}</p></aside>}
+   {page.warning&&<aside className="tutorial-warning"><b>⚠ 주의</b><p>{page.warning}</p></aside>}
+  </div>
+  <footer className="tutorial-actions">{index>0&&<button className="secondary-button" onClick={()=>setIndex(n=>Math.max(0,n-1))}>이전</button>}
+   <button className="primary-button" onClick={()=>last?finish(true):setIndex(n=>Math.min(tutorialPages.length-1,n+1))}>{last?'시작하기':`다음: ${tutorialPages[index+1].title}`}</button>
+  </footer>
+ </dialog>
 }

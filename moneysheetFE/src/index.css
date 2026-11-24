@@ -573,3 +573,24 @@
 .month-picker-columns label { display: flex; flex-direction: column; gap: 8px; color: var(--secondary); font-size: 12px; }
 .month-picker-columns select { min-width: 0; width: 100%; min-height: 56px; border: 1px solid var(--divider); border-radius: 12px; padding: 8px; color: var(--text); background: var(--surface); font-size: 18px; font-weight: 700; }
 .month-picker-dialog :focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 3px; }
+
+/* Page-based tutorial: only the body scrolls; controls remain reachable. */
+.tutorial-dialog[open] { display:flex; flex-direction:column; width:min(420px,calc(100vw - 24px)); height:min(760px,calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))); max-height:calc(100dvh - 24px); padding:0; overflow:hidden; }
+.tutorial-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:12px 18px; border-bottom:1px solid var(--divider); flex-shrink:0; }
+.tutorial-progress { width:100%; text-align:center; font-size:12px; color:var(--text-secondary); }
+.tutorial-body { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:20px; }
+.tutorial-body h2 { font-size:22px; line-height:1.4; margin:0 0 12px; }
+.tutorial-lead { font-weight:600; }
+.tutorial-example,.tutorial-tip,.tutorial-warning { border:1px solid var(--divider); border-radius:14px; padding:14px; margin:16px 0; background:#f2faf6; }
+.tutorial-example small { color:#52645d; }
+.tutorial-example dl div { display:flex; justify-content:space-between; gap:12px; padding:7px 0; }
+.tutorial-example dd { margin:0; font-weight:600; white-space:nowrap; }
+.tutorial-tip p,.tutorial-warning p { margin-bottom:0; }
+.tutorial-warning { background:#fff8ec; }
+.tutorial-actions { flex-shrink:0; display:flex; gap:10px; padding:12px 18px max(12px,env(safe-area-inset-bottom,0px)); border-top:1px solid var(--divider); background:white; }
+.tutorial-actions .primary-button { flex:1; width:auto; margin:0; }
+.tutorial-actions button { white-space:normal; }
+.tutorial-welcome { display:flex; flex-direction:column; min-height:0; }
+.tutorial-welcome .tutorial-body { text-align:center; }
+.welcome-brand { letter-spacing:3px; font-weight:700; margin-top:24px; }
+.welcome-symbol { font-size:64px; color:#397a60; margin:32px auto; }
