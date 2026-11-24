@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner'
 import { useId, useState } from 'react'
 import type { Category, Direction } from '../data/models'
 import { errorMessage, useDataAccess } from '../data/DataProvider'
@@ -30,7 +31,7 @@ export default function CategoryPicker({ value, onChange, scope, direction, opti
   }
   return <div className="category-picker">
     <label className="field"><span>카테고리{optional ? ' (선택)' : ''}</span>
-      <select value={value ?? ''} disabled={pending || query.loading || !query.data} aria-busy={query.loading} aria-describedby={query.error ? statusId : undefined} onChange={event => {
+      <span className="category-select-field"><select value={value ?? ''} disabled={pending || query.loading || !query.data} aria-busy={query.loading} aria-describedby={query.error ? statusId : undefined} onChange={event => {
         if (event.target.value === '__add__') { setAdding(true); return }
         onChange(event.target.value || null)
         cancel()
@@ -38,7 +39,7 @@ export default function CategoryPicker({ value, onChange, scope, direction, opti
         <option value="">{query.loading && !query.data ? '카테고리 불러오는 중…' : optional ? '미분류' : '카테고리 선택'}</option>
         {displayed.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         <option value="__add__">＋ 카테고리 추가</option>
-      </select>
+      </select>{query.loading && <LoadingSpinner/>}</span>
     </label>
     {query.error && <div id={statusId} className="category-picker-status"><QueryStatus loading={false} error={query.error} retry={query.retry} /></div>}
     {adding && <fieldset className="category-add" disabled={pending}><legend>카테고리 추가</legend>

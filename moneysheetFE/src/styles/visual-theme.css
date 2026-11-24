@@ -257,3 +257,20 @@
 @media (forced-colors: active) {
   .prototype .bottom-nav, .prototype .bottom-nav .nav-item.active { border: 1px solid ButtonText; }
 }
+
+/* Continuous loading feedback, including controls with an inline loading label. */
+.prototype .loading-spinner {
+  width: 16px; height: 16px; flex-basis: 16px; border: 0; fill: none;
+  animation: ms-loading-turn 800ms linear infinite !important;
+}
+@keyframes ms-loading-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.loading-spinner-track { stroke: #d9e9de; stroke-width: 2.5; }
+.loading-spinner-arc { stroke: var(--primary-dark); stroke-width: 2.5; stroke-linecap: round; }
+.category-select-field { display: block; position: relative; min-width: 0; }
+.category-select-field select { width: 100%; }
+.category-select-field:has(.loading-spinner) select { padding-right: 54px; }
+.category-select-field > .loading-spinner { position: absolute; right: 30px; top: calc(50% - 8px); pointer-events: none; }
+.balance-amount-field { position: relative; display: block; min-width: 0; }
+.balance-amount-field > .loading-spinner { position: absolute; left: 2px; top: calc(50% - 8px); pointer-events: none; }
+.balance-amount-field input[aria-busy="true"] { padding-left: 20px; }
+.prototype .balance-amount-field input { width: 100%; }

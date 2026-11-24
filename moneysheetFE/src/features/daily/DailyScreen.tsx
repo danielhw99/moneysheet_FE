@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner'
 import MoneyInput from '../../components/MoneyInput'
 import { useEffect, useState } from 'react'
 import type { Screen, DailyRecordKind, RecordEntry } from '../../types/navigation'
@@ -125,7 +126,7 @@ function BalanceCheckForm({ date, initial, blocked, loading, queryFailed, future
  }
  return <>
   <div className="account-balance">
-   <label><span>실제 계좌 잔액</span><MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} aria-busy={loading} placeholder={loading ? '불러오는 중…' : '미입력'} /><b>원</b></label>
+   <label><span>실제 계좌 잔액</span><span className="balance-amount-field">{loading && <LoadingSpinner/>}<MoneyInput aria-label="실제 계좌 잔액" disabled={locked || pending || saving || blocked} value={amount} onValueChange={value => { setAmount(value); setDirty(true) }} aria-busy={loading} placeholder={loading ? '불러오는 중…' : '미입력'} /></span><b>원</b></label>
    <button type="button" className={locked ? 'lock-button locked' : 'lock-button'} disabled={pending || saving || blocked} onClick={() => void toggle()} aria-label={locked ? '잔액 잠금 해제' : '잔액 잠금'}><Icon name={locked ? 'lock' : 'unlock'} size={17} /></button>
   </div>
   <p className="helper">{future ? '미래 날짜의 실제 계좌 잔액은 조회하거나 입력할 수 없어요.' : pending ? '저장 중…' : locked ? amount === '' ? '잠금을 해제하고 실제 잔액을 입력해 주세요.' : '실제 잔액이 저장되어 잠겨 있어요.' : '입력 후 잠금을 누르면 저장돼요. 계산 잔액에는 반영되지 않아요.'}</p>

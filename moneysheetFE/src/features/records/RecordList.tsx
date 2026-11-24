@@ -1,3 +1,4 @@
+import LoadingSpinner from '../../components/LoadingSpinner'
 import { useEffect, useState } from 'react'
 import type { Screen, RecordEntry } from '../../types/navigation'
 import type { ListKind, MoneyRecord } from '../../data/models'
@@ -99,7 +100,7 @@ export default function RecordList({ kind, go, date, changeDate, initialEntry, o
         })}
       </div>
       {pages.error && <div className="query-status" role="alert">{pages.error}<button type="button" disabled={pages.loading || pending} onClick={() => void pages.loadMore()}>더 보기 다시 시도</button><button type="button" disabled={pending} onClick={query.retry}>목록 처음부터</button></div>}
-      {pages.nextCursor && <button type="button" className="secondary-button load-more" disabled={pending || query.loading || pages.loading || !!query.error} onClick={() => void pages.loadMore()}>{pages.loading?'불러오는 중…':'더 보기'}</button>}
+      {pages.nextCursor && <button type="button" className="secondary-button load-more" disabled={pending || query.loading || pages.loading || !!query.error} onClick={() => void pages.loadMore()}>{pages.loading && <LoadingSpinner/>}{pages.loading?'불러오는 중…':'더 보기'}</button>}
       </div>
       {data?.list && (kind === 'transactions' ? <dl className="transaction-totals" aria-label="지출 및 입금 합계">
         <div><dt>지출 합계</dt><dd className="amount-expense">{won(data.list.expenseTotal)}원</dd></div>
