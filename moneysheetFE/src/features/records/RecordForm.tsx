@@ -87,8 +87,8 @@ export default function RecordForm({ kind, item, initialDate, budget, refreshing
     }}>
     <fieldset className="form-fields" disabled={blocked}>
     {(kind === 'transactions' || isMemo) && <div className="segment wide" role="group" aria-label={isMemo ? '메모 입출금 구분' : '거래 구분'}>
-      <button type="button" className={direction === 'expense' ? 'active' : ''} aria-pressed={direction === 'expense'} onClick={() => { setDirection('expense'); if (direction !== 'expense') setCategoryId(null) }}>{isMemo ? '임시 출금' : '지출'}</button>
-      <button type="button" className={direction === 'income' ? 'active' : ''} aria-pressed={direction === 'income'} onClick={() => { setDirection('income'); if (direction !== 'income') setCategoryId(null) }}>{isMemo ? '임시 입금' : '입금'}</button>
+      <button type="button" data-direction="expense" className={direction === 'expense' ? 'active' : ''} aria-pressed={direction === 'expense'} onClick={() => { setDirection('expense'); if (direction !== 'expense') setCategoryId(null) }}>{isMemo ? '임시 출금' : '지출'}</button>
+      <button type="button" data-direction="income" className={direction === 'income' ? 'active' : ''} aria-pressed={direction === 'income'} onClick={() => { setDirection('income'); if (direction !== 'income') setCategoryId(null) }}>{isMemo ? '임시 입금' : '입금'}</button>
     </div>}
     <div className="record-date-time">
       <label className="field"><span>날짜</span><input type="date" value={date} min={managementMonth + '-01'} max={managementMonth + '-' + daysInMonth(managementMonth)} onChange={event => setDate(event.target.value)} required /></label>

@@ -144,3 +144,15 @@
   box-shadow: 0 0 0 3px var(--primary-soft);
   outline: none;
 }
+
+/* Direction colors are scoped to record entry, never memo-status tabs. */
+.record-form .segment button[data-direction="expense"][aria-pressed="true"] {
+  background: var(--blue-soft);
+  color: var(--amount-expense);
+  box-shadow: inset 0 0 0 1px var(--amount-expense), 0 1px 3px rgb(0 0 0 / 6%);
+}
+.record-form .segment button[data-direction="income"][aria-pressed="true"] {
+  background: var(--red-soft);
+  color: var(--amount-income);
+  box-shadow: inset 0 0 0 1px var(--amount-income), 0 1px 3px rgb(0 0 0 / 6%);
+}
