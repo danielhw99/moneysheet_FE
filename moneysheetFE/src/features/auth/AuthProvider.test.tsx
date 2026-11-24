@@ -38,10 +38,11 @@ describe('real authentication UI', () => {
     const api = fakeApi(); start(api, true); const user = userEvent.setup()
     await user.type(await screen.findByLabelText('이메일'), profile.email)
     await user.type(screen.getByLabelText('닉네임'), ' Nick ')
-    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: '😀'.repeat(14) } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: '😀'.repeat(9) } })
     await user.click(screen.getByRole('checkbox'))
     expect(screen.getByRole('button', { name: '가입하기' })).toBeDisabled()
     fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: '😀'.repeat(15) } })
+    fireEvent.change(screen.getByLabelText('비밀번호 확인'), { target: { value: '😀'.repeat(15) } })
     expect(screen.getByRole('button', { name: '가입하기' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: '인증번호 받기' }))
     await user.type(await screen.findByLabelText('인증번호'), '012345')
@@ -129,4 +130,23 @@ describe('real authentication UI', () => {
     render(<StrictMode><AuthProvider api={api}><Probe /></AuthProvider></StrictMode>)
     expect(await screen.findByText(profile.email)).toBeInTheDocument()
   })
+})
+
+it('validates signup confirmation, Unicode boundaries and original-password edits',async()=>{
+ const api=fakeApi();start(api,true);await screen.findByLabelText('이메일');
+ const password=screen.getByLabelText('비밀번호'),confirmation=screen.getByLabelText('비밀번호 확인');
+ for(const n of [9,10,20,21]){fireEvent.change(password,{target:{value:'😀'.repeat(n)}});fireEvent.blur(password);expect(password).toHaveAttribute('aria-invalid',String(n<10||n>20));}
+ fireEvent.change(password,{target:{value:' secure pass! '}});fireEvent.change(confirmation,{target:{value:' secure pass! '}});fireEvent.blur(confirmation);expect(confirmation).toHaveAttribute('aria-invalid','false');
+ fireEvent.change(password,{target:{value:'different pass!'}});expect(confirmation).toHaveAttribute('aria-invalid','true');expect(screen.getByRole('button',{name:'가입하기'})).toBeDisabled();
+})
+it('keeps legacy long passwords available for login',async()=>{
+ const api=fakeApi();start(api);await screen.findByLabelText('이메일');fireEvent.change(screen.getByLabelText('이메일'),{target:{value:profile.email}});fireEvent.change(screen.getByLabelText('비밀번호'),{target:{value:'x'.repeat(30)}});fireEvent.click(screen.getByRole('button',{name:'로그인'}));await waitFor(()=>expect(api.login).toHaveBeenCalledWith({email:profile.email,password:'x'.repeat(30)}));
+})
+it('preserves signup inputs after nickname conflict and submits only API fields on retry',async()=>{
+ const api=fakeApi();vi.mocked(api.signup).mockRejectedValueOnce(new ApiError(409,'CONFLICT','conflict',[{field:'nickname',message:'이미 사용 중인 닉네임입니다.'}]));start(api,true);
+ await screen.findByLabelText('이메일');fireEvent.change(screen.getByLabelText('이메일'),{target:{value:profile.email}});fireEvent.change(screen.getByLabelText('닉네임'),{target:{value:'Nick'}});
+ for(const label of ['비밀번호','비밀번호 확인'])fireEvent.change(screen.getByLabelText(label),{target:{value:' secure pass! '}});
+ fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByRole('button',{name:'인증번호 받기'}));await screen.findByLabelText('인증번호');fireEvent.change(screen.getByLabelText('인증번호'),{target:{value:'012345'}});fireEvent.click(screen.getByRole('button',{name:'인증번호 확인'}));await screen.findByText('이메일 인증이 완료됐어요.');
+ fireEvent.click(screen.getByRole('button',{name:'가입하기'}));await screen.findByText('이미 사용 중인 닉네임입니다.');expect(screen.getByLabelText('닉네임')).toHaveAttribute('aria-invalid','true');expect(screen.getByLabelText('비밀번호 확인')).toHaveValue(' secure pass! ');
+ fireEvent.change(screen.getByLabelText('닉네임'),{target:{value:'Available'}});expect(screen.queryByText('이미 사용 중인 닉네임입니다.')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'가입하기'}));await waitFor(()=>expect(api.signup).toHaveBeenCalledTimes(2));expect(vi.mocked(api.signup).mock.calls[1][0]).toEqual({email:profile.email,nickname:'Available',password:' secure pass! ',privacyPolicyVersion:'v1',privacyAgreed:true,verificationToken:'A'.repeat(43)});
 })

@@ -35,7 +35,7 @@ export default function ProfileSettingsScreen({go}:{go:(screen:Screen)=>void}) {
   event.preventDefault();if(!validName || auth.busy || saving.current)return
   saving.current=true;setNameError('');setNameNotice('')
   try{await auth.updateProfile({nickname:nickname.trim()});setNameNotice('닉네임을 변경했어요.')}
-  catch(error){setNameError(authErrorMessage(error))}
+  catch(error){setNameError(error instanceof ApiError ? error.fieldErrors.find(item=>item.field==='nickname')?.message ?? authErrorMessage(error) : authErrorMessage(error))}
   finally{saving.current=false}
  }
  return <main className="detail-shell profile-settings-screen">
@@ -55,9 +55,9 @@ export default function ProfileSettingsScreen({go}:{go:(screen:Screen)=>void}) {
     </div>
    </section>
    <form className="settings-form nickname-form" onSubmit={saveName} noValidate>
-    <label className="field"><span>닉네임</span><input value={nickname} disabled={auth.busy} autoComplete="nickname" aria-invalid={!validName} onChange={event=>{setNickname(event.target.value);setNameError('');setNameNotice('')}}/></label>
-    {!validName && <p className="field-error">닉네임은 1~50자로 입력해 주세요.</p>}
-    {nameError && <p className="field-error" role="alert">{nameError}</p>}
+    <label className="field"><span>닉네임</span><input value={nickname} disabled={auth.busy} autoComplete="nickname" aria-invalid={!validName || !!nameError} aria-describedby={nameError ? 'profile-nickname-error' : !validName ? 'profile-nickname-validation' : undefined} onChange={event=>{setNickname(event.target.value);setNameError('');setNameNotice('')}}/></label>
+    {!validName && <p id="profile-nickname-validation" className="field-error">닉네임은 1~50자로 입력해 주세요.</p>}
+    {nameError && <p id="profile-nickname-error" className="field-error" role="alert">{nameError}</p>}
     {nameNotice && <p className="form-help" role="status">{nameNotice}</p>}
     <button className="primary-button" disabled={!validName || auth.busy || nickname.trim()===profile?.nickname}>닉네임 저장</button>
    </form>

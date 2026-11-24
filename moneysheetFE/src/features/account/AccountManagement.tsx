@@ -6,12 +6,11 @@ const length = (value: string) => Array.from(value).length
 const accountError = (error: unknown) => error instanceof ApiError && error.code === 'INVALID_CREDENTIALS'
   ? '현재 비밀번호를 확인해 주세요.' : authErrorMessage(error)
 
-export default function AccountManagement({openProfile}:{openProfile:()=>void}) {
+export default function AccountManagement() {
   const auth = useAuth()
   const [dialog, setDialog] = useState<'password' | 'deletion' | null>(null)
   return <div className="settings-form">
     <label className="field"><span>이메일</span><input value={auth.profile?.email ?? ''} readOnly autoComplete="email" /></label>
-    <button className="settings-row" disabled={auth.busy} onClick={openProfile}>프로필 설정</button>
     <button className="settings-row" disabled={auth.busy} onClick={() => setDialog('password')}>비밀번호 변경</button>
     <button className="settings-row account-delete" disabled={auth.busy} onClick={() => setDialog('deletion')}>회원 탈퇴</button>
     {dialog && <AccountDialog mode={dialog} close={() => setDialog(null)} />}
@@ -34,7 +33,7 @@ function AccountDialog({ mode, close }: { mode: 'password' | 'deletion'; close: 
   }, [])
   const isPassword = mode === 'password'
   const valid = length(currentPassword) >= 1 && length(currentPassword) <= 128 && (isPassword
-    ? length(newPassword) >= 15 && length(newPassword) <= 128 && newPassword === confirmation : agreed)
+    ? length(newPassword) >= 10 && length(newPassword) <= 20 && newPassword === confirmation : agreed)
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!valid || auth.busy || saving.current) return
@@ -50,7 +49,7 @@ function AccountDialog({ mode, close }: { mode: 'password' | 'deletion'; close: 
       <label className="field"><span>현재 비밀번호</span><input autoFocus type="password" autoComplete="current-password" value={currentPassword} disabled={auth.busy} onChange={event => { setCurrentPassword(event.target.value); setFailure('') }} /></label>
       {isPassword ? <>
         <label className="field"><span>새 비밀번호</span><input type="password" autoComplete="new-password" value={newPassword} disabled={auth.busy} onChange={event => { setNewPassword(event.target.value); setFailure('') }} /></label>
-        <p className="form-help">15~128자로 입력해 주세요. 공백도 비밀번호에 포함됩니다.</p>
+        <p className="form-help">10~20자로 입력해 주세요. 공백도 비밀번호에 포함됩니다.</p>
         <label className="field"><span>새 비밀번호 확인</span><input type="password" autoComplete="new-password" value={confirmation} disabled={auth.busy} onChange={event => { setConfirmation(event.target.value); setFailure('') }} /></label>
         {confirmation && newPassword !== confirmation && <p className="field-error">새 비밀번호가 일치하지 않아요.</p>}
       </> : <label className="account-confirm"><input type="checkbox" checked={agreed} disabled={auth.busy} onChange={event => setAgreed(event.target.checked)} />모든 데이터가 삭제됨을 확인했습니다.</label>}
