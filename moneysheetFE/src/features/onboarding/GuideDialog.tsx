@@ -5,7 +5,25 @@ export default function GuideDialog({onFinish}:{onFinish?:()=>void}) {
  const guide=useOnboarding(),dialog=useRef<HTMLDialogElement>(null)
  const [index,setIndex]=useState(0),body=useRef<HTMLDivElement>(null),heading=useRef<HTMLHeadingElement>(null)
  const open=!!guide?.guideOpen
- useEffect(()=>{if(!open||!dialog.current)return;setIndex(0);dialog.current.showModal();return()=>{if(dialog.current?.open)dialog.current.close()}},[open])
+ useEffect(()=>{
+  const element=dialog.current
+  if(!open||!element)return
+  const frame=element.closest('.phone-frame')
+  const position=()=>{
+   if(!frame)return
+   const rect=frame.getBoundingClientRect(),padding=getComputedStyle(frame)
+   const left=Math.max(8,rect.left+8+parseFloat(padding.paddingLeft||'0'))
+   const top=Math.max(8,rect.top+8+parseFloat(padding.paddingTop||'0'))
+   const right=Math.min(innerWidth-8,rect.right-8-parseFloat(padding.paddingRight||'0'))
+   const bottom=Math.min(innerHeight-8,rect.bottom-8-parseFloat(padding.paddingBottom||'0'))
+   Object.assign(element.style,{inset:'auto',left:`${left}px`,top:`${top}px`,width:`${Math.max(1,right-left)}px`,height:`${Math.max(1,Math.min(760,bottom-top))}px`,margin:'0'})
+  }
+  setIndex(0);position();element.showModal()
+  const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(position)
+  if(frame)observer?.observe(frame)
+  window.addEventListener('resize',position);window.addEventListener('scroll',position,true)
+  return()=>{observer?.disconnect();window.removeEventListener('resize',position);window.removeEventListener('scroll',position,true);if(element.open)element.close()}
+ },[open])
  useEffect(()=>{if(open){if(body.current)body.current.scrollTop=0;heading.current?.focus({preventScroll:true})}},[index,open])
  if(!open||!guide)return null
  const page=tutorialPages[index],last=index===tutorialPages.length-1

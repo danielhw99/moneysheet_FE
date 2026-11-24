@@ -61,7 +61,7 @@ export default function BudgetSetupScreen({ month, onDone, onCancel }: { month: 
     if (content.current) content.current.scrollTop = 0
     const title = step === 0 ? fixedTitle : foodTitle
     title.current?.focus({ preventScroll: true })
-  }, [step, draft])
+  }, [step, draft, guide?.welcomeSeen])
   const fixedItems = () => rows.map(({ item, amount }, index) => {
     if (!item.name.trim() || [...item.name.trim()].length > 100) throw new Error(`고정비 ${index + 1}: 항목명을 1~100자로 입력해 주세요.`)
     try { return { ...item, name: item.name.trim(), amount: budgetAmount(amount) } }
