@@ -11,3 +11,15 @@ it('marks the active destination and preserves menu navigation arguments',()=>{
  expect(screen.getByRole('button',{name:'Monthly'})).toHaveAttribute('aria-current','page');
  expect(screen.getByRole('button',{name:'Daily'})).not.toHaveAttribute('aria-current');
 })
+
+it('positions the initial highlight at the selected destination',()=>{
+ render(<BottomNav screen="monthly" go={vi.fn()}/>);
+ expect(screen.getByRole('navigation')).toHaveStyle('--nav-index: 2');
+})
+
+it('updates selection on the same mounted navigation',()=>{
+ const view=render(<BottomNav screen="home" go={vi.fn()}/>);const nav=screen.getByRole('navigation');
+ view.rerender(<BottomNav screen="monthly" go={vi.fn()}/>);
+ expect(screen.getByRole('navigation')).toBe(nav);expect(nav).toHaveStyle('--nav-index: 2');
+ expect(screen.getByRole('button',{name:'Monthly'})).toHaveAttribute('aria-current','page');
+})

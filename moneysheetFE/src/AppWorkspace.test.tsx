@@ -221,3 +221,13 @@ async function enterSetup(){
  if(button.textContent==='시작하기')fireEvent.click(button)
  return screen.findByRole('button',{name:'다음: 식비 설정'})
 }
+
+it('keeps one identical bottom navigation element across page changes',async()=>{
+ render(<App authApi={auth()}/>);
+ const nav=await screen.findByRole('navigation',{name:'하단 메뉴'});
+ for(const name of ['Daily','Monthly','MY','홈']){
+  await userEvent.click(screen.getByRole('button',{name}));
+  expect(screen.getByRole('navigation',{name:'하단 메뉴'})).toBe(nav);
+  expect(screen.getAllByRole('navigation',{name:'하단 메뉴'})).toHaveLength(1);
+ }
+})

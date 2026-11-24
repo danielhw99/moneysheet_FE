@@ -13,7 +13,7 @@ import MiniList from '../../components/MiniList'
 import QueryStatus from '../../components/QueryStatus'
 import { currentMonth, localDateValue } from '../../utils/date'
 
-export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void; openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void }) {
+export default function Daily({ go, date, changeDate, openRecord, showNavigation = true }: { go: (s: Screen) => void; date: string; changeDate?: (date: string) => void; showNavigation?: boolean; openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void }) {
   const { pending, mutate } = useDataAccess()
   const query = useDataQuery(`daily:${date}`, api => api.getDaily(date))
   const [actionError, setActionError] = useState('')
@@ -81,7 +81,7 @@ export default function Daily({ go, date, changeDate, openRecord }: { go: (s: Sc
           <button className="panel-add" disabled={summaryBlocked || pending} onClick={() => open('fixed-pay', 'new')}><Icon name="plus" size={16} />지급 기록</button>
         </section>
       </section>
-      <BottomNav screen="daily" go={go} />
+      {showNavigation && <BottomNav screen="daily" go={go} />}
     </main>
   )
 }

@@ -116,9 +116,7 @@
 .app-settings-dropdown, .home-quick-options, .time-picker-panel, .feedback-dialog[open], .guide-dialog[open], .month-picker-dialog[open] { animation: ms-appear 140ms ease-out; }
 @keyframes ms-spin { to { transform: rotate(360deg); } }
 @keyframes ms-appear { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .prototype *, .prototype *::before, .prototype *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-}
+/* Motion-reduction override disabled at user request; OS preferences are unchanged. */
 
 /* Composite amount controls own their focus ring, including the currency suffix. */
 .prototype .money-input { gap: 6px; }
@@ -274,3 +272,15 @@
 .balance-amount-field > .loading-spinner { position: absolute; left: 2px; top: calc(50% - 8px); pointer-events: none; }
 .balance-amount-field input[aria-busy="true"] { padding-left: 20px; }
 .prototype .balance-amount-field input { width: 100%; }
+
+/* The selection pill slides behind stationary labels; navigation itself is immediate. */
+.prototype .bottom-nav::before {
+  content: ''; position: absolute; left: 5px; top: 5px; bottom: 5px;
+  width: calc((100% - 19px) / 4); border-radius: 999px;
+  background: #dcefe4; box-shadow: inset 0 0 0 1px rgb(32 119 79 / 15%);
+  transform: translateX(calc(var(--nav-index, 0) * 100% + var(--nav-index, 0) * 3px));
+  transition: transform 280ms ease-in-out;
+  pointer-events: none;
+}
+.prototype .bottom-nav .nav-item { position: relative; z-index: 1; }
+.prototype .bottom-nav .nav-item.active { background: transparent; box-shadow: none; }

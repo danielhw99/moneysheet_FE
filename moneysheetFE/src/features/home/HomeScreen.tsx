@@ -25,10 +25,10 @@ export function HomeMonthHeader({ month, changeMonth, disabled = false }: { mont
   </div>
 }
 
-export default function Home({ go, month, changeMonth, selectedDate, selectDate, openRecord }: {
+export default function Home({ go, month, changeMonth, selectedDate, selectDate, openRecord, showNavigation = true }: {
   go: (s: Screen) => void; month: string; changeMonth: (offset: number) => void;
   selectedDate: string; selectDate: (date: string) => void;
-  openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void;
+  showNavigation?: boolean; openRecord?: (kind: DailyRecordKind, entry: RecordEntry) => void;
 }) {
   const { pending } = useDataAccess()
   const [lastPicked, setLastPicked] = useState<string | null>(null)
@@ -74,7 +74,7 @@ export default function Home({ go, month, changeMonth, selectedDate, selectDate,
         {!summary && query.loading && <div className="home-calendar-loading"><QueryStatus loading error="" retry={query.retry}/></div>}
       </section>
       {openRecord && <HomeQuickAdd key={selectedDate} date={selectedDate} disabled={pending || query.loading || !!query.error || !summary || selectedDate.slice(0, 7) !== month} onSelect={kind => openRecord(kind, 'new')}/>}
-      <BottomNav screen="home" go={go} />
+      {showNavigation && <BottomNav screen="home" go={go} />}
     </main>
   )
 }
