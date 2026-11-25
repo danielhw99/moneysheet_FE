@@ -6,7 +6,7 @@ const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { 
 it('uploads raw multipart with CSRF and returns a versioned private photo URL', async () => {
   const updated = {...profile, avatarUrl:'/api/v1/me/avatar?v='+'a'.repeat(32)}
   const fetcher = vi.fn().mockResolvedValueOnce(json({token:'csrf',headerName:'X-CSRF-TOKEN'}))
-    .mockResolvedValueOnce(json(updated)).mockResolvedValueOnce(json({...profile,avatarUrl:null}))
+    .mockResolvedValueOnce(json(updated)).mockResolvedValueOnce(json({token:'csrf-new',headerName:'X-CSRF-TOKEN'})).mockResolvedValueOnce(json({...profile,avatarUrl:null}))
   const api = createAuthApi(createHttpClient({fetcher}))
   const file = new File(['image'], 'photo.png', {type:'image/png'})
   expect(await api.uploadAvatar(file)).toEqual(updated)
@@ -16,7 +16,7 @@ it('uploads raw multipart with CSRF and returns a versioned private photo URL', 
   expect(new Headers(init.headers).has('Content-Type')).toBe(false)
   expect(new Headers(init.headers).get('X-CSRF-TOKEN')).toBe('csrf')
   expect(await api.deleteAvatar()).toEqual({...profile,avatarUrl:null})
-  expect(fetcher.mock.calls[2][1].method).toBe('DELETE')
+  expect(fetcher.mock.calls[3][1].method).toBe('DELETE')
 })
 it.each(['https://outside.example/photo','javascript:alert(1)','/api/v1/me/avatar?v=bad'])('rejects an unsafe photo URL %s', async avatarUrl => {
   const api = createAuthApi(createHttpClient({fetcher:vi.fn().mockResolvedValue(json({...profile,avatarUrl}))}))
@@ -92,4 +92,29 @@ it('discards anonymous CSRF after conflict so the next write uses the current se
  const api=createAuthApi(createHttpClient({fetcher}));await expect(api.restoreSession()).rejects.toMatchObject({status:409});
  await api.me();await api.updateProfile({nickname:'New'});
  expect(new Headers(fetcher.mock.calls.at(-1)![1].headers).get('X-CSRF-TOKEN')).toBe('current');
+});
+
+it.each(['nickname','upload','delete'] as const)('waits for pending restoration before profile %s',async operation=>{
+ let finish!: (response:Response)=>void;
+ let csrfCount=0;
+ const fetcher=vi.fn().mockImplementation((url:string)=>{
+  if(url.endsWith('/csrf'))return Promise.resolve(json({token:`csrf-${++csrfCount}`,headerName:'X-CSRF-TOKEN'}));
+  if(url.endsWith('/session'))return new Promise<Response>(resolve=>{finish=resolve});
+  return Promise.resolve(json({...profile,nickname:'Updated',avatarUrl:null}));
+ });
+ const api=createAuthApi(createHttpClient({fetcher}));const restoring=api.restoreSession();
+ await vi.waitFor(()=>expect(finish).toBeDefined());
+ const file=new File(['image'],'photo.png',{type:'image/png'});
+ const writing=operation==='nickname'?api.updateProfile({nickname:'Updated'}):operation==='upload'?api.uploadAvatar(file):api.deleteAvatar();
+ // Flush the request chain: the write must remain blocked while restore is pending.
+ await new Promise(resolve=>setTimeout(resolve,0));
+ expect(fetcher.mock.calls.filter(([url])=>url==='/api/v1/me'||url.endsWith('/me/avatar'))).toHaveLength(0);
+ finish(json(profile));await restoring;
+ await expect(writing).resolves.toEqual({...profile,nickname:'Updated',avatarUrl:null});
+ const [url,options]=fetcher.mock.calls.at(-1)!;
+ expect(url).toBe(operation==='nickname'?'/api/v1/me':'/api/v1/me/avatar');
+ expect(options.method).toBe(operation==='nickname'?'PATCH':operation==='upload'?'PUT':'DELETE');
+ expect(new Headers(options.headers).get('X-CSRF-TOKEN')).toBe('csrf-3');
+ if(operation==='nickname')expect(JSON.parse(options.body)).toEqual({nickname:'Updated'});
+ if(operation==='upload')expect((options.body as FormData).get('file')).toBe(file);
 });

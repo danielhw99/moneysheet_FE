@@ -71,9 +71,9 @@ export function createAuthApi(client: HttpClient = httpClient) {
       client.invalidateCsrf()
       return result
     },
-    async updateProfile(input: { nickname: string }) { return profile(await client.patch('/me', input)) },
-    async uploadAvatar(file: File) { const body = new FormData(); body.append('file',file); return profile(await client.put('/me/avatar',body)) },
-    async deleteAvatar() { return profile(await client.delete('/me/avatar')) },
+    async updateProfile(input: { nickname: string }) { await settleRestore(); return profile(await client.patch('/me', input)) },
+    async uploadAvatar(file: File) { await settleRestore(); const body = new FormData(); body.append('file',file); return profile(await client.put('/me/avatar',body)) },
+    async deleteAvatar() { await settleRestore(); return profile(await client.delete('/me/avatar')) },
     async changePassword(input: { currentPassword: string; newPassword: string }) { await settleRestore(); await client.put<void>('/me/password', input); client.invalidateCsrf() },
     async deleteAccount(input: { currentPassword: string }) { await settleRestore(); await client.post<void>('/me/deletion', input); client.invalidateCsrf() },
     async logout() { await settleRestore(); await client.post<void>('/auth/logout', undefined, { notifyUnauthorized: false }); client.invalidateCsrf() },
