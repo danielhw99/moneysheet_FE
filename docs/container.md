@@ -63,3 +63,7 @@ Compose 검증에서는 FE/Caddy·BE·격리 MySQL을 사용합니다. Windows�
 - 임시 Caddyfile 마운트와 격리 upstream으로 SPA `/daily` 200, API upstream 503 상태/본문 유지, 없는 assets 404 확인.
 - 검증용 컨테이너와 네트워크는 종료·제거했다. 개발 DB·기존 FE/BE·공개 포트는 변경하지 않았다. 검증 이미지/빌드 캐시는 재검증용으로 호스트에 남는다.
 - 실제 BE·MySQL Compose 연결·운영 HTTPS·GHCR 게시 검증은 미실시이며 BE #22와 이후 배포 작업으로 남는다.
+
+## Private GHCR 게시
+
+[게시 절차](ghcr.md)를 따릅니다. 실제 게시·pull은 PR 병합 후 별도로 검증합니다.
