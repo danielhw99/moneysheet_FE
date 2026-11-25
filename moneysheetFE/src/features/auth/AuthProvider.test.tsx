@@ -12,7 +12,7 @@ function fakeApi(): AuthApi {
     signup: vi.fn().mockResolvedValue(profile), login: vi.fn().mockResolvedValue(profile),
     requestEmailVerification: vi.fn().mockResolvedValue({ challengeId: '12345678-1234-1234-1234-123456789abc', expiresAt: new Date(Date.now()+600000).toISOString(), resendAfterSeconds: 60 }),
     confirmEmailVerification: vi.fn().mockResolvedValue({ verificationToken: 'A'.repeat(43), expiresAt: new Date(Date.now()+600000).toISOString() }),
-    logout: vi.fn().mockResolvedValue(undefined), uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), onUnauthorized: vi.fn(() => () => {}) }
+    logout: vi.fn().mockResolvedValue(undefined), uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf: vi.fn(), restoreSession:vi.fn().mockRejectedValue(new ApiError(401,'UNAUTHENTICATED','expired')),onUnauthorized: vi.fn(() => () => {}) }
 }
 function Probe({ signup = false }: { signup?: boolean }) {
   const auth = useAuth()
@@ -31,7 +31,7 @@ describe('real authentication UI', () => {
     await user.click(screen.getByRole('button', { name: '로그인' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('이메일 또는 비밀번호')
     expect(screen.getByLabelText('비밀번호')).toHaveValue(' wrong password ')
-    expect(api.login).toHaveBeenCalledWith({ email: profile.email, password: ' wrong password ' })
+    expect(api.login).toHaveBeenCalledWith({ email: profile.email, password: ' wrong password ', rememberMe: false })
     expect(screen.queryByText(profile.email)).not.toBeInTheDocument()
   })
   it('requires signup policy and Unicode length, then does not automatically log in', async () => {
@@ -140,7 +140,7 @@ it('validates signup confirmation, Unicode boundaries and original-password edit
  fireEvent.change(password,{target:{value:'different pass!'}});expect(confirmation).toHaveAttribute('aria-invalid','true');expect(screen.getByRole('button',{name:'가입하기'})).toBeDisabled();
 })
 it('keeps legacy long passwords available for login',async()=>{
- const api=fakeApi();start(api);await screen.findByLabelText('이메일');fireEvent.change(screen.getByLabelText('이메일'),{target:{value:profile.email}});fireEvent.change(screen.getByLabelText('비밀번호'),{target:{value:'x'.repeat(30)}});fireEvent.click(screen.getByRole('button',{name:'로그인'}));await waitFor(()=>expect(api.login).toHaveBeenCalledWith({email:profile.email,password:'x'.repeat(30)}));
+ const api=fakeApi();start(api);await screen.findByLabelText('이메일');fireEvent.change(screen.getByLabelText('이메일'),{target:{value:profile.email}});fireEvent.change(screen.getByLabelText('비밀번호'),{target:{value:'x'.repeat(30)}});fireEvent.click(screen.getByRole('button',{name:'로그인'}));await waitFor(()=>expect(api.login).toHaveBeenCalledWith({email:profile.email,password:'x'.repeat(30),rememberMe:false}));
 })
 it('preserves signup inputs after nickname conflict and submits only API fields on retry',async()=>{
  const api=fakeApi();vi.mocked(api.signup).mockRejectedValueOnce(new ApiError(409,'CONFLICT','conflict',[{field:'nickname',message:'이미 사용 중인 닉네임입니다.'}]));start(api,true);
@@ -150,3 +150,41 @@ it('preserves signup inputs after nickname conflict and submits only API fields 
  fireEvent.click(screen.getByRole('button',{name:'가입하기'}));await screen.findByText('이미 사용 중인 닉네임입니다.');expect(screen.getByLabelText('닉네임')).toHaveAttribute('aria-invalid','true');expect(screen.getByLabelText('비밀번호 확인')).toHaveValue(' secure pass! ');
  fireEvent.change(screen.getByLabelText('닉네임'),{target:{value:'Available'}});expect(screen.queryByText('이미 사용 중인 닉네임입니다.')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'가입하기'}));await waitFor(()=>expect(api.signup).toHaveBeenCalledTimes(2));expect(vi.mocked(api.signup).mock.calls[1][0]).toEqual({email:profile.email,nickname:'Available',password:' secure pass! ',privacyPolicyVersion:'v1',privacyAgreed:true,verificationToken:'A'.repeat(43)});
 })
+
+it('offers an unchecked remember choice and sends its selected value',async()=>{
+ const api=fakeApi();start(api);const user=userEvent.setup();
+ const choice=await screen.findByRole('checkbox',{name:'로그인 유지'});expect(choice).not.toBeChecked();
+ await user.click(choice);await user.type(screen.getByLabelText('이메일'),profile.email);await user.type(screen.getByLabelText('비밀번호'),'valid password');
+ await user.click(screen.getByRole('button',{name:'로그인'}));
+ await waitFor(()=>expect(api.login).toHaveBeenCalledWith({email:profile.email,password:'valid password',rememberMe:true}));
+});
+it('waits for restoration before showing authenticated content',async()=>{
+ const api=fakeApi();let resolve!: (value:typeof profile)=>void;
+ vi.mocked(api.restoreSession).mockImplementation(()=>new Promise(done=>{resolve=done}));
+ start(api);await waitFor(()=>expect(api.restoreSession).toHaveBeenCalledTimes(1));
+ expect(screen.getByText('확인 중')).toBeInTheDocument();expect(screen.queryByLabelText('이메일')).not.toBeInTheDocument();
+ await act(async()=>resolve(profile));expect(await screen.findByText(profile.email)).toBeInTheDocument();
+});
+it('rechecks me once after a restore conflict without repeating restoration',async()=>{
+ const api=fakeApi();vi.mocked(api.me).mockRejectedValueOnce(new ApiError(401,'UNAUTHENTICATED','expired')).mockResolvedValue(profile);
+ vi.mocked(api.restoreSession).mockRejectedValue(new ApiError(409,'CONFLICT','parallel'));
+ start(api);expect(await screen.findByText(profile.email)).toBeInTheDocument();expect(api.restoreSession).toHaveBeenCalledTimes(1);expect(api.me).toHaveBeenCalledTimes(2);
+});
+it.each([new ApiError(0,'NETWORK','offline'),new ApiError(500,'INTERNAL_ERROR','server'),new ApiError(429,'RATE_LIMITED','limit',[],'',30)])('keeps restore failures retryable: %s',async error=>{
+ const api=fakeApi();vi.mocked(api.restoreSession).mockRejectedValueOnce(error).mockResolvedValue(profile);
+ start(api);await userEvent.click(await screen.findByRole('button',{name:'다시 확인'}));
+ expect(await screen.findByText(profile.email)).toBeInTheDocument();
+});
+it('does not discard the current profile when logout fails',async()=>{
+ const api=fakeApi();vi.mocked(api.me).mockResolvedValue(profile);vi.mocked(api.logout).mockRejectedValue(new ApiError(401,'UNAUTHENTICATED','failed'));
+ start(api);await screen.findByText(profile.email);await userEvent.click(screen.getByRole('button',{name:'종료'}));
+ await waitFor(()=>expect(api.logout).toHaveBeenCalledTimes(1));expect(screen.getByText(profile.email)).toBeInTheDocument();
+});
+it('ignores a delayed restore result after logout',async()=>{
+ const api=fakeApi();let resolve!: (value:typeof profile)=>void;
+ vi.mocked(api.me).mockResolvedValueOnce(profile).mockRejectedValue(new ApiError(401,'UNAUTHENTICATED','expired'));
+ vi.mocked(api.restoreSession).mockImplementation(()=>new Promise(done=>{resolve=done}));
+ start(api);await screen.findByText(profile.email);fireEvent(window,new Event('focus'));
+ await waitFor(()=>expect(resolve).toBeDefined());await userEvent.click(screen.getByRole('button',{name:'종료'}));await screen.findByLabelText('이메일');
+ await act(async()=>resolve(profile));expect(screen.queryByText(profile.email)).not.toBeInTheDocument();
+});

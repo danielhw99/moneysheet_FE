@@ -11,6 +11,7 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const [verificationToken, setVerificationToken] = useState('')
   const [verificationRevision, setVerificationRevision] = useState(0)
@@ -39,7 +40,7 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
       if (signup) {
         await auth.signup({ ...input, nickname: nickname.trim(), privacyPolicyVersion: 'v1', privacyAgreed: agreed, verificationToken })
         go('login')
-      } else await auth.login(input)
+      } else await auth.login({ ...input, rememberMe })
     } catch (error) {
       setFailure(authErrorMessage(error))
       if (error instanceof ApiError) setServerErrors(Object.fromEntries(error.fieldErrors.map(item => [item.field, item.message])))
@@ -80,6 +81,8 @@ export default function AuthScreen({ go, signup = false }: { go: (s: Screen) => 
       {signup && <div><label className="policy"><input type="checkbox" required disabled={auth.busy} checked={agreed} onChange={event => { setAgreed(event.target.checked); touch('agreed'); edit('privacyAgreed') }} aria-invalid={!!fieldError('agreed')} /> <span>개인정보처리방침을 확인했으며 동의합니다.</span></label>
         {fieldError('agreed') && <small className="field-error">{fieldError('agreed')}</small>}
       </div>}
+      {!signup && <div><label className="policy"><input type="checkbox" checked={rememberMe} disabled={auth.busy} onChange={event => setRememberMe(event.target.checked)} /> <span>로그인 유지</span></label>
+        <p className="form-help">이 브라우저에서 최대 30일간 유지돼요. 공용 기기에서는 선택하지 마세요.</p></div>}
       {failure && <p className="field-error" role="alert">{failure}</p>}
       <button className="primary-button" type="submit" disabled={!canSubmit}>{auth.busy ? '처리 중…' : signup ? '가입하기' : '로그인'}</button>
       <p className="form-help">{signup ? '이메일 인증을 완료한 뒤 가입해 주세요. 비밀번호 찾기는 아직 지원하지 않아요.' : '이메일과 비밀번호로 로그인해 주세요.'}</p>

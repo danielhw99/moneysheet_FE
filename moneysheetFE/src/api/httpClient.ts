@@ -5,6 +5,7 @@ export class ApiError extends Error {
     public readonly retryAfterSeconds?: number) { super(message); this.name = 'ApiError' }
 }
 type Csrf = { token: string; headerName: 'X-CSRF-TOKEN' }
+type WriteOptions = { idempotencyKey?: string; notifyUnauthorized?: boolean }
 type Options = { fetcher?: typeof fetch; timeoutMs?: number }
 export type HttpClient = ReturnType<typeof createHttpClient>
 
@@ -70,11 +71,11 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
     return work
   }
 
-  async function write<T>(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: unknown, options?: { idempotencyKey: string }): Promise<T> {
+  async function write<T>(method: 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, body?: unknown, options?: WriteOptions): Promise<T> {
     const current = generation
     const value = await csrf()
     if (generation !== current) throw new ApiError(0, 'SESSION_CHANGED', '인증 상태가 변경됐어요. 다시 시도해 주세요.')
-    try { return await send<T>(path, method, body, value, true, options?.idempotencyKey) } catch (error) {
+    try { return await send<T>(path, method, body, value, options?.notifyUnauthorized ?? true, options?.idempotencyKey) } catch (error) {
       if (error instanceof ApiError && error.code === 'CSRF_INVALID' && current === generation) {
         invalidateCsrf()
         try { await csrf() } catch { /* Retry remains an explicit user action. */ }
@@ -85,10 +86,11 @@ export function createHttpClient({ fetcher = (...args) => fetch(...args), timeou
   return {
     get: <T,>(path: string, options: { notifyUnauthorized?: boolean } = {}) =>
       send<T>(path, 'GET', undefined, undefined, options.notifyUnauthorized ?? true),
-    post: <T,>(path: string, body?: unknown, options?: { idempotencyKey: string }) => write<T>('POST', path, body, options),
+    post: <T,>(path: string, body?: unknown, options?: WriteOptions) => write<T>('POST', path, body, options),
     patch: <T,>(path: string, body?: unknown) => write<T>('PATCH', path, body),
     put: <T,>(path: string, body?: unknown) => write<T>('PUT', path, body),
     delete: <T = void,>(path: string) => write<T>('DELETE', path),
+    csrf,
     invalidateCsrf,
     onUnauthorized(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
   }

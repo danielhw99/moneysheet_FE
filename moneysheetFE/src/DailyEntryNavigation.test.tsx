@@ -1,3 +1,4 @@
+import { ApiError } from './api/httpClient'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import App from './App'
@@ -8,7 +9,7 @@ afterEach(()=>vi.unstubAllGlobals())
 it('returns a direct editor to the selected Daily but a list editor to its list',async()=>{
  const selected=month+'-02'
  const row={id:'501',date:selected,time:'12:30',title:'Direct record',amount:100,direction:'expense',categoryId:null}
- const auth:AuthApi={me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),requestEmailVerification:vi.fn(),confirmEmailVerification:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})}
+ const auth:AuthApi={me:vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),requestEmailVerification:vi.fn(),confirmEmailVerification:vi.fn(),resetCsrf:vi.fn(),restoreSession:vi.fn().mockRejectedValue(new ApiError(401,'UNAUTHENTICATED','expired')),onUnauthorized:vi.fn(()=>()=>{})}
  httpClient.invalidateCsrf()
  const fetcher=vi.fn(async(url:RequestInfo|URL)=>{
   const u=new URL(String(url),'http://localhost')
