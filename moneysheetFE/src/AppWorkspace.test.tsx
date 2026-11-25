@@ -1,3 +1,4 @@
+import { ApiError } from './api/httpClient'
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
@@ -6,7 +7,7 @@ import { httpClient } from './api/httpClient'
 import { financeResponse, profile, today, budget, home as homeSummary } from './test/financeFixtures'
 import type { AuthApi } from './features/auth/authApi'
 import { localDateValue } from './utils/date'
-const auth=():AuthApi=>({requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),onUnauthorized:vi.fn(()=>()=>{})})
+const auth=():AuthApi=>({requestEmailVerification: vi.fn(), confirmEmailVerification: vi.fn(), me: vi.fn().mockResolvedValue(profile),login:vi.fn(),signup:vi.fn(),logout:vi.fn(),uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updateProfile:vi.fn(),changePassword:vi.fn(),deleteAccount:vi.fn(),resetCsrf:vi.fn(),restoreSession:vi.fn().mockRejectedValue(new ApiError(401,'UNAUTHENTICATED','expired')),onUnauthorized:vi.fn(()=>()=>{})})
 beforeEach(()=>{httpClient.invalidateCsrf();vi.stubGlobal('fetch',vi.fn(async(url:RequestInfo|URL)=>financeResponse(url)))})
 afterEach(()=>vi.unstubAllGlobals())
 it('shows a centered profile with a working profile settings path and existing menus',async()=>{

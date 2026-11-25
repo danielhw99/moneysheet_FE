@@ -41,6 +41,7 @@ it.each(['focus', 'online'])('shares an in-flight check on %s and preserves same
 
 it('still clears the profile and CSRF cache when the latest session check returns 401', async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(json(profile)).mockResolvedValueOnce(expired())
+    .mockResolvedValueOnce(json({token:'csrf',headerName:'X-CSRF-TOKEN'})).mockResolvedValueOnce(expired())
   const api = createAuthApi(createHttpClient({ fetcher }))
   const reset = vi.spyOn(api, 'resetCsrf')
   render(<AuthProvider api={api}><Probe /></AuthProvider>)
@@ -50,3 +51,14 @@ it('still clears the profile and CSRF cache when the latest session check return
   expect(screen.queryByLabelText('작업 메모')).not.toBeInTheDocument()
   expect(reset).toHaveBeenCalledTimes(1)
 })
+
+it('preserves same-user draft after actual cookie restoration and never replays a write', async()=>{
+ const fetcher=vi.fn().mockResolvedValueOnce(json(profile)).mockResolvedValueOnce(expired())
+  .mockResolvedValueOnce(json({token:'before',headerName:'X-CSRF-TOKEN'})).mockResolvedValueOnce(json(profile))
+  .mockResolvedValueOnce(json({token:'after',headerName:'X-CSRF-TOKEN'}));
+ render(<AuthProvider api={createAuthApi(createHttpClient({fetcher}))}><Probe /></AuthProvider>);
+ await screen.findByText(profile.email);const input=screen.getByLabelText('작업 메모');await userEvent.type(input,'복원 후에도 유지');
+ fireEvent(window,new Event('focus'));await vi.waitFor(()=>expect(fetcher).toHaveBeenCalledTimes(5));
+ expect(screen.getByLabelText('작업 메모')).toBe(input);expect(input).toHaveValue('복원 후에도 유지');
+ expect(fetcher.mock.calls.filter(([,options])=>options.method==='POST').map(([url])=>url)).toEqual(['/api/v1/auth/session']);
+});

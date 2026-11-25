@@ -53,3 +53,43 @@ it('sends account methods and bodies with CSRF, never trimming passwords',async(
  const a=createAuthApi(createHttpClient({fetcher}));expect(await a.updateProfile({nickname:'New'})).toMatchObject({nickname:'New'});await a.changePassword({currentPassword:' current ',newPassword:' a unique new password! '});await a.deleteAccount({currentPassword:' current '})
  expect(fetcher.mock.calls.filter(([url])=>!url.endsWith('/csrf')).map(([url,options])=>[url,options.method,JSON.parse(options.body)])).toEqual([['/api/v1/me','PATCH',{nickname:'New'}],['/api/v1/me/password','PUT',{currentPassword:' current ',newPassword:' a unique new password! '}],['/api/v1/me/deletion','POST',{currentPassword:' current '}]])
 })
+
+it('shares explicit restores, sends no body and refreshes CSRF afterward', async () => {
+ const fetcher=vi.fn().mockResolvedValueOnce(json({token:'before',headerName:'X-CSRF-TOKEN'}))
+  .mockResolvedValueOnce(json(profile)).mockResolvedValueOnce(json({token:'after',headerName:'X-CSRF-TOKEN'}));
+ const api=createAuthApi(createHttpClient({fetcher}));
+ await Promise.all([api.restoreSession(),api.restoreSession()]);
+ expect(fetcher.mock.calls.map(([url])=>url)).toEqual(['/api/v1/auth/csrf','/api/v1/auth/session','/api/v1/auth/csrf']);
+ expect(fetcher.mock.calls[1][1].body).toBeUndefined();
+ expect(new Headers(fetcher.mock.calls[1][1].headers).get('X-CSRF-TOKEN')).toBe('before');
+});
+it('keeps restore failures local instead of publishing unauthorized events',async()=>{
+ const fetcher=vi.fn().mockResolvedValueOnce(json({token:'csrf',headerName:'X-CSRF-TOKEN'}))
+  .mockResolvedValueOnce(new Response(JSON.stringify({code:'UNAUTHENTICATED'}),{status:401}));
+ const client=createHttpClient({fetcher});const listener=vi.fn();client.onUnauthorized(listener);
+ await expect(createAuthApi(client).restoreSession()).rejects.toMatchObject({status:401});expect(listener).not.toHaveBeenCalled();
+});
+
+it('serializes logout after a pending restore and propagates logout failures',async()=>{
+ let finish!: (value:Response)=>void;
+ const fetcher=vi.fn().mockImplementation((url:string)=>{
+  if(url.endsWith('/csrf'))return Promise.resolve(json({token:'csrf',headerName:'X-CSRF-TOKEN'}));
+  if(url.endsWith('/session'))return new Promise<Response>(resolve=>{finish=resolve});
+  return Promise.resolve(new Response(JSON.stringify({code:'UNAUTHENTICATED'}),{status:401}));
+ });
+ const api=createAuthApi(createHttpClient({fetcher}));const restoring=api.restoreSession();
+ await vi.waitFor(()=>expect(finish).toBeDefined());const logout=api.logout();
+ expect(fetcher.mock.calls.some(([url])=>url.endsWith('/logout'))).toBe(false);
+ finish(json(profile));await restoring;await expect(logout).rejects.toMatchObject({status:401});
+ expect(fetcher.mock.calls.at(-1)![0]).toBe('/api/v1/auth/logout');
+});
+
+it('discards anonymous CSRF after conflict so the next write uses the current session token',async()=>{
+ const fetcher=vi.fn().mockResolvedValueOnce(json({token:'anonymous',headerName:'X-CSRF-TOKEN'}))
+  .mockResolvedValueOnce(new Response(JSON.stringify({code:'CONFLICT'}),{status:409}))
+  .mockResolvedValueOnce(json(profile)).mockResolvedValueOnce(json({token:'current',headerName:'X-CSRF-TOKEN'}))
+  .mockResolvedValueOnce(json(profile));
+ const api=createAuthApi(createHttpClient({fetcher}));await expect(api.restoreSession()).rejects.toMatchObject({status:409});
+ await api.me();await api.updateProfile({nickname:'New'});
+ expect(new Headers(fetcher.mock.calls.at(-1)![1].headers).get('X-CSRF-TOKEN')).toBe('current');
+});

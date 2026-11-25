@@ -62,7 +62,16 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
     checking.current = { epoch: ticket, sequence }
     if (bootstrap) { setInitializing(true); setBootstrapError('') }
     try {
-      const value = await api.me()
+      let value: UserProfile
+      try { value = await api.me() } catch (error) {
+        if (!unauthorized(error) || ticket !== epoch.current || sequence !== checkSequence.current) throw error
+        try { value = await api.restoreSession() } catch (restoreError) {
+          if (!(restoreError instanceof ApiError) || restoreError.status !== 409
+            || ticket !== epoch.current || sequence !== checkSequence.current) throw restoreError
+          // Another tab may already have installed a new session cookie; never loop rotations.
+          value = await api.me()
+        }
+      }
       if (ticket === epoch.current && sequence === checkSequence.current) { accept(value); setNotice(''); setValidationRevision(previous => previous + 1) }
     } catch (error) {
       if (ticket !== epoch.current || sequence !== checkSequence.current) return
@@ -130,12 +139,7 @@ export function AuthProvider({ children, api: implementation }: { children: Reac
       if (current.current) try { localStorage.removeItem(`moneysheet:onboarding:v1:${current.current.id}`) } catch { /* In-memory session still ends. */ }
       api.resetCsrf(); clear('회원 탈퇴가 완료됐어요.')
     }),
-    logout: async () => {
-      try { await run(() => api.logout(), () => clear()) } catch (error) {
-        if (unauthorized(error)) clear('로그인이 만료됐어요. 다시 로그인해 주세요.')
-        else throw error
-      }
-    },
+    logout: () => run(() => api.logout(), () => clear()),
   }}>{children}</Context.Provider>
 }
 export function useAuth() {
