@@ -1,0 +1,33 @@
+# Deny by default. Docker builds use the repository root as context.
+**
+!Dockerfile
+!.dockerignore
+!moneysheetFE/
+!moneysheetFE/package.json
+!moneysheetFE/pnpm-lock.yaml
+!moneysheetFE/index.html
+!moneysheetFE/tsconfig.json
+!moneysheetFE/vite.config.ts
+!moneysheetFE/.figma/
+!moneysheetFE/.figma/make/
+!moneysheetFE/.figma/make/site.json
+!moneysheetFE/src/
+!moneysheetFE/src/**
+!moneysheetFE/public/
+!moneysheetFE/public/**
+# Never allow local secrets/artifacts through the source/public exceptions.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/id_rsa
+**/id_ed25519
+**/*.sql
+**/*.log
+**/node_modules
+**/dist
+**/.git
+**/*.test.*
+**/src/test
