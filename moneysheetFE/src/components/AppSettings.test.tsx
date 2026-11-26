@@ -29,6 +29,8 @@ it('closes on outside click, Escape, and keyboard focus leaving the dropdown', a
  expect(trigger).toHaveFocus()
  await userEvent.click(trigger)
  await userEvent.tab(); await userEvent.tab()
+ expect(screen.getByRole('button',{name:'앱 설치 안내'})).toHaveFocus()
+ await userEvent.tab()
  expect(trigger).toHaveAttribute('aria-expanded','false')
 })
 it('cannot open during a pending save', () => {
