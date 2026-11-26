@@ -1,0 +1,4 @@
+
+
+# Runtime installation icons must be available without an LFS fetch.
+moneysheetFE/public/icons/*.png -filter -diff -merge -text
