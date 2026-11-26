@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
+import InstallAppGuide from '../pwa/InstallAppGuide'
 
 export default function AppSettings({ openGuide, openCategories, openFood, disabled = false }: { openGuide: () => void; openCategories?: () => void; openFood?: () => void; disabled?: boolean }) {
  const [open, setOpen] = useState(false)
+ const [installOpen, setInstallOpen] = useState(false)
  const container = useRef<HTMLDivElement>(null)
  const trigger = useRef<HTMLButtonElement>(null)
  useEffect(() => {
@@ -25,6 +27,8 @@ export default function AppSettings({ openGuide, openCategories, openFood, disab
    <button type="button" disabled={disabled || !openCategories} onClick={() => { if (disabled || !openCategories) return; setOpen(false); trigger.current?.focus(); openCategories() }}>카테고리 관리</button>
    {openFood && <button type="button" disabled={disabled} onClick={()=>{if(disabled)return;setOpen(false);trigger.current?.focus();openFood()}}>식비 설정</button>}
    <button type="button" disabled={disabled} onClick={() => { if (disabled) return; setOpen(false); trigger.current?.focus(); openGuide() }}>사용 가이드</button>
+   <button type="button" disabled={disabled} onClick={() => { if (disabled) return; setOpen(false); trigger.current?.focus(); setInstallOpen(true) }}>앱 설치 안내</button>
   </nav>}
+  <InstallAppGuide open={installOpen} onClose={() => setInstallOpen(false)} triggerRef={trigger} />
  </div>
 }
